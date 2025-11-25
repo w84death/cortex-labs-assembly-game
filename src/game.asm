@@ -3133,27 +3133,16 @@ WindowInspectText              db 'BUILDING INSPECTION',0x0
 ; ==============================================================
 
 TerrainRules:
-; 0 – Mud 1 → heavily biased to stay muddy
-db 0,0,0,0, 1,1,2,2
-; 1 – Mud 2 → slowly transitions to mudgrass
-db 1,1,1,1, 2,2,3,3
-; 2 – Mud Grass 1 → transition zone
-db 2,2,2,2, 1,3,3,4
-; 3 – Mud Grass 2 → strong grass push
-db 3,3,3,3, 3,4,4,4
-; 4 – Grass → very stable, dominates plains
-db 4,3,4,4, 4,4,5,5
-
-; 5 – Bush → rare, transitional
-db 5,5,5,4, 4,6,6,3
-; 6 – Trees 1 → forest cores
-db 6,6,6,6, 7,7,5,4
-; 7 – Trees 2 → dense forest
-db 7,7,7,7, 7,6,6,8
-; 8 – Mountains 1 → very stable
-db 8,8,8,8, 8,8,9,7
-; 9 – Mountains 2 → peaks, almost never leave
-db 9,9,9,9, 9,9,9,8
+db 0,0,0,0, 1,1,2,2                     ; 0 – Mud 1 → biased to stay muddy
+db 1,1,1,1, 2,2,3,3                     ; 1 – Mud 2 → slowly transitions
+db 2,2,2,2, 1,3,3,4                     ; 2 – Mud Grass 1 → transition zone
+db 3,3,3,3, 3,3,4,4                     ; 3 – Mud Grass 2 → strong grass push
+db 4,3,4,4, 4,4,5,5                     ; 4 – Grass → stable transition
+db 5,5,5,4, 4,6,6,3                     ; 5 – Bush → rare, transitional
+db 6,6,6,6, 7,7,5,4                     ; 6 – Trees 1 → forest cores
+db 7,7,7,7, 7,6,6,8                     ; 7 – Trees 2 → dense forest
+db 8,7,7,8, 8,8,9,9                     ; 8 – Mountains 1 → very stable
+db 9,7,8,8, 9,9,9,9                     ; 9 – Mountains 2
 
 TerrainColors:
 db 0x4          ; Mud 1
