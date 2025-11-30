@@ -275,6 +275,7 @@ TILE_DIRECTION_MASK             equ 0x3
 SWITCH_DATA_CLIP                equ 0xEC
 RESOURCE_TYPE_MASK              equ 0xC
 RESOURCE_TYPE_SHIFT             equ 0x2
+RESOURCE_TYPE_CLIP              equ 0xF3
 SWITCH_MASK                     equ 0x10
 CART_DIRECTION_MASK             equ 0x60
 CART_DIRECTION_SHIFT            equ 0x5
@@ -769,39 +770,42 @@ game_logic:
         jmp .revert_move
 
         .check_forward_move:
-          test byte [fs:di + FG], CART_DRAW_MASK
+          test byte [fs:di + FG], CART_DRAW_MASK  ; check for other cart
           jz .save_pod_move
 
         .pod_meet:
-          mov ah, [fs:di + META]
-          and ah, CART_DIRECTION_MASK
-          shr ah, CART_DIRECTION_SHIFT
+          mov ah, [fs:di + META]        ; get metadata
+          and ah, CART_DIRECTION_MASK   ; keep only diretion
+          shr ah, CART_DIRECTION_SHIFT  ; shift to be a number
 
           cmp al, ah                    ; check if same dir
           je .next_pod                  ; not in collision, wait
 
-          xor ah, 0x2
+          xor ah, 0x2                   ; mirror direction (for check)
           cmp al, ah                    ; check if pointing at each other
         jne .next_pod                   ; not in collision, wait
 
       .revert_move:
         mov al, cl                      ; restore initial direction
         xor ax, 0x2                     ; mirror direction
-        and byte [fs:bx + META], CART_DIRECTION_CLIP
-        shl al, CART_DIRECTION_SHIFT
-        add byte [fs:bx + META], al
+        shl al, CART_DIRECTION_SHIFT    ; move to right place
+        and byte [fs:bx + META], CART_DIRECTION_CLIP  ; clear old direction
+        add byte [fs:bx + META], al     ; save the reverted direction
       jmp .next_pod
 
       .save_pod_move:
-        mov word [fs:si + ENTS], di            ; update entitie pointer to new pos
-        and byte [fs:bx + FG], CART_DRAW_CLIP  ; remove cart drawing from old pos
+        mov word [fs:si + ENTS], di            ; update ent pointer to new pos
+        and byte [fs:bx + FG], CART_DRAW_CLIP  ; remove cart from old pos
         add byte [fs:di + FG], CART_DRAW_MASK  ; draw cart on new pos
 
-        ; TODO: move also resources and cursor!
-
-        and byte [fs:di + META], CART_DIRECTION_CLIP
-        shl al, CART_DIRECTION_SHIFT
-        add byte [fs:di + META], al
+        and byte [fs:di + META], CART_DIRECTION_CLIP  ; clear new cart direction
+        and byte [fs:di + META], RESOURCE_TYPE_CLIP ; clear new resources
+        shl al, CART_DIRECTION_SHIFT    ; shift new direction to right place
+        mov cl, [fs:bx + META]          ; get old metadata
+        and cl, RESOURCE_TYPE_MASK      ; keep only resouces data
+        add al, cl                      ; merge resources and direction
+        add byte [fs:di + META], al     ; save in new position
+        and byte [fs:bx + META], RESOURCE_TYPE_CLIP ; clear old resources
 
       .redraw_tiles:
         push si
