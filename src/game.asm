@@ -39,7 +39,17 @@ org 0x0100
 
 SEGMENT_VGA                 equ 0xA000  ; VGA memory (fixed by hardware)
 GAME_STACK_POINTER          equ 0xFFFE  ; Stack pointer for game code
-SEGMENT_SPRITES             equ 0x5400  ; 96 tiles (6KB)
+
+SEGMENT_SPRITES             equ 0x5400  ; 6 KB  → 95 tiles × 256 = ~24 KB
+SEGMENT_TERRAIN_ALL         equ 0x8000  ; 64 KB → all 4 layers
+SEGMENT_SPRITES             equ 0x9000  ; 96 tiles (6KB)
+SEGMENT_VGA                 equ 0xA000
+
+BG  equ 0x0000
+FG  equ 0x4000
+META equ 0x8000
+RES  equ 0xC000
+
 SEGMENT_TERRAIN_BACKGROUND  equ 0x6400  ; Terrain first layer (16KB)
 SEGMENT_TERRAIN_FOREGROUND  equ 0x6800  ; Terrain second layer (16KB)
 SEGMENT_META_DATA           equ 0x6C00  ; Terrain third layer (16KB)
@@ -395,13 +405,19 @@ init:
   pop ss
   mov sp, GAME_STACK_POINTER
 
-  call initialize_custom_palette
+  ; mov ax, SEGMENT_TERRAIN_ALL
+  ; mov ds, ax
+  ; mov fs, ax
+  ; mov gs, ax
 
+  call initialize_custom_palette
   mov byte [_GAME_STATE_], STATE_INIT_ENGINE
 
 ; =========================================== GAME LOOP =====================|80
 
 main_loop:
+
+  call benchmark.start
 
 ; =========================================== GAME STATES ===================|80
 
@@ -474,7 +490,20 @@ check_keyboard:
 
 .keyboard_done:
 
+.update_game_logic:
+  cmp byte [_GAME_STATE_], STATE_GAME
+  jnz .skip_turn
+  dec byte [_GAME_TURN_]
+  cmp byte [_GAME_TURN_], 0x0
+  jg .skip_turn
+    call game_logic.calculate_pods
+    mov byte [_GAME_TURN_], GAME_TURN_LENGTH
+  .skip_turn:
+
 ; =========================================== GAME TICK =====================|80
+
+call benchmark.end
+call benchmark.draw_stats
 
 .cpu_delay:
   xor ax, ax                            ; 00h: Read system timer counter
@@ -493,16 +522,6 @@ check_keyboard:
 
 .update_system_tick:
   inc dword [_GAME_TICK_]               ; overflow naturally
-
-.update_game_logic:
-  cmp byte [_GAME_STATE_], STATE_GAME
-  jnz .skip_turn
-  dec byte [_GAME_TURN_]
-  cmp byte [_GAME_TURN_], 0x0
-  jg .skip_turn
-    call game_logic.calculate_pods
-    mov byte [_GAME_TURN_], GAME_TURN_LENGTH
-  .skip_turn:
 
 ; =========================================== ESC OR LOOP ===================|80
 
@@ -1543,6 +1562,7 @@ init_game:
   call ui.draw_cursor
   call ui.draw_screen_frame
   call ui.draw_footer
+
   mov byte [_GAME_STATE_], STATE_GAME
   mov byte [_SCENE_MODE_], SCENE_MODE_ANY
 
@@ -2949,6 +2969,54 @@ audio:
     mov byte [_SFX_NOTE_DURATION_], 0
     sti
     ret
+
+; ============================================================================
+benchmark:
+  .start:
+    rdtsc
+    mov [bench_prev], eax
+    mov [bench_prev+4], edx
+    ret
+
+  .end:
+    rdtsc
+    sub eax, [bench_prev]
+    sbb edx, [bench_prev+4]
+
+    movzx ebx, byte [bench_idx]
+    and ebx, 7
+    shl ebx, 3                          ; each entry: 8 bytes
+    mov [bench_history + ebx], eax
+    mov [bench_history + ebx + 4], edx
+
+    inc byte [bench_idx]
+    ret
+
+  .draw_stats:
+      xor eax, eax
+      xor edx, edx
+      mov ecx, 8
+      mov ebx, bench_history
+      .sum_loop:
+        add eax, [ebx]
+        adc edx, [ebx+4]
+        add ebx, 8
+      loop .sum_loop
+
+      shr eax, 3
+
+    mov esi, eax
+    shr esi, 4
+    mov dh, UI_STATS_TXT_LINE
+    mov dl, 0x01
+    mov bl, COLOR_YELLOW
+    mov cx, 10000
+    call font.draw_number
+    ret
+
+bench_prev      dd 0, 0
+bench_idx       db 0
+bench_history   dd 0,0, 0,0, 0,0, 0,0, 0,0, 0,0, 0,0, 0,0   ; 8 × 64-bit entries
 
 ; =========================================== LOGIC FOR GAME STATES =========|80
 
