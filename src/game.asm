@@ -42,21 +42,12 @@ GAME_STACK_POINTER          equ 0xFFFE  ; Stack pointer for game code
 
 SEGMENT_SPRITES             equ 0x5400  ; 6 KB  → 95 tiles × 256 = ~24 KB
 SEGMENT_TERRAIN_ALL         equ 0x8000  ; 64 KB → all 4 layers
-SEGMENT_SPRITES             equ 0x9000  ; 96 tiles (6KB)
 SEGMENT_VGA                 equ 0xA000
 
 BG  equ 0x0000
 FG  equ 0x4000
 META equ 0x8000
-RES  equ 0xC000
-
-SEGMENT_TERRAIN_BACKGROUND  equ 0x6400  ; Terrain first layer (16KB)
-SEGMENT_TERRAIN_FOREGROUND  equ 0x6800  ; Terrain second layer (16KB)
-SEGMENT_META_DATA           equ 0x6C00  ; Terrain third layer (16KB)
-SEGMENT_RESERVED            equ 0x7000  ; Terrain fourth layer (16KB)
-SEGMENT_ENTITIES            equ 0x7400  ; Entities data (pointers)
-OFFSET_ENTITIES_PODS        equ 0x0000  ; Pods
-OFFSET_ENTITIES_RESOURCES   equ 0x0400  ; Resources
+ENTS  equ 0xC000
 
 ; =========================================== MEMORY ALLOCATION =============|80
 
@@ -228,7 +219,7 @@ TILE_BUILDING_RADAR_ID          equ TILE_BUILDING_RADAR-TILE_FOREGROUND_SHIFT
 TILE_BUILDING_PODS_ID           equ TILE_BUILDING_PODS-TILE_FOREGROUND_SHIFT
 TILE_BUILDING_POWER_ID          equ TILE_BUILDING_POWER-TILE_FOREGROUND_SHIFT
 
-; SEGMENT_TERRAIN_BACKGROUND
+; SEGMENT BG
 ; 0 0 0 0 0000
 ; | | | | |
 ; | | | | '- background sprite id (16)
@@ -250,7 +241,7 @@ RESOURCE_SHIFT                  equ 0x6
 INFRASTRUCTURE_MASK             equ 0x80
 INFRASTRUCTURE_SHIFT            equ 0x7
 
-; SEGMENT_TERRAIN_FOREGROUND
+; SEGMENT FG
 ; 00 0 00000
 ; |  | |
 ; |  | '- sprite id (32) (rails / buildings)
@@ -266,7 +257,7 @@ CURSOR_TYPE_CLIP                equ 0x3F
 CURSOR_TYPE_SHIFT               equ 0x06
 CURSOR_TYPE_ROL                 equ 0x02
 
-; SEGMENT_META_DATA
+; SEGMENT META
 ; 0 00 0 00 00
 ; | |  | |  |
 ; | |  | |  |
@@ -319,7 +310,7 @@ UPGRADE_SILOS_SPEED_MASK        equ 0x800
 UPGRADE_PODS_FACTORYCOST_MASK   equ 0x1000
 
 ; MISC
-;
+
 CART_LEFT                       equ 0x00
 CART_DOWN                       equ 0x01
 CART_RIGHT                      equ 0x02
@@ -405,10 +396,8 @@ init:
   pop ss
   mov sp, GAME_STACK_POINTER
 
-  ; mov ax, SEGMENT_TERRAIN_ALL
-  ; mov ds, ax
-  ; mov fs, ax
-  ; mov gs, ax
+  push SEGMENT_TERRAIN_ALL
+  pop fs
 
   call initialize_custom_palette
   mov byte [_GAME_STATE_], STATE_INIT_ENGINE
@@ -618,9 +607,6 @@ game_logic:
     jmp .redraw_terrain
 
   .change_action:
-    push es
-    push ds
-
     mov bx, SFX_BUILD
     call audio.play_sfx
 
@@ -628,12 +614,7 @@ game_logic:
     shl di, 7   ; Y * 128
     add di, [_CURSOR_X_]               ; For quick random number
 
-    push SEGMENT_TERRAIN_BACKGROUND
-    pop es
-    push SEGMENT_TERRAIN_FOREGROUND
-    pop ds
-
-    mov al, [es:di]
+    mov al, [fs:di]
     test al, RAIL_MASK
     jnz .switch_change
     test al, INFRASTRUCTURE_MASK
@@ -641,40 +622,30 @@ game_logic:
     jmp .change_action_done
 
     .switch_change:
-      push SEGMENT_META_DATA
-      pop es
-
-      test byte [es:di], SWITCH_MASK
+      test byte [fs:di + META], SWITCH_MASK
       jz .change_action_done
 
-      mov al, [es:di]
+      mov al, [fs:di + META]
       and al, TILE_DIRECTION_MASK
       xor al, 0x2                       ; invert swich top-down or left-right
       add al, SWITCH_MASK
-      and byte [es:di], SWITCH_DATA_CLIP
-      add byte [es:di], al
+      and byte [fs:di + META], SWITCH_DATA_CLIP
+      add byte [fs:di + META], al
     jmp .change_action_done
 
     .building_exit_rotate:
-      push SEGMENT_META_DATA
-      pop es
-      mov al, [es:di]
+      mov al, [fs:di + META]
       and al, TILE_DIRECTION_MASK
       inc al
-      and al, 0x3                       ; Clip to 0-3
-      and byte [es:di], SWITCH_DATA_CLIP
-      add byte [es:di], al
+      and ax, 0x3                       ; Clip to 0-3
+      and byte [fs:di + META], SWITCH_DATA_CLIP
+      add byte [fs:di + META], al
     jmp .change_action_done
 
     .change_action_done:
-    pop ds
-    pop es
     jmp .redraw_tile
 
   .build_action:
-    push es
-    push ds
-
     mov bx, SFX_BUILD
     call audio.play_sfx
 
@@ -682,13 +653,8 @@ game_logic:
     shl di, 7   ; Y * 128
     add di, [_CURSOR_X_]               ; For quick random number
 
-    push SEGMENT_TERRAIN_BACKGROUND
-    pop es
-    push SEGMENT_TERRAIN_FOREGROUND
-    pop ds
-
     .decide_on_action:
-      mov bl, [ds:di]
+      mov bl, [fs:di + FG]
       and bl, CURSOR_TYPE_MASK
       rol bl, CURSOR_TYPE_ROL
 
@@ -702,8 +668,8 @@ game_logic:
       mov al, [_GAME_TICK_]
       and al, 0x1                       ; TILE_MUD_1 or TILE_MUD_2
       add al, RAIL_MASK
-      mov byte [es:di], al
-      mov byte [ds:di], TILE_RAILS_1-TILE_FOREGROUND_SHIFT
+      mov byte [fs:di], al
+      mov byte [fs:di + FG], TILE_RAILS_1-TILE_FOREGROUND_SHIFT
 
       call recalculate_rails
 
@@ -716,12 +682,10 @@ game_logic:
       add di, MAP_SIZE*2
       call recalculate_rails
 
-      pop ds
-      pop es
       jmp .redraw_four_tiles
 
     .place_building:
-      mov al, [es:di]
+      mov al, [fs:di]
       test al, RAIL_MASK
       jnz .station
 
@@ -731,7 +695,6 @@ game_logic:
       and al, BACKGROUND_SPRITE_MASK
       cmp al, TILE_STATION_EXTEND
       jz .remote_building
-
 
       .base_building:
         mov bx, SCENE_MODE_BASE_BUILDINGS
@@ -750,35 +713,23 @@ game_logic:
         jmp .pop_window
 
     .pop_window:
-      pop ds
-      pop es
       mov byte [_GAME_STATE_], STATE_WINDOW_INIT
       mov byte [_SCENE_MODE_], bl
       mov byte [_MENU_SELECTION_POS_], 0x0
       jmp .done
 
     .build_action_done:
-    pop ds
-    pop es
     jmp .redraw_tile
 
   .calculate_pods:
-    push es
-    push ds
-
-    push SEGMENT_ENTITIES
-    pop es
-
     xor si, si
     .ent_loop:
-      mov di, [es:si]                   ; SEGMENT_ENTITIES
+      mov di, [fs:si + ENTS]
       cmp di, 0x0
       jz .done_ent_loop
 
       .calculate_cart_direction:
-        push SEGMENT_META_DATA
-        pop ds
-        mov al, [ds:di]                 ; SEGMENT_META_DATA
+        mov al, [fs:di + META]
         and al, CART_DIRECTION_MASK
         shr al, CART_DIRECTION_SHIFT
 
@@ -786,54 +737,43 @@ game_logic:
         mov bx, di                      ; Save original position
 
         .test_forward_move:
-          push SEGMENT_TERRAIN_BACKGROUND
-          pop ds
           call calculate_directed_tile
-          test byte [ds:di], RAIL_MASK  ; SEGMENT_TERRAIN_BACKGROUND
+          test byte [fs:di], RAIL_MASK
           jnz .check_forward_move
 
         .test_if_switch:
-          push SEGMENT_META_DATA
-          pop ds
-
           mov di, bx                    ; restore position
-          mov al, [ds:di]               ; SEGMENT_META_DATA
+          mov al, [fs:di + META]
           test al, SWITCH_MASK          ; check if its stay on a switch
           jz .test_other_axis_turn_move ; if not then left or right turn
 
-          mov al, [ds:di]               ; SEGMENT_META_DATA
+          mov al, [fs:di + META]
           and al, TILE_DIRECTION_MASK
           call calculate_directed_tile  ; check target position tile
           jmp .check_forward_move       ; try move forward
 
         .test_other_axis_turn_move:
-          push SEGMENT_TERRAIN_BACKGROUND
-          pop ds
           mov al, cl
           xor ax, 0x1                   ; rotate target (up-down to left-right)
           call calculate_directed_tile
-          test byte [ds:di], RAIL_MASK  ; SEGMENT_TERRAIN_BACKGROUND
+          test byte [fs:di], RAIL_MASK
           jnz .check_forward_move
 
           mov di, bx
           xor ax, 0x2                   ; mirror left/right or up/down
           call calculate_directed_tile
-          test byte [ds:di], RAIL_MASK  ; SEGMENT_TERRAIN_BACKGROUND
+          test byte [fs:di], RAIL_MASK
           jnz .check_forward_move
 
         mov al, cl                      ; restore initial direction
         jmp .revert_move
 
         .check_forward_move:
-          push SEGMENT_TERRAIN_FOREGROUND
-          pop ds
-          test byte [ds:di], CART_DRAW_MASK ; SEGMENT_TERRAIN_FOREGROUND
+          test byte [fs:di + FG], CART_DRAW_MASK
           jz .save_pod_move
 
         .pod_meet:
-          push SEGMENT_META_DATA
-          pop ds
-          mov ah, [ds:di]               ; SEGMENT_META_DATA
+          mov ah, [fs:di + META]
           and ah, CART_DIRECTION_MASK
           shr ah, CART_DIRECTION_SHIFT
 
@@ -847,50 +787,37 @@ game_logic:
       .revert_move:
         mov al, cl                      ; restore initial direction
         xor ax, 0x2                     ; mirror direction
-        push SEGMENT_META_DATA
-        pop ds
-        and byte [ds:bx], CART_DIRECTION_CLIP ; SEGMENT_META_DATA
+        and byte [fs:bx + META], CART_DIRECTION_CLIP
         shl al, CART_DIRECTION_SHIFT
-        add byte [ds:bx], al            ; SEGMENT_META_DATA
+        add byte [fs:bx + META], al
       jmp .next_pod
 
       .save_pod_move:
-        ; ES = ENTITIES SEGMENT
-        ; DS = FOREGROIND
-        mov word [es:si], di            ; update entitie pointer to new pos
-        and byte [ds:bx], CART_DRAW_CLIP  ; remove cart drawing from old pos
-        add byte [ds:di], CART_DRAW_MASK  ; draw cart on new pos
+        mov word [fs:si + ENTS], di            ; update entitie pointer to new pos
+        and byte [fs:bx + FG], CART_DRAW_CLIP  ; remove cart drawing from old pos
+        add byte [fs:di + FG], CART_DRAW_MASK  ; draw cart on new pos
 
         ; TODO: move also resources and cursor!
 
-        push SEGMENT_META_DATA
-        pop ds
-        and byte [ds:di], CART_DIRECTION_CLIP ; SEGMENT_META_DATA
+        and byte [fs:di + META], CART_DIRECTION_CLIP
         shl al, CART_DIRECTION_SHIFT
-        add byte [ds:di], al            ; SEGMENT_META_DATA
+        add byte [fs:di + META], al
 
       .redraw_tiles:
         push si
         push di
-
         mov di, bx
         mov si, bx
         call draw_single_cell
-
         pop di
-
         mov si, di
         call draw_single_cell
-
         pop si
 
       .next_pod:
       add si, 0x2
     jmp .ent_loop
     .done_ent_loop:
-
-    pop ds
-    pop es
     jmp .done
 
   .redraw_four_tiles:
@@ -971,41 +898,29 @@ actions_logic:
     shl di, 7               ; Y * 128 (optimized shl for *128)
     add di, [_CURSOR_X_]    ; + absolute X map coordinate
 
-    push es
-    push ds
-
-    push SEGMENT_TERRAIN_BACKGROUND
-    pop es
-
-    push SEGMENT_TERRAIN_FOREGROUND
-    pop ds
-
     mov ax, TILE_FOUNDATION
     mov bx, CURSOR_ICON_PLACE_BUILDING
     ror bl, CURSOR_TYPE_ROL
-    test byte [es:di+1], TERRAIN_TRAVERSAL_MASK
+    test byte [fs:di+1], TERRAIN_TRAVERSAL_MASK
     jz .skip_right
-      mov byte [es:di+1], al
-      mov byte [ds:di+1], bl
+      mov byte [fs:di+1], al
+      mov byte [fs:di+1 + FG], bl
     .skip_right:
-    test byte [es:di-1], TERRAIN_TRAVERSAL_MASK
+    test byte [fs:di-1], TERRAIN_TRAVERSAL_MASK
     jz .skip_left
-      mov byte [es:di-1], al
-      mov byte [ds:di-1], bl
+      mov byte [fs:di-1], al
+      mov byte [fs:di-1 + FG], bl
     .skip_left:
-    test byte [es:di-MAP_SIZE], TERRAIN_TRAVERSAL_MASK
+    test byte [fs:di-MAP_SIZE], TERRAIN_TRAVERSAL_MASK
     jz .skip_up
-      mov byte [es:di-MAP_SIZE], al
-      mov byte [ds:di-MAP_SIZE], bl
+      mov byte [fs:di-MAP_SIZE], al
+      mov byte [fs:di-MAP_SIZE + FG], bl
     .skip_up:
-    test byte [es:di+MAP_SIZE], TERRAIN_TRAVERSAL_MASK
+    test byte [fs:di+MAP_SIZE], TERRAIN_TRAVERSAL_MASK
     jz .skip_down
-      mov byte [es:di+MAP_SIZE], al
-      mov byte [ds:di+MAP_SIZE], bl
+      mov byte [fs:di+MAP_SIZE], al
+      mov byte [fs:di+MAP_SIZE + FG], bl
     .skip_down:
-
-    pop ds
-    pop es
     jmp .done
 
   .place_station:
@@ -1013,56 +928,44 @@ actions_logic:
     shl di, 7               ; Y * 128 (optimized shl for *128)
     add di, [_CURSOR_X_]    ; + absolute X map coordinate
 
-    push es
-    push ds
-
-    push SEGMENT_TERRAIN_BACKGROUND
-    pop es
-
-    push SEGMENT_TERRAIN_FOREGROUND
-    pop ds
-
-    mov al, [es:di]
+    mov al, [fs:di]
     and al, BACKGROUND_SPRITE_CLIP
     add al, TILE_STATION
     or al, RAIL_MASK
-    mov byte [es:di], al
-    and byte [ds:di], CURSOR_TYPE_CLIP
+    mov byte [fs:di], al
+    and byte [fs:di + FG], CURSOR_TYPE_CLIP
 
     mov bl, TILE_STATION_EXTEND
     mov cx, CURSOR_ICON_PLACE_BUILDING
     ror cl, CURSOR_TYPE_ROL
-    mov al, [ds:di]
+    mov al, [fs:di + FG]
     and al, FOREGROUND_SPRITE_MASK
     cmp al, TILE_RAILS_1-TILE_FOREGROUND_SHIFT  ; horizontal
     jz .build_horizontal
 
     .build_vertical:
-      test byte [es:di-1], TERRAIN_TRAVERSAL_MASK
+      test byte [fs:di-1], TERRAIN_TRAVERSAL_MASK
       jz .skip_left2
-        mov [es:di-1], bl
-        mov [ds:di-1], cl
+        mov [fs:di-1], bl
+        mov [fs:di-1 + FG], cl
       .skip_left2:
-      test byte [es:di+1], TERRAIN_TRAVERSAL_MASK
+      test byte [fs:di+1], TERRAIN_TRAVERSAL_MASK
       jz .build_done
-        mov [es:di+1], bl
-        mov [ds:di+1], cl
+        mov [fs:di+1], bl
+        mov [fs:di+1 + FG], cl
     jmp .build_done
 
     .build_horizontal:
-      test byte [es:di-MAP_SIZE], TERRAIN_TRAVERSAL_MASK
+      test byte [fs:di-MAP_SIZE], TERRAIN_TRAVERSAL_MASK
       jz .skip_up2
-        mov [es:di-MAP_SIZE], bl
-        mov [ds:di-MAP_SIZE], cl
+        mov [fs:di-MAP_SIZE], bl
+        mov [fs:di-MAP_SIZE + FG], cl
       .skip_up2:
-      test byte [es:di+MAP_SIZE], TERRAIN_TRAVERSAL_MASK
+      test byte [fs:di+MAP_SIZE], TERRAIN_TRAVERSAL_MASK
       jz .build_done
-        mov [es:di+MAP_SIZE], bl
-        mov [ds:di+MAP_SIZE], cl
+        mov [fs:di+MAP_SIZE], bl
+        mov [fs:di+MAP_SIZE + FG], cl
     .build_done:
-
-    pop ds
-    pop es
     jmp .done
 
   .place_building:
@@ -1070,27 +973,16 @@ actions_logic:
     shl di, 7               ; Y * 128 (optimized shl for *128)
     add di, [_CURSOR_X_]    ; + absolute X map coordinate
 
-    push es
-    push ds
-
-    push SEGMENT_TERRAIN_BACKGROUND
-    pop es
-
-    push SEGMENT_TERRAIN_FOREGROUND
-    pop ds
-
     mov bx, ax ; sprite
-    mov al, [es:di]
+    mov al, [fs:di]
     or al, INFRASTRUCTURE_MASK
-    mov byte [es:di], al
+    mov byte [fs:di], al
 
     mov al, CURSOR_ICON_PLACE_BUILDING
     ror al, CURSOR_TYPE_ROL
     add ax, bx
-    mov byte [ds:di], al
+    mov byte [fs:di + FG], al
 
-    pop ds
-    pop es
     jmp .done
 
   .inspect_building:
@@ -1101,21 +993,12 @@ actions_logic:
     shl di, 7               ; Y * 128 (optimized shl for *128)
     add di, [_CURSOR_X_]    ; + absolute X map coordinate
 
-    push es
-    push ds
-
-    push SEGMENT_TERRAIN_BACKGROUND
-    pop es
-
-    push SEGMENT_META_DATA
-    pop ds
-
-    mov al, [ds:di]
+    mov al, [fs:di + META]
     and al, TILE_DIRECTION_MASK
 
     call get_target_tile
 
-    test byte [es:di], TERRAIN_TRAVERSAL_MASK
+    test byte [fs:di], TERRAIN_TRAVERSAL_MASK
     jz .skip_station
 
     .set_rail_tile:
@@ -1127,12 +1010,9 @@ actions_logic:
     .set_station_tile:
       mov al, TILE_STATION
       add al, RAIL_MASK
-      mov byte [es:di], al
+      mov byte [fs:di], al
 
-      push SEGMENT_TERRAIN_FOREGROUND
-      pop ds
-
-      mov byte [ds:di], bl
+      mov byte [fs:di + FG], bl
 
     .recalculate_near_rails:
       dec di
@@ -1146,8 +1026,7 @@ actions_logic:
       call recalculate_rails
 
     .skip_station:
-    pop ds
-    pop es
+
     jmp .done
 
   .build_pod:
@@ -1155,62 +1034,39 @@ actions_logic:
     shl di, 7               ; Y * 128 (optimized shl for *128)
     add di, [_CURSOR_X_]    ; + absolute X map coordinate
 
-    push es
-    push ds
 
-    push SEGMENT_TERRAIN_BACKGROUND
-    pop es
-
-    push SEGMENT_META_DATA
-    pop ds
-
-    mov al, [ds:di]
+    mov al, [fs:di + META]
     and al, TILE_DIRECTION_MASK
-
-    push SEGMENT_TERRAIN_FOREGROUND
-    pop ds
 
     call get_target_tile
     .check_for_station:
-      mov al, [es:di]
+      mov al, [fs:di]
       and al, BACKGROUND_SPRITE_MASK
       cmp al, TILE_STATION
       jnz .skip_build_pod
 
     .pod_on_station:
-      mov al, [ds:di]
+      mov al, [fs:di + FG]
       or al, CART_DRAW_MASK
-      mov byte [ds:di], al
+      mov byte [fs:di + FG], al
 
       ; TODO: temporary for debug
-      push SEGMENT_META_DATA
-      pop ds
       call get_random
       and ax, 0x3
       shl ax, RESOURCE_TYPE_SHIFT
-      or byte [ds:di], al
+      or byte [fs:di + META], al
       ; END TODO
-
-    pop ds
-    pop es
 
     mov si, [_LAST_ENT_POD_ID_]
     inc word [_LAST_ENT_POD_ID_]
     shl si, 1
-
-    push es
-    push SEGMENT_ENTITIES
-    pop es
-    mov [es:si], di
-    pop es
+    mov [fs:si + ENTS], di
     jmp .done
 
   .done:
     ret
 
   .skip_build_pod:
-    pop ds
-    pop es
     ret
 
 ; DI current
@@ -2079,13 +1935,9 @@ draw_window:
 ; and clears other data layers for safety (if generated on populated memory)
 generate_map:
   push es
-  push ds
-
-  push SEGMENT_TERRAIN_BACKGROUND
-  pop es
 
   push cs                               ; GAME CODE SEGMENT
-  pop ds
+  pop es
 
   xor di, di
   mov si, TerrainRules
@@ -2095,120 +1947,83 @@ generate_map:
     .next_col:
       call get_random                   ; AX is random value
       and ax, TERRAIN_RULES_CROP        ; Crop to 0-7
-      mov [es:di], al                   ; Save terrain tile
+      mov [fs:di], al                   ; Save terrain tile
       cmp dx, MAP_SIZE                  ; Check if first col
       je .skip_cell
       cmp cx, MAP_SIZE                  ; Check if first row
       je .skip_cell
-      movzx bx, [es:di-1]               ; Get left tile
+      movzx bx, [fs:di-1]               ; Get left tile
       test al, 0x1                      ; If odd value skip checking top
       jz .skip_top
-      movzx bx, [es:di-MAP_SIZE]        ; Get top tile
+      movzx bx, [fs:di-MAP_SIZE]        ; Get top tile
       .skip_top:
       shl bx, 3                         ; Mul by 4 to fit rules table
       add bx, ax                        ; Get random rule for the tile ID
-      mov al, [ds:si+bx]                ; Get the tile ID from rules table
-      mov [es:di], al                   ; Save terrain tile
+      mov al, [es:si+bx]                ; Get the tile ID from rules table
+      mov [fs:di], al                   ; Save terrain tile
       .skip_cell:
       inc di                            ; Next map tile cell
       dec dx                            ; Next column (couner is top-down)
     jnz .next_col
   loop .next_row
 
-  .set_background_metadata:
-    xor si, si
+  .set_metadata:
     xor di, di
     mov cx, MAP_SIZE*MAP_SIZE
     .background_cell:
-      cmp byte [es:si], TILE_TREES_1    ; Last traversal sprite id
+      mov byte [fs:di + FG], 0x0        ; Clear foreground data
+      cmp byte [fs:di], TILE_TREES_1    ; Last traversal sprite id
       jge .skip_traversal               ; If greater, skip
-      add byte [es:di], TERRAIN_TRAVERSAL_MASK
+      add byte [fs:di], TERRAIN_TRAVERSAL_MASK
       .skip_traversal:
-      inc si
       inc di
     loop .background_cell
 
-  .clear_rest_metadata:
-    push SEGMENT_TERRAIN_FOREGROUND
-    pop ds
-
-    push SEGMENT_ENTITIES
-    pop es
-
-    xor di, di
-    mov cx, MAP_SIZE*MAP_SIZE
-    .map_cell:
-      mov byte [ds:di], 0x0             ; Clear foreground data
-      mov byte [es:di], 0x0             ; Clear entities data
-      inc di
-    loop .map_cell
-
-  pop ds
   pop es
   ret
 
 ; =========================================== BUILD INITIAL BASE FOUNDATIONS |80
 ; Sets up initial base foundations, rocket
 build_initial_base:
-  push es
-  push ds
-
-  push SEGMENT_TERRAIN_BACKGROUND
-  pop es
-
-  push SEGMENT_TERRAIN_FOREGROUND
-  pop ds
-
   .set_center_position:
   mov di, MAP_SIZE*MAP_SIZE/2 + MAP_SIZE/2  ; Center of the map
 
   .build_base:
   mov ax, TILE_FOUNDATION
-  mov byte [es:di], al
-  mov byte [es:di+1], al
-  mov byte [es:di-1], al
-  mov byte [es:di+MAP_SIZE], al
-  mov byte [es:di-MAP_SIZE], al
+  mov byte [fs:di], al
+  mov byte [fs:di+1], al
+  mov byte [fs:di-1], al
+  mov byte [fs:di+MAP_SIZE], al
+  mov byte [fs:di-MAP_SIZE], al
 
   add ax, INFRASTRUCTURE_MASK
-  mov byte [es:di], al
-  mov byte [es:di-MAP_SIZE], al
+  mov byte [fs:di], al
+  mov byte [fs:di-MAP_SIZE], al
 
   mov ax, CURSOR_ICON_PLACE_BUILDING
   ror al, CURSOR_TYPE_ROL
-  mov byte [ds:di+1], al
-  mov byte [ds:di-1], al
-  mov byte [ds:di+MAP_SIZE], al
+  mov byte [fs:di+1 + FG], al
+  mov byte [fs:di-1 + FG], al
+  mov byte [fs:di+MAP_SIZE + FG], al
 
   .place_rocket:
   mov ax, CURSOR_ICON_POINTER
   ror al, CURSOR_TYPE_ROL
   mov bx, ax
   add ax, TILE_ROCKET_BOTTOM_ID
-  mov byte [ds:di], al
+  mov byte [fs:di + FG], al
   add bx, TILE_ROCKET_TOP_ID
-  mov byte [ds:di-MAP_SIZE], bl
+  mov byte [fs:di-MAP_SIZE + FG], bl
 
-  pop ds
-  pop es
   ret
 
 ; =========================================== DRAW TERRAIN ==================|80
 ; Draw part of the terrain visible in a viewport
 ; Set by VIEWPORT_WIDTH, VIEWPORT_HEIGHT
 draw_terrain:
-  push es
-  push ds
-
   mov si, [_VIEWPORT_Y_]                ; Y coordinate
   shl si, 7                             ; Y * 128
   add si, [_VIEWPORT_X_]                ; Y * 128 + X
-
-  push SEGMENT_TERRAIN_BACKGROUND
-  pop es
-
-  push SEGMENT_TERRAIN_FOREGROUND
-  pop ds
 
   xor di, di
 
@@ -2229,8 +2044,6 @@ draw_terrain:
     dec cx
   jnz .draw_line
 
-  pop ds
-  pop es
   ret
 
 draw_selected_cell:
@@ -2252,19 +2065,8 @@ draw_selected_cell:
   add bx, ax              ; Y * 16 * 320 + X * 16
   mov di, bx              ; Move result to DI
 
-  push es
-  push ds
-
-  push SEGMENT_TERRAIN_BACKGROUND
-  pop es
-
-  push SEGMENT_TERRAIN_FOREGROUND
-  pop ds
-
   call draw_cell
 
-  pop ds
-  pop es
   pop di
   pop si
   ret
@@ -2272,11 +2074,6 @@ draw_selected_cell:
 draw_single_cell:
   push si
   push di
-  push es
-  push ds
-
-  push cs
-  pop es
 
   .calculate_position:
     mov ax, di
@@ -2288,23 +2085,23 @@ draw_single_cell:
     pop bx  ; bx = y
 
   .clip_viewport:
-    cmp ax, [es:_VIEWPORT_X_]
+    cmp ax, [_VIEWPORT_X_]
     jb .skip_drawing                    ; x < viewport x
-    cmp bx, [es:_VIEWPORT_Y_]
+    cmp bx, [_VIEWPORT_Y_]
     jb .skip_drawing                    ; y < viewport y
-    mov cx, [es:_VIEWPORT_X_]
+    mov cx, [_VIEWPORT_X_]
     add cx, VIEWPORT_WIDTH
     cmp ax, cx
     jae .skip_drawing                    ; x >= viewport x
-    mov cx, [es:_VIEWPORT_Y_]
+    mov cx, [_VIEWPORT_Y_]
     add cx, VIEWPORT_HEIGHT
     cmp bx, cx
     jae .skip_drawing                    ; y >= viewport y
 
   .calculate_memory_position:
-    sub bx, [es:_VIEWPORT_Y_]
+    sub bx, [_VIEWPORT_Y_]
     shl bx, 4
-    sub ax, [es:_VIEWPORT_X_]
+    sub ax, [_VIEWPORT_X_]
     shl ax, 4
     mov dx, bx      ; make copy of Y
     shl bx, 8       ; Y * 256
@@ -2313,23 +2110,15 @@ draw_single_cell:
     add bx, ax
     mov di, bx
 
-  push SEGMENT_TERRAIN_BACKGROUND
-  pop es
-
-  push SEGMENT_TERRAIN_FOREGROUND
-  pop ds
-
   call draw_cell
 
   .skip_drawing:
-  pop ds
-  pop es
   pop di
   pop si
   ret
 
 draw_cell:
-  mov al, [es:si]                   ; SEGMENT_TERRAIN_BACKGROUND
+  mov al, [fs:si]
   mov bl, al
   and al, BACKGROUND_SPRITE_MASK
   call draw_tile
@@ -2338,22 +2127,18 @@ draw_cell:
   jz .skip_foreground
   .draw_forground:
 
-    mov al, [ds:si]                 ; SEGMENT_TERRAIN_FOREGROUND
+    mov al, [fs:si + FG]
     and al, FOREGROUND_SPRITE_MASK
     add al, TILE_FOREGROUND_SHIFT
     call draw_sprite
 
-    mov dl, [es:si]                 ; SEGMENT_TERRAIN_BACKGROUND
+    mov dl, [fs:si + BG]
     .draw_rails_stuff:
       test dl, RAIL_MASK
       jz .skip_rails_stuff
 
-      push es
-      push SEGMENT_META_DATA
-      pop es
-
       .draw_switch:
-        mov al, [es:si]             ; SEGMENT_META_DATA
+        mov al, [fs:si + META]
         test al, SWITCH_MASK
         jz .skip_switch
           and al, TILE_DIRECTION_MASK
@@ -2362,9 +2147,9 @@ draw_cell:
         .skip_switch:
 
       .draw_cart:
-        test byte [ds:si], CART_DRAW_MASK  ; SEGMENT_TERRAIN_FOREGROUND
+        test byte [fs:si + FG], CART_DRAW_MASK
         jz .skip_cart
-          mov bl, [es:si]           ; SEGMENT_META_DATA
+          mov bl, [fs:si + META]
           and bl, CART_DIRECTION_MASK
           shr bl, CART_DIRECTION_SHIFT
           mov al, TILE_CART_HORIZONTAL
@@ -2376,7 +2161,7 @@ draw_cell:
           call draw_sprite
 
           .draw_cart_resource:
-            mov bl, [es:si]               ; SEGMENT_META_DATA
+            mov bl, [fs:si + META]
             and bl, RESOURCE_TYPE_MASK
             cmp bl, 0x0
             jz .skip_resource
@@ -2386,35 +2171,31 @@ draw_cell:
               call draw_sprite
             .skip_resource:
         .skip_cart:
-
-        pop es
     .skip_rails_stuff:
   .skip_foreground:
   ret
 
 ; =================================== RECALCULATE RAILS =====================|80
 ; DI - Position on map
-; ES - SEGMENT_TERRAIN_BACKGROUND
-; DS - SEGMENT_TERRAIN_FOREGROUND
 recalculate_rails:
   xor ax, ax
-  test byte [es:di], RAIL_MASK
+  test byte [fs:di], RAIL_MASK
   jz .update_cursor
 
   .test_up:
-    test byte [es:di-MAP_SIZE], RAIL_MASK
+    test byte [fs:di-MAP_SIZE], RAIL_MASK
     jz .test_right
     add al, 0x8
   .test_right:
-    test byte [es:di+1], RAIL_MASK
+    test byte [fs:di+1], RAIL_MASK
     jz .test_down
     add al, 0x4
   .test_down:
-  test byte [es:di+MAP_SIZE], RAIL_MASK
+  test byte [fs:di+MAP_SIZE], RAIL_MASK
   jz .test_left
     add al, 0x2
   .test_left:
-  test byte [es:di-1], RAIL_MASK
+  test byte [fs:di-1], RAIL_MASK
   jz .done_calculating
     add al, 0x1
   .done_calculating:
@@ -2431,8 +2212,8 @@ recalculate_rails:
     sub al, TILE_FOREGROUND_SHIFT
 
   .save_rail_sprite:
-    and byte [ds:di], FOREGROUND_SPRITE_CLIP
-    add byte [ds:di], al
+    and byte [fs:di + FG], FOREGROUND_SPRITE_CLIP
+    add byte [fs:di + FG], al
 
   .calculate_correct_switch:
     cmp dl, 0x7
@@ -2461,7 +2242,7 @@ recalculate_rails:
   .prepare_station:
     mov dl, 0                           ; No switch
     mov ax, CURSOR_ICON_PLACE_BUILDING
-    test byte [es:di], INFRASTRUCTURE_MASK  ; Check if its a station
+    test byte [fs:di], INFRASTRUCTURE_MASK  ; Check if its a station
     jz  .save_switch
     mov ax, CURSOR_ICON_EDIT
     jmp .save_switch
@@ -2470,20 +2251,15 @@ recalculate_rails:
     mov ax, CURSOR_ICON_POINTER
 
   .save_switch:
-    push es
-    push SEGMENT_META_DATA
-    pop es
-    and byte [es:di], SWITCH_DATA_CLIP
-    add byte [es:di], dl
-    pop es
-
-    and byte [ds:di], CURSOR_TYPE_CLIP  ; clear cursor
+    and byte [fs:di + META], SWITCH_DATA_CLIP
+    add byte [fs:di + META], dl
+    and byte [fs:di + FG], CURSOR_TYPE_CLIP  ; clear cursor
     ror al, CURSOR_TYPE_ROL
-    add byte [ds:di], al
+    add byte [fs:di + FG], al
     jmp .done
 
   .update_cursor:
-    mov byte al, [es:di]
+    mov byte al, [fs:di]
     test al, TERRAIN_TRAVERSAL_MASK
     jz .done
     mov bl, al
@@ -2493,7 +2269,7 @@ recalculate_rails:
 
     mov ax, CURSOR_ICON_PLACE_RAIL
     ror al, CURSOR_TYPE_ROL
-    mov byte [ds:di], al
+    mov byte [fs:di + FG], al
 
   .done:
   ret
@@ -2501,7 +2277,7 @@ recalculate_rails:
 ; =========================================== DECOMPRESS SPRITE ============|80
 ; SI - Compressed sprite data address
 ; DI - sprites memory data address
-; Sprite decompression to memory at _TILES_
+; Sprite decompression to memory at SEGMENT_SPRITES
 decompress_sprite:
   lodsb
   movzx dx, al   ; save palette
@@ -2559,15 +2335,10 @@ decompress_all_tiles:
 ; Drawing opaque tile on screen
 draw_tile:
   pusha
-
   push ds
-  push es
 
   push SEGMENT_SPRITES
   pop ds
-
-  push SEGMENT_VGA
-  pop es
 
   mov ah, al        ; Multiply by 256 (tile size in array) by swapping nibles
   xor al, al        ; clear low nibble
@@ -2580,7 +2351,6 @@ draw_tile:
     dec bx
   jnz .draw_tile_line
 
-  pop es
   pop ds
   popa
   ret
@@ -2592,13 +2362,9 @@ draw_tile:
 draw_sprite:
   pusha
   push ds
-  push es
 
   push SEGMENT_SPRITES
   pop ds
-
-  push SEGMENT_VGA
-  pop es
 
   mov ah, al        ; Multiply by 256 (tile size in array) by swapping nibles
   xor al, al        ; clear low nibble
@@ -2623,12 +2389,9 @@ draw_sprite:
     dec bx
   jnz .draw_tile_line
 
-  pop es
   pop ds
   popa
   ret
-
-
 
 ; =========================================== UI SUBSYSTEM ==================|80
 ui:
@@ -2749,36 +2512,21 @@ ui:
     add bx, ax              ; Y * 16 * 320 + X * 16
     mov di, bx              ; Move result to DI
 
-    push es
-    push ds
-
-    push SEGMENT_TERRAIN_BACKGROUND
-    pop es
-
-    push SEGMENT_TERRAIN_FOREGROUND
-    pop ds
-
-    mov al, [ds:si]
+    mov al, [fs:si + FG]
     and al, CURSOR_TYPE_MASK
     rol al, CURSOR_TYPE_ROL
     add al, TILE_CURSOR_PAN
     mov bl, al
 
-    test byte [es:si], INFRASTRUCTURE_MASK ; If not a building then skip arrows
+    test byte [fs:si], INFRASTRUCTURE_MASK ; If not a building then skip arrows
     jz .no_infra
 
-    test byte [ds:si], CURSOR_TYPE_MASK   ; If it's a pointer then skip arrows
+    test byte [fs:si + FG], CURSOR_TYPE_MASK   ; If it's a pointer then skip arrows
     jz .no_infra
 
-    push SEGMENT_META_DATA
-    pop ds
-
-    mov al, [ds:si]
+    mov al, [fs:si + META]
     and al, TILE_DIRECTION_MASK
     add al, TILE_IO_RIGHT
-
-    pop ds
-    pop es
 
     call draw_sprite                      ; draw the in/out arrow
 
@@ -2787,15 +2535,12 @@ ui:
     jmp .done
 
     .no_infra:
-      pop ds
-      pop es
       call draw_sprite                    ; draw cursor
     .done:
     ret
 
   .draw_map:
     push es
-    push ds
 
     push SEGMENT_VGA
     pop es
@@ -2808,21 +2553,21 @@ ui:
     mov dx, 0x0603
     mov bl, COLOR_BLACK
     call font.draw_string
-    push SEGMENT_TERRAIN_BACKGROUND
-    pop ds
+
     .draw_mini_map:
     xor si, si
     mov di, SCREEN_WIDTH*59+39-16          ; Map position on screen
-    mov bx, TerrainColors      ; Terrain colors array
+    xor bx,bx
     mov cx, MAP_SIZE           ; Columns
     .draw_loop:
       push cx
       mov cx, MAP_SIZE        ; Rows
       .draw_row:
-        mov al, [ds:si]                ; Load map cell
+        mov al, [fs:si]                ; Load map cell
         inc si
         and al, BACKGROUND_SPRITE_MASK ; Clear metadata
-        ; TODO: colors
+        mov bl, al
+        mov al, [TerrainColors + bx]
         mov [es:di], al      ; Draw 1 pixels
         add di, 1            ; Move to next column
       loop .draw_row
@@ -2830,7 +2575,6 @@ ui:
       add di, 320-MAP_SIZE    ; Move to next row
     loop .draw_loop
 
-    pop ds
     pop es
     ret
 
@@ -3213,16 +2957,16 @@ db 8,7,7,8, 8,8,9,9                     ; 8 – Mountains 1 → very stable
 db 9,7,8,8, 9,9,9,9                     ; 9 – Mountains 2
 
 TerrainColors:
-db 0x4          ; Mud 1
-db 0x4          ; Mud 2
+db 0x3          ; Mud 1
+db 0x3          ; Mud 2
 db 0x4          ; Mud Grass 1
 db 0x4          ; Mud Grass 2
 db 0x4          ; Grass
 db 0x4          ; Bush
 db 0x5          ; Trees 1
 db 0x5          ; Trees 2
-db 0x5          ; Mountains/Rocks 1
-db 0x5          ; Mountains/Rocks 2
+db 0x6          ; Mountains/Rocks 1
+db 0x6          ; Mountains/Rocks 2
 
 ; =========================================== DICTS =========================|80
 
