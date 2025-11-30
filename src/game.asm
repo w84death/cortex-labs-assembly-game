@@ -1827,103 +1827,118 @@ ret
 ; Window is drown over 8x8 grid in sprites size (16px each). Uses 9 tiles for
 ; drawing the window.
 draw_window:
-  .calculate_uposition:
-  push bx                               ; Save the size
+  pusha
+
+  push bx
+
   xor di, di
   xor bx, bx
   mov bl, ah                            ; Y coord from high bits
   shl bx, 0x3                           ; Y * 8 (grid size)
-  mov dx, bx      ; make copy of Y
-  shl bx, 8       ; Y * 256
-  shl dx, 6       ; Y * 64
-  add bx, dx      ; BX = Y * 320
+  mov dx, bx                            ; make copy of Y
+  shl bx, 8                             ; Y * 256
+  shl dx, 6                             ; Y * 64
+  add bx, dx                            ; BX = Y * 320
   and ax, 0x00FF                        ; X, remove high bits, keep low bits
   shl ax, 0x3                           ; X * 8 (grid size)
   add bx, ax                            ; Add X to coords
   add di, bx                            ; Move to destination index
 
-  .draw_widow:
-  pop bx                                ; Restore size
+  pop bx
+  movzx cx, bl                    ; CX = width
+  movzx dx, bh                    ; DX = height
 
-  .top_left_corner:
-  mov ax, TILE_WINDOW_1                 ; Set first sprite (top/left corner)
+  mov si, Patch9Dict
+
+  ; top part
+
+  ; corner
+  mov al, [si]
   call draw_sprite
-  add di, SPRITE_SIZE                   ; Move index by sprite size
+  add di, SPRITE_SIZE
 
-  .top_border:
-  inc ax                                ; Set next sprite (top border)
-  movzx cx, bl                          ; Set width
-  sub cx, 2                             ; Minus corners
-  .draw_top_sprite:             ; Draw the sprites
+  ; middle
+  mov al, [si+1]
+  mov bx, cx
+  dec bx
+  dec bx
+  jle .no_top_fill
+  .top_loop:
     call draw_sprite
-    add di, SPRITE_SIZE                 ; Move index by sprite size
-  loop .draw_top_sprite
+    add di, SPRITE_SIZE
+    dec bx
+    jg .top_loop
+  .no_top_fill:
 
-  .top_right_corner:
-  inc ax                                ; Set next sprite (top/right corner)
+  ; corner
+  mov al, [si+2]
   call draw_sprite
-  add di, SPRITE_SIZE                   ; Move index by sprite size
+  add di, SPRITE_SIZE
 
-  .top_middle:
-  movzx dx, bl                          ; Save the window width
-  shl dx, 0x4                           ; Multiply by sprite size (16)
+  add di, SCREEN_WIDTH*SPRITE_SIZE
+  mov bx, cx
+  shl bx, 4
+  sub di, bx
 
-  movzx cx, bh                          ; Get the height
-  cmp cx, 0x2                           ; Check if less than 2
-  jle .skip_middle                      ; Skip middle drawing if true
-  sub cx, 0x2                           ; Reduce height by top and bottom part
+  ; middle part
+  mov bx, dx
+  dec bx
+  dec bx
+  jle .no_middle
 
-  .draw_middle_row:
-    push cx                             ; Save height (rows)
-
-    add di, SCREEN_WIDTH*SPRITE_SIZE    ; Move to the next line below
-    sub di, dx                          ; Back to left side of window
-
-    .left_border:
-    mov ax, TILE_WINDOW_4               ; Set sprite (left border)
+  .middle_row_loop:
+    mov al, [si+3]
     call draw_sprite
-    add di, SPRITE_SIZE                 ; Move index by sprite size
+    add di, SPRITE_SIZE
 
-    .middle:
-    inc ax                              ; Set next sprite (inside of window)
-    movzx cx, bl                        ; Set width
-    sub cx, 2                           ; Minus left/right sprites
-    .draw_middle_sprite:
+    mov al, [si+4]
+    push cx
+    dec cx
+    dec cx
+    jle .no_mid_fill
+    .mid_loop:
       call draw_sprite
-      add di, SPRITE_SIZE               ;  Move index by sprite size
-    loop .draw_middle_sprite
+      add di, SPRITE_SIZE
+    loop .mid_loop
+    .no_mid_fill:
+    pop cx
 
-    .middle_right:
-    inc ax                              ; Set next sprite (right border)
+    mov al, [si+5]
     call draw_sprite
-    add di, SPRITE_SIZE                 ; Move index by sprite size
+    add di, SPRITE_SIZE
 
-    pop cx                              ; Restor ros counter
-  loop .draw_middle_row
+    push cx
+    add di, SCREEN_WIDTH*SPRITE_SIZE
+    shl cx, 4
+    sub di, cx
+    pop cx
 
-  .skip_middle:
+    dec bx
+    jg .middle_row_loop
+  .no_middle:
 
-  .draw_bottom:
-  add di, SCREEN_WIDTH*SPRITE_SIZE      ; Move to the next line below
-  sub di, dx                            ; Back to left side of window
 
-  .bottom_left_corner:
-  mov ax, TILE_WINDOW_7                 ; Set sprite (bottom left corner)
+  ; corner
+  mov al, [si+6]
   call draw_sprite
-  add di, SPRITE_SIZE                   ; Move index by sprite size
+  add di, SPRITE_SIZE
 
-  .bottom_middle:
-  inc ax                                ; Set next sprite (bottom border)
-  movzx cx, bl                          ; Set width
-  sub cx, 2                             ; Minus left/right sprites
-  .draw_bottom_sprite:
+  ; middle
+  mov al, [si+7]
+  dec cx
+  dec cx
+  jle .no_bottom_fill
+  .bottom_loop:
     call draw_sprite
-    add di, SPRITE_SIZE                 ; Move index by sprite size
-  loop .draw_bottom_sprite
+    add di, SPRITE_SIZE
+    loop .bottom_loop
+  .no_bottom_fill:
 
-  .bottom_right:
-  inc ax                                ; Set next sprite (bottom right corner)
+  ; corner
+  mov al, [si+8]
   call draw_sprite
+
+  popa
   ret
 
 ; =========================================== GENERATE MAP ==================|80
@@ -2976,6 +2991,11 @@ db 0x6          ; Mountains/Rocks 2
 
 RailroadsDict:
 db 0, 0, 1, 4, 0, 0, 3, 9, 1, 6, 1, 10, 5, 7, 8, 2
+
+Patch9Dict:
+    db TILE_WINDOW_1, TILE_WINDOW_2, TILE_WINDOW_3   ; top
+    db TILE_WINDOW_4, TILE_WINDOW_5, TILE_WINDOW_6   ; middle
+    db TILE_WINDOW_7, TILE_WINDOW_8, TILE_WINDOW_9   ; bottom
 
 ; =========================================== INCLUDES ======================|80
 
