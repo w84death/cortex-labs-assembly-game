@@ -2048,18 +2048,14 @@ draw_terrain:
 
   mov cx, VIEWPORT_HEIGHT
   .draw_line:
-    push cx
-
-    mov cx, VIEWPORT_WIDTH
-    .draw_cell:
+    rept VIEWPORT_WIDTH {
       call draw_cell
       add di, SPRITE_SIZE
       inc si
-    loop .draw_cell
+    }
 
     add di, SCREEN_WIDTH*(SPRITE_SIZE-1)
     add si, MAP_SIZE-VIEWPORT_WIDTH
-    pop cx
     dec cx
   jnz .draw_line
 
@@ -2180,13 +2176,12 @@ draw_cell:
           call draw_sprite
 
           .draw_cart_resource:
-            mov bl, [fs:si + META]
-            and bl, RESOURCE_TYPE_MASK
-            cmp bl, 0x0
+            mov al, [fs:si + META]
+            and al, RESOURCE_TYPE_MASK
+            cmp al, 0x0
             jz .skip_resource
-              shr bl, RESOURCE_TYPE_SHIFT
-              mov al, TILE_ORE_BLUE-1
-              add al, bl
+              shr al, RESOURCE_TYPE_SHIFT
+              add al, TILE_ORE_BLUE-1
               call draw_sprite
             .skip_resource:
         .skip_cart:
