@@ -2359,8 +2359,10 @@ draw_tile:
   mov si, ax        ; Point to tile data
   mov bx, SPRITE_SIZE
   .draw_tile_line:
-    mov cx, SPRITE_SIZE/4
-    rep movsd       ; Move 4px at a time
+    movsd       ; Move 4px at a time
+    movsd
+    movsd
+    movsd
     add di, SCREEN_WIDTH-SPRITE_SIZE ; Next line
     dec bx
   jnz .draw_tile_line
@@ -2385,20 +2387,17 @@ draw_sprite:
   mov si, ax        ; Point to tile data
   mov bx, SPRITE_SIZE
   .draw_tile_line:
-    mov cx, SPRITE_SIZE/2
-    .draw_next_pixel:
+    rept SPRITE_SIZE/2 {
       lodsw
       test al, al
-      jz .skip_transparent_pixel
-        mov byte [es:di], al
-      .skip_transparent_pixel:
+      jz $+5
+      mov byte [es:di], al
       inc di
       test ah, ah
-      jz .skip_transparent_pixel2
-        mov byte [es:di], ah
-      .skip_transparent_pixel2:
+      jz $+5
+      mov byte [es:di], ah
       inc di
-    loop .draw_next_pixel
+    }
     add di, SCREEN_WIDTH-SPRITE_SIZE ; Next line
     dec bx
   jnz .draw_tile_line
