@@ -81,13 +81,11 @@ $(FLOPPY_IMG): $(BOOTLOADER) $(GAME_COM) | $(IMG_DIR)
 	# Create blank 1.44MB floppy image
 	$(DD) if=/dev/zero of=$@ bs=512 count=2880
 	# Format as FAT12 using mtools (preserve space for boot sector)
-	$(MFORMAT) -i $@ -f 1440 -B $(BOOTLOADER) ::
+	$(MFORMAT) -i $@ -f 1440 -v CORTEX -B $(BOOTLOADER) ::
 	# Copy GAME.COM first so it occupies the first data sectors
 	$(MCOPY) -i $@ $(GAME_COM) ::GAME.COM
 	# Create and copy manual if it exists, otherwise create a placeholder
-	$(MCOPY) -i $@ $(MANUAL_TXT) ::MANUAL.TXT; \
-	$(MCOPY) -i $@ /tmp/manual.txt ::MANUAL.TXT; \
-	$(RM) /tmp/manual.txt; \
+	$(MCOPY) -i $@ $(MANUAL_TXT) ::MANUAL.TXT;
 	# List directory contents for verification
 	@echo "Floppy contents:"
 	@$(MDIR) -i $@ ::
