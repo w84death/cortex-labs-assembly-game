@@ -39,11 +39,8 @@ org 0x0100
 
 SEGMENT_VGA                 equ 0xA000  ; VGA memory (fixed by hardware)
 GAME_STACK_POINTER          equ 0xFFFE  ; Stack pointer for game code
-
 SEGMENT_SPRITES             equ 0x5400  ; 6 KB  → 95 tiles × 256 = ~24 KB
-SEGMENT_TERRAIN_ALL         equ 0x8000  ; 64 KB → all 4 layers
-SEGMENT_VGA                 equ 0xA000
-
+SEGMENT_MAP                 equ 0x8000  ; 64 KB → all 4 layers
 BG  equ 0x0000
 FG  equ 0x4000
 META equ 0x8000
@@ -364,6 +361,7 @@ KB_DEL      equ 0x53
 KB_BACK     equ 0x0E
 KB_Q        equ 0x10
 KB_W        equ 0x11
+KB_R        equ 0x13
 KB_M        equ 0x32
 KB_TAB      equ 0x0F
 KB_F1       equ 0x3B
@@ -397,7 +395,7 @@ init:
   pop ss
   mov sp, GAME_STACK_POINTER
 
-  push SEGMENT_TERRAIN_ALL
+  push SEGMENT_MAP
   pop fs
 
   call initialize_custom_palette
@@ -1687,6 +1685,7 @@ font:
   ;   BX - Color
   ;   CX - digits length
   .draw_number:
+    pusha
     mov ah, 0x02                          ; Set cursor
     xor bh, bh                            ; Page 0
     int 0x10
@@ -1722,7 +1721,7 @@ font:
 
       cmp cx, 0                           ; If divisor is 0, we're done
       jne .next_digit
-
+  popa
   ret
 
 ; =========================================== GET RANDOM ====================|80
@@ -2147,7 +2146,7 @@ draw_cell:
     add al, TILE_FOREGROUND_SHIFT
     call draw_sprite
 
-    mov dl, [fs:si + BG]
+    mov dl, [fs:si]
     .draw_rails_stuff:
       test dl, RAIL_MASK
       jz .skip_rails_stuff
@@ -2740,28 +2739,20 @@ benchmark:
     sub eax, [bench_prev]
     sbb edx, [bench_prev+4]
 
-    movzx ebx, byte [bench_idx]
-    and ebx, 7
-    shl ebx, 3                          ; each entry: 8 bytes
-    mov [bench_history + ebx], eax
-    mov [bench_history + ebx + 4], edx
-
-    inc byte [bench_idx]
+    cmp edx, [bench_worst + 4]
+    jb .not_the_worst
+    ja .new_worst
+    cmp eax, [bench_worst]
+    jbe .not_the_worst
+    .new_worst:
+    mov [bench_worst], eax
+    mov [bench_worst+4], edx
+    .not_the_worst:
     ret
 
   .draw_stats:
-      xor eax, eax
-      xor edx, edx
-      mov ecx, 8
-      mov ebx, bench_history
-      .sum_loop:
-        add eax, [ebx]
-        adc edx, [ebx+4]
-        add ebx, 8
-      loop .sum_loop
-
-      shr eax, 3
-
+    mov eax, [bench_worst]
+    adc edx, [bench_worst+4]
     mov esi, eax
     shr esi, 4
     mov dh, UI_STATS_TXT_LINE
@@ -2771,9 +2762,13 @@ benchmark:
     call font.draw_number
     ret
 
+  .bench_bench:
+    mov [bench_worst], 0
+    mov [bench_worst+4], 0
+    ret
+
 bench_prev      dd 0, 0
-bench_idx       db 0
-bench_history   dd 0,0, 0,0, 0,0, 0,0, 0,0, 0,0, 0,0, 0,0   ; 8 × 64-bit entries
+bench_worst     dd 0, 0
 
 ; =========================================== LOGIC FOR GAME STATES =========|80
 
@@ -2828,6 +2823,8 @@ InputTable:
   dw game_logic.build_action
   db STATE_GAME,                        SCENE_MODE_ANY, KB_ENTER
   dw game_logic.change_action
+  db STATE_GAME,                        SCENE_MODE_ANY, KB_R
+  dw benchmark.bench_bench
 
   db STATE_MENU,                        SCENE_MODE_ANY, KB_UP
   dw menu_logic.selection_up
@@ -2835,6 +2832,8 @@ InputTable:
   dw menu_logic.selection_down
   db STATE_MENU,                        SCENE_MODE_ANY, KB_ENTER
   dw menu_logic.main_menu_enter
+  db STATE_MENU,                        SCENE_MODE_ANY, KB_R
+  dw benchmark.bench_bench
 
   db STATE_WINDOW,                      SCENE_MODE_ANY, KB_UP
   dw menu_logic.selection_up
@@ -2844,6 +2843,8 @@ InputTable:
   dw menu_logic.game_menu_enter
   db STATE_WINDOW,                      SCENE_MODE_ANY, KB_ENTER
   dw menu_logic.game_menu_enter
+  db STATE_WINDOW,                        SCENE_MODE_ANY, KB_R
+  dw benchmark.bench_bench
 
   db STATE_BRIEFING,                    SCENE_MODE_ANY, KB_UP
   dw menu_logic.selection_up
@@ -2851,6 +2852,8 @@ InputTable:
   dw menu_logic.selection_down
   db STATE_BRIEFING,                    SCENE_MODE_ANY, KB_ENTER
   dw menu_logic.game_menu_enter
+  db STATE_BRIEFING,                    SCENE_MODE_ANY, KB_R
+  dw benchmark.bench_bench
 
   db STATE_HELP,                        SCENE_MODE_ANY, KB_ENTER
   dw ror_help_page
@@ -2987,9 +2990,9 @@ RailroadsDict:
 db 0, 0, 1, 4, 0, 0, 3, 9, 1, 6, 1, 10, 5, 7, 8, 2
 
 Patch9Dict:
-    db TILE_WINDOW_1, TILE_WINDOW_2, TILE_WINDOW_3   ; top
-    db TILE_WINDOW_4, TILE_WINDOW_5, TILE_WINDOW_6   ; middle
-    db TILE_WINDOW_7, TILE_WINDOW_8, TILE_WINDOW_9   ; bottom
+  db TILE_WINDOW_1, TILE_WINDOW_2, TILE_WINDOW_3   ; top
+  db TILE_WINDOW_4, TILE_WINDOW_5, TILE_WINDOW_6   ; middle
+  db TILE_WINDOW_7, TILE_WINDOW_8, TILE_WINDOW_9   ; bottom
 
 ; =========================================== INCLUDES ======================|80
 
