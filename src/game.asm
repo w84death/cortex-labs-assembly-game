@@ -2739,6 +2739,9 @@ benchmark:
     sub eax, [bench_prev]
     sbb edx, [bench_prev+4]
 
+    mov [bench_current], eax
+    mov [bench_current+4], edx
+
     cmp edx, [bench_worst + 4]
     jb .not_the_worst
     ja .new_worst
@@ -2751,14 +2754,21 @@ benchmark:
     ret
 
   .draw_stats:
-    mov eax, [bench_worst]
-    adc edx, [bench_worst+4]
+    mov eax, [bench_current]
+    adc edx, [bench_current+4]
     mov esi, eax
-    shr esi, 4
+    shr esi, 8
     mov dh, UI_STATS_TXT_LINE
     mov dl, 0x01
     mov bl, COLOR_YELLOW
     mov cx, 10000
+    call font.draw_number
+
+    inc dh
+    mov eax, [bench_worst]
+    adc edx, [bench_worst+4]
+    mov esi, eax
+    shr esi, 8
     call font.draw_number
     ret
 
@@ -2768,6 +2778,7 @@ benchmark:
     ret
 
 bench_prev      dd 0, 0
+bench_current   dd 0, 0
 bench_worst     dd 0, 0
 
 ; =========================================== LOGIC FOR GAME STATES =========|80
