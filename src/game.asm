@@ -1993,13 +1993,14 @@ generate_map:
     .background_cell:
       mov byte [fs:di + FG], 0x0        ; Clear foreground data
       mov al, byte [fs:di]
+
       cmp al, TILE_TREES_1    ; Last traversal sprite id
       jge .skip_traversal               ; If greater, skip
       add byte [fs:di], TERRAIN_TRAVERSAL_MASK
 
       .add_detail:
-        cmp al, TILE_MUD_GRASS_2
-        jl .skip_detail                ; between GRASS and FOREST
+        cmp al, TILE_MUD_2
+        jle .skip_detail                ; between GRASS and FOREST
         call get_random
         and ax, 0x07                    ; Random 0-7
         cmp ax, 0x5
@@ -2008,8 +2009,8 @@ generate_map:
         add al, TILE_DETAIL_1-TILE_FOREGROUND_SHIFT
         add byte [fs:di + FG], al
       .skip_detail:
-
       .skip_traversal:
+
       inc di
     loop .background_cell
 
@@ -3002,8 +3003,8 @@ WindowInspectText              db 'BUILDING INSPECTION',0x0
 ; ==============================================================
 
 TerrainRules:
-db 0,0,0,0, 1,1,2,2                     ; 0 – Mud 1 → biased to stay muddy
-db 1,1,1,1, 2,2,3,3                     ; 1 – Mud 2 → slowly transitions
+db 0,0,0,0, 0,1,1,1                     ; 0 – Mud 1 → biased to stay muddy
+db 1,0,1,0, 2,2,3,3                     ; 1 – Mud 2 → slowly transitions
 db 2,2,2,2, 1,3,3,4                     ; 2 – Mud Grass 1 → transition zone
 db 3,3,3,3, 3,3,4,4                     ; 3 – Mud Grass 2 → strong grass push
 db 4,3,4,4, 4,4,5,5                     ; 4 – Grass → stable transition
