@@ -113,8 +113,8 @@ STATE_HELP_INIT         equ 15
 STATE_HELP              equ 16
 STATE_WINDOW_INIT       equ 17
 STATE_WINDOW            equ 18
-STATE_BRIEFING_INIT equ 19
-STATE_BRIEFING   equ 20
+STATE_BRIEFING_INIT     equ 19
+STATE_BRIEFING          equ 20
 
 
 ; =========================================== TILES NAMES ===================|80
@@ -133,79 +133,82 @@ TILE_FOUNDATION                 equ 0x0A
 TILE_STATION                    equ 0x0B
 TILE_STATION_EXTEND             equ 0x0C
 TILE_EXTRACTION                 equ 0x0D
-TILE_RES_YELLOW_1               equ 0x0E
-TILE_RES_YELLOW_2               equ 0x0F
-TILE_RES_BLUE_1                 equ 0x10
-TILE_RES_BLUE_2                 equ 0x11
-TILE_RES_RED_1                  equ 0x12
-TILE_RES_RED_2                  equ 0x13
-TILE_RAILS_1                    equ 0x14
-TILE_RAILS_2                    equ 0x15
-TILE_RAILS_3                    equ 0x16
-TILE_RAILS_4                    equ 0x17
-TILE_RAILS_5                    equ 0x18
-TILE_RAILS_6                    equ 0x19
-TILE_RAILS_7                    equ 0x1A
-TILE_RAILS_8                    equ 0x1B
-TILE_RAILS_9                    equ 0x1C
-TILE_RAILS_10                   equ 0x1D
-TILE_RAILS_11                   equ 0x1E
-TILE_ROCKET_BOTTOM              equ 0x1F
-TILE_ROCKET_TOP                 equ 0x20
-TILE_BUILDING_RAFINERY           equ 0x21
-TILE_BUILDING_COLECTOR          equ 0x22
-TILE_BUILDING_SILOS             equ 0x23
-TILE_BUILDING_LAB               equ 0x24
-TILE_BUILDING_RADAR             equ 0x25
-TILE_BUILDING_PODS              equ 0x26
-TILE_BUILDING_POWER             equ 0x27
-TILE_IO_RIGHT                   equ 0x28
-TILE_IO_UP                      equ 0x29
-TILE_IO_DOWN                    equ 0x2A
-TILE_IO_LEFT                    equ 0x2B
-TILE_UFO_FLY                    equ 0x2C
-TILE_UFO_ATTACK                 equ 0x2D
-TILE_CART_VERTICAL              equ 0x2E
-TILE_CART_HORIZONTAL            equ 0x2F
-TILE_SWITCH_LEFT                equ 0x30
-TILE_SWITCH_DOWN                equ 0x31
-TILE_SWITCH_RIGHT               equ 0x32
-TILE_SWITCH_UP                  equ 0x33
-TILE_ORE_BLUE                   equ 0x34
-TILE_ORE_YELLOW                 equ 0x35
-TILE_ORE_RED                    equ 0x36
-TILE_EXTRACT_BLUE               equ 0x37
-TILE_EXTRACT_YELLOW             equ 0x38
-TILE_EXTRACT_RED                equ 0x39
-TILE_SILO_BLUE                  equ 0x3A
-TILE_SILO_YELLOW                equ 0x3B
-TILE_SILO_RED                   equ 0x3C
-TILE_CURSOR_PAN                 equ 0x3D
-TILE_CURSOR_BUILD               equ 0x3E
-TILE_CURSOR_EDIT                equ 0x3F
-TILE_CURSOR_BUILDING            equ 0x40
-TILE_CURSOR_SELECTOR            equ 0x41
-TILE_WINDOW_1                   equ 0x42
-TILE_WINDOW_2                   equ 0x43
-TILE_WINDOW_3                   equ 0x44
-TILE_WINDOW_4                   equ 0x45
-TILE_WINDOW_5                   equ 0x46
-TILE_WINDOW_6                   equ 0x47
-TILE_WINDOW_7                   equ 0x48
-TILE_WINDOW_8                   equ 0x49
-TILE_WINDOW_9                   equ 0x4A
-TILE_FRAME_1                    equ 0x4B
-TILE_FRAME_2                    equ 0x4C
-TILE_FRAME_3                    equ 0x4D
-TILE_FRAME_4                    equ 0x4E
-TILE_FRAME_5                    equ 0x4F
-TILE_FRAME_6                    equ 0x50
-TILE_FRAME_7                    equ 0x51
-TILE_FRAME_8                    equ 0x52
+TILE_DETAIL_1                   equ 0x0E
+TILE_DETAIL_2                   equ 0x0F
+TILE_DETAIL_3                   equ 0x10
+TILE_RES_YELLOW_1               equ 0x11
+TILE_RES_YELLOW_2               equ 0x12
+TILE_RES_BLUE_1                 equ 0x13
+TILE_RES_BLUE_2                 equ 0x14
+TILE_RES_RED_1                  equ 0x15
+TILE_RES_RED_2                  equ 0x16
+TILE_RAILS_1                    equ 0x17
+TILE_RAILS_2                    equ 0x18
+TILE_RAILS_3                    equ 0x19
+TILE_RAILS_4                    equ 0x1A
+TILE_RAILS_5                    equ 0x1B
+TILE_RAILS_6                    equ 0x1C
+TILE_RAILS_7                    equ 0x1D
+TILE_RAILS_8                    equ 0x1E
+TILE_RAILS_9                    equ 0x1F
+TILE_RAILS_10                   equ 0x20
+TILE_RAILS_11                   equ 0x21
+TILE_ROCKET_BOTTOM              equ 0x22
+TILE_ROCKET_TOP                 equ 0x23
+TILE_BUILDING_RAFINERY          equ 0x24
+TILE_BUILDING_COLECTOR          equ 0x25
+TILE_BUILDING_SILOS             equ 0x26
+TILE_BUILDING_LAB               equ 0x27
+TILE_BUILDING_RADAR             equ 0x28
+TILE_BUILDING_PODS              equ 0x29
+TILE_BUILDING_POWER             equ 0x2A
+TILE_IO_RIGHT                   equ 0x2B
+TILE_IO_UP                      equ 0x2C
+TILE_IO_DOWN                    equ 0x2D
+TILE_IO_LEFT                    equ 0x2E
+TILE_UFO_FLY                    equ 0x2F
+TILE_UFO_ATTACK                 equ 0x30
+TILE_CART_VERTICAL              equ 0x31
+TILE_CART_HORIZONTAL            equ 0x32
+TILE_SWITCH_LEFT                equ 0x33
+TILE_SWITCH_DOWN                equ 0x34
+TILE_SWITCH_RIGHT               equ 0x35
+TILE_SWITCH_UP                  equ 0x36
+TILE_ORE_BLUE                   equ 0x37
+TILE_ORE_YELLOW                 equ 0x38
+TILE_ORE_RED                    equ 0x39
+TILE_EXTRACT_BLUE               equ 0x3A
+TILE_EXTRACT_YELLOW             equ 0x3B
+TILE_EXTRACT_RED                equ 0x3C
+TILE_SILO_BLUE                  equ 0x3D
+TILE_SILO_YELLOW                equ 0x3E
+TILE_SILO_RED                   equ 0x3F
+TILE_CURSOR_PAN                 equ 0x40
+TILE_CURSOR_BUILD               equ 0x41
+TILE_CURSOR_EDIT                equ 0x42
+TILE_CURSOR_BUILDING            equ 0x43
+TILE_CURSOR_SELECTOR            equ 0x44
+TILE_WINDOW_1                   equ 0x45
+TILE_WINDOW_2                   equ 0x46
+TILE_WINDOW_3                   equ 0x47
+TILE_WINDOW_4                   equ 0x48
+TILE_WINDOW_5                   equ 0x49
+TILE_WINDOW_6                   equ 0x4A
+TILE_WINDOW_7                   equ 0x4B
+TILE_WINDOW_8                   equ 0x4C
+TILE_WINDOW_9                   equ 0x4D
+TILE_FRAME_1                    equ 0x4E
+TILE_FRAME_2                    equ 0x4F
+TILE_FRAME_3                    equ 0x50
+TILE_FRAME_4                    equ 0x51
+TILE_FRAME_5                    equ 0x52
+TILE_FRAME_6                    equ 0x53
+TILE_FRAME_7                    equ 0x54
+TILE_FRAME_8                    equ 0x55
 
 ; Helpers
-TILES_COUNT                     equ 95
-TILE_FOREGROUND_SHIFT           equ 0x0E    ; pointer to first foreground tiles
+TILES_COUNT                     equ 98
+TILE_FOREGROUND_SHIFT           equ TILE_DETAIL_1   ; pointer to first FG tile
 TILE_ROCKET_BOTTOM_ID           equ TILE_ROCKET_BOTTOM-TILE_FOREGROUND_SHIFT
 TILE_ROCKET_TOP_ID              equ TILE_ROCKET_TOP-TILE_FOREGROUND_SHIFT
 TILE_BUILDING_RAFINERY_ID       equ TILE_BUILDING_RAFINERY-TILE_FOREGROUND_SHIFT
@@ -215,6 +218,7 @@ TILE_BUILDING_LAB_ID            equ TILE_BUILDING_LAB-TILE_FOREGROUND_SHIFT
 TILE_BUILDING_RADAR_ID          equ TILE_BUILDING_RADAR-TILE_FOREGROUND_SHIFT
 TILE_BUILDING_PODS_ID           equ TILE_BUILDING_PODS-TILE_FOREGROUND_SHIFT
 TILE_BUILDING_POWER_ID          equ TILE_BUILDING_POWER-TILE_FOREGROUND_SHIFT
+
 
 ; SEGMENT BG
 ; 0 0 0 0 0000
@@ -1690,7 +1694,6 @@ font:
     xor bh, bh                            ; Page 0
     int 0x10
 
-    ;mov cx, 10000                         ; Divisor for 5 digits
     mov ax, si                            ; Copy the number to AX for division
 
     .next_digit:
@@ -1705,7 +1708,6 @@ font:
       int 0x10                            ; BIOS video interrupt
       pop cx                              ; Restore divisor
       pop dx                              ; Restore remainder
-
 
       mov ax, dx                          ; Save remainder to AX
 
@@ -1990,9 +1992,23 @@ generate_map:
     mov cx, MAP_SIZE*MAP_SIZE
     .background_cell:
       mov byte [fs:di + FG], 0x0        ; Clear foreground data
-      cmp byte [fs:di], TILE_TREES_1    ; Last traversal sprite id
+      mov al, byte [fs:di]
+      cmp al, TILE_TREES_1    ; Last traversal sprite id
       jge .skip_traversal               ; If greater, skip
       add byte [fs:di], TERRAIN_TRAVERSAL_MASK
+
+      .add_detail:
+        cmp al, TILE_MUD_GRASS_2
+        jl .skip_detail                ; between GRASS and FOREST
+        call get_random
+        and ax, 0x07                    ; Random 0-7
+        cmp ax, 0x5
+        jl .skip_detail
+        shr ax, 0x1                     ; Convert to 0-3 for TILE_DETAIL_*
+        add al, TILE_DETAIL_1-TILE_FOREGROUND_SHIFT
+        add byte [fs:di + FG], al
+      .skip_detail:
+
       .skip_traversal:
       inc di
     loop .background_cell
@@ -2141,51 +2157,65 @@ draw_cell:
   jz .skip_foreground
   .draw_forground:
 
-    mov al, [fs:si + FG]
-    and al, FOREGROUND_SPRITE_MASK
-    add al, TILE_FOREGROUND_SHIFT
-    call draw_sprite
+    .draw_foreground_sprite:
+      mov al, [fs:si + FG]
+      and al, FOREGROUND_SPRITE_MASK
+      add al, TILE_FOREGROUND_SHIFT
+      call draw_sprite
 
     mov dl, [fs:si]
     .draw_rails_stuff:
-      test dl, RAIL_MASK
+      test dl, RAIL_MASK                ; DL - Background layer
       jz .skip_rails_stuff
 
-      .draw_switch:
-        mov al, [fs:si + META]
-        test al, SWITCH_MASK
-        jz .skip_switch
-          and al, TILE_DIRECTION_MASK
-          add al, TILE_SWITCH_LEFT
-          call draw_sprite
-        .skip_switch:
+    .draw_switch:
+      mov al, [fs:si + META]
+      test al, SWITCH_MASK
+      jz .skip_switch
+        and al, TILE_DIRECTION_MASK
+        add al, TILE_SWITCH_LEFT
+        call draw_sprite
+      .skip_switch:
 
-      .draw_cart:
-        test byte [fs:si + FG], CART_DRAW_MASK
-        jz .skip_cart
-          mov bl, [fs:si + META]
-          and bl, CART_DIRECTION_MASK
-          shr bl, CART_DIRECTION_SHIFT
-          mov al, TILE_CART_HORIZONTAL
-          cmp bl, CART_DOWN
-          jg .skip_vertical
-          mov al, TILE_CART_VERTICAL
-          .skip_vertical:
+    .draw_cart:
+      test byte [fs:si + FG], CART_DRAW_MASK
+      jz .skip_cart
+        mov bl, [fs:si + META]
+        and bl, CART_DIRECTION_MASK
+        shr bl, CART_DIRECTION_SHIFT
+        mov al, TILE_CART_HORIZONTAL
+        cmp bl, CART_DOWN
+        jg .skip_vertical
+        mov al, TILE_CART_VERTICAL
+        .skip_vertical:
 
-          call draw_sprite
+        call draw_sprite
 
-          .draw_cart_resource:
-            mov al, [fs:si + META]
-            and al, RESOURCE_TYPE_MASK
-            cmp al, 0x0
-            jz .skip_resource
-              shr al, RESOURCE_TYPE_SHIFT
-              add al, TILE_ORE_BLUE-1
-              call draw_sprite
-            .skip_resource:
-        .skip_cart:
+        .draw_cart_resource:
+          mov al, [fs:si + META]
+          and al, RESOURCE_TYPE_MASK
+          cmp al, 0x0
+          jz .skip_resource
+            shr al, RESOURCE_TYPE_SHIFT
+            add al, TILE_ORE_BLUE-1
+            call draw_sprite
+          .skip_resource:
+      .skip_cart:
     .skip_rails_stuff:
+
+    jmp .skip_detail
+
   .skip_foreground:
+
+  .draw_detail:
+    mov al, [fs:si + FG]
+    and al, FOREGROUND_SPRITE_MASK
+    cmp al, 0
+    jz .skip_detail
+    dec al
+    add al, TILE_FOREGROUND_SHIFT
+    call draw_sprite
+    .skip_detail:
   ret
 
 ; =================================== RECALCULATE RAILS =====================|80
