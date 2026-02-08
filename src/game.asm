@@ -2002,10 +2002,10 @@ generate_map:
         cmp al, TILE_MUD_2
         jle .skip_detail                ; between GRASS and FOREST
         call get_random
-        and ax, 0x07                    ; Random 0-7
-        cmp ax, 0x5
-        jl .skip_detail
-        shr ax, 0x1                     ; Convert to 0-3 for TILE_DETAIL_*
+        and ax, 0xF                     ; Random 0-15
+        cmp ax, 0x7                     ; If less than 6, skip
+        jg .skip_detail
+        and ax, 0x2                     ; Convert to 0-3 for TILE_DETAIL_*
         add al, TILE_DETAIL_1-TILE_FOREGROUND_SHIFT
         add byte [fs:di + FG], al
       .skip_detail:
