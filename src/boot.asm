@@ -75,34 +75,49 @@ boot_load_game:
   mov es, ax
   mov bx, GAME_OFFSET                   ; ES:BX = destination
 
-  ; Calculate CHS from LBA sector 33 (first data sector)
-  ; For standard 1.44MB floppy: 18 sectors/track, 2 heads, 80 cylinders
-  ; LBA = (C * Heads * SectorsPerTrack) + (H * SectorsPerTrack) + (S - 1)
-  ; Sector 33: C=0, H=1, S=16 (sectors are 1-based)
+  mov ax, DATA_START_SECTOR             ; Start LBA
+  mov cx, SECTORS_TO_LOAD               ; Number of sectors to load
 
-  mov ah, 0x02                          ; BIOS read sectors function
-  mov al, SECTORS_TO_LOAD               ; Number of sectors to read
-  mov ch, 0                             ; Cylinder 0 (low 8 bits)
-  mov cl, 16                            ; Sector 16 (sectors are 1-based)
-  mov dh, 1                             ; Head 1
+.read_loop:
+  push cx
+  push ax
+
+  call lba_to_chs                       ; Convert AX(LBA) to CHS
+
+  mov ah, 0x02                          ; BIOS read sector function
+  mov al, 0x01                          ; Read 1 sector
   mov dl, [DriveNumber]                 ; Drive number
-
   int 0x13                              ; BIOS disk interrupt
   jc boot_game_error                    ; Error if carry flag set
 
-  cmp al, SECTORS_TO_LOAD
-  jb boot_sector_count_error            ; Fewer sectors read than expected
+  pop ax
+  pop cx
+
+  add bx, 512                           ; Next buffer position
+  inc ax                                ; Next LBA
+  loop .read_loop
+
   jmp boot_game_success
+
+; Convert LBA to CHS
+; Input: AX = LBA
+; Output: CH = Cylinder, CL = Sector, DH = Head
+lba_to_chs:
+  xor dx, dx
+  div word [SectorsPerTrack]            ; AX = LBA / SPT, DX = LBA % SPT
+  inc dx                                ; Sector = (LBA % SPT) + 1
+  mov cx, dx                            ; CL = Sector (CH is 0)
+
+  xor dx, dx
+  div word [NumberOfHeads]              ; AX = Cylinder, DX = Head
+
+  mov dh, dl                            ; DH = Head
+  mov ch, al                            ; CH = Cylinder
+  ret
 
 ; Disk reset error =============================================================
 boot_disk_reset_error:
   mov si, reset_err_msg
-  call boot_print_str
-  jmp boot_error_recovery
-
-; Sector count error ===========================================================
-boot_sector_count_error:
-  mov si, count_err_msg
   call boot_print_str
   jmp boot_error_recovery
 
@@ -169,7 +184,6 @@ welcome_msg     db 'P1X FAT12 Bootloader v1.0', 0x0D, 0x0A, 0
 loading_msg     db 'Loading GAME-12...', 0x0D, 0x0A, 0
 disk_err_msg    db 'Disk read error!', 0x0D, 0x0A, 0
 reset_err_msg   db 'Disk reset error!', 0x0D, 0x0A, 0
-count_err_msg   db 'Sector count error!', 0x0D, 0x0A, 0
 retry_msg       db 'Press any key to retry...', 0x0D, 0x0A, 0
 done_msg        db 'Game loaded.', 0x0D, 0x0A, 0
 jump_msg        db 'Starting...', 0x0D, 0x0A, 0

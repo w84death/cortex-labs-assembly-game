@@ -123,29 +123,29 @@ STATE_BRIEFING          equ 20
 
 ; =========================================== TILES NAMES ===================|80
 
-TILE_MUD_1                      equ 0x00
-TILE_MUD_2                      equ 0x01
-TILE_MUD_GRASS_1                equ 0x02
-TILE_MUD_GRASS_2                equ 0x03
-TILE_GRASS                      equ 0x04
-TILE_BUSH                       equ 0x05
-TILE_TREES_1                    equ 0x06
-TILE_TREES_2                    equ 0x07
-TILE_MOUNTAINS_1                equ 0x08
-TILE_MOUNTAINS_2                equ 0x09
-TILE_FOUNDATION                 equ 0x0A
-TILE_STATION                    equ 0x0B
-TILE_STATION_EXTEND             equ 0x0C
-TILE_EXTRACTION                 equ 0x0D
-TILE_DETAIL_1                   equ 0x0E
-TILE_DETAIL_2                   equ 0x0F
-TILE_DETAIL_3                   equ 0x10
-TILE_RES_YELLOW_1               equ 0x11
-TILE_RES_YELLOW_2               equ 0x12
-TILE_RES_BLUE_1                 equ 0x13
-TILE_RES_BLUE_2                 equ 0x14
-TILE_RES_RED_1                  equ 0x15
-TILE_RES_RED_2                  equ 0x16
+TILE_SOIL_0                     equ 0x00
+TILE_SOIL_1                     equ 0x01
+TILE_SOIL_2                     equ 0x02
+TILE_SOIL_3                     equ 0x03
+TILE_SOIL_4                     equ 0x04
+TILE_SOIL_5                     equ 0x05
+TILE_SOIL_6                     equ 0x06
+TILE_ROCKS_0                    equ 0x07
+TILE_ROCKS_1                    equ 0x08
+TILE_ROCKS_2                    equ 0x09
+TILE_ROCKS_3                    equ 0x0A
+TILE_STATION_EXTEND             equ 0x0B
+TILE_STATION                    equ 0x0C
+TILE_FOUNDATION                 equ 0x0D
+TILE_DETAIL_0                   equ 0x0E
+TILE_DETAIL_1                   equ 0x0F
+TILE_DETAIL_2                   equ 0x10
+TILE_RES_WHITE_LOW              equ 0x11
+TILE_RES_WHITE_MAX              equ 0x12
+TILE_RES_BLUE_LOW               equ 0x13
+TILE_RES_BLUE_MAX               equ 0x14
+TILE_RES_GREEN_LOW              equ 0x15
+TILE_RES_GREEN_MAX              equ 0x16
 TILE_RAILS_1                    equ 0x17
 TILE_RAILS_2                    equ 0x18
 TILE_RAILS_3                    equ 0x19
@@ -157,63 +157,58 @@ TILE_RAILS_8                    equ 0x1E
 TILE_RAILS_9                    equ 0x1F
 TILE_RAILS_10                   equ 0x20
 TILE_RAILS_11                   equ 0x21
-TILE_ROCKET_BOTTOM              equ 0x22
-TILE_ROCKET_TOP                 equ 0x23
-TILE_BUILDING_RAFINERY          equ 0x24
-TILE_BUILDING_COLECTOR          equ 0x25
-TILE_BUILDING_SILOS             equ 0x26
-TILE_BUILDING_LAB               equ 0x27
-TILE_BUILDING_RADAR             equ 0x28
-TILE_BUILDING_PODS              equ 0x29
-TILE_BUILDING_POWER             equ 0x2A
-TILE_IO_RIGHT                   equ 0x2B
-TILE_IO_UP                      equ 0x2C
-TILE_IO_DOWN                    equ 0x2D
-TILE_IO_LEFT                    equ 0x2E
-TILE_UFO_FLY                    equ 0x2F
-TILE_UFO_ATTACK                 equ 0x30
+TILE_ROCKET_TOP                 equ 0x22
+TILE_ROCKET_MIDDLE              equ 0x23
+TILE_ROCKET_GEAR                equ 0x24
+TILE_ROCKET_BOOSTERS            equ 0x25
+TILE_ROCKET_SMOKE               equ 0x26
+TILE_BUILDING_SILOS             equ 0x27
+TILE_BUILDING_EXTRACTOR         equ 0x28
+TILE_BUILDING_COLECTOR          equ 0x29
+TILE_BUILDING_LAB               equ 0x2A
+TILE_BUILDING_RAFINERY          equ 0x2B
+TILE_BUILDING_RADAR             equ 0x2C
+TILE_BUILDING_PODS              equ 0x2D
+TILE_BUILDING_POWER             equ 0x2E
+TILE_RAIL_STATION_V             equ 0x2F
+TILE_RAIL_STATION_H             equ 0x30
 TILE_CART_VERTICAL              equ 0x31
 TILE_CART_HORIZONTAL            equ 0x32
 TILE_SWITCH_LEFT                equ 0x33
 TILE_SWITCH_DOWN                equ 0x34
 TILE_SWITCH_RIGHT               equ 0x35
 TILE_SWITCH_UP                  equ 0x36
-TILE_ORE_BLUE                   equ 0x37
-TILE_ORE_YELLOW                 equ 0x38
-TILE_ORE_RED                    equ 0x39
-TILE_EXTRACT_BLUE               equ 0x3A
-TILE_EXTRACT_YELLOW             equ 0x3B
-TILE_EXTRACT_RED                equ 0x3C
-TILE_SILO_BLUE                  equ 0x3D
-TILE_SILO_YELLOW                equ 0x3E
-TILE_SILO_RED                   equ 0x3F
-TILE_CURSOR_PAN                 equ 0x40
-TILE_CURSOR_BUILD               equ 0x41
-TILE_CURSOR_EDIT                equ 0x42
-TILE_CURSOR_BUILDING            equ 0x43
-TILE_CURSOR_SELECTOR            equ 0x44
-TILE_WINDOW_1                   equ 0x45
-TILE_WINDOW_2                   equ 0x46
-TILE_WINDOW_3                   equ 0x47
-TILE_WINDOW_4                   equ 0x48
-TILE_WINDOW_5                   equ 0x49
-TILE_WINDOW_6                   equ 0x4A
-TILE_WINDOW_7                   equ 0x4B
-TILE_WINDOW_8                   equ 0x4C
-TILE_WINDOW_9                   equ 0x4D
-TILE_FRAME_1                    equ 0x4E
-TILE_FRAME_2                    equ 0x4F
-TILE_FRAME_3                    equ 0x50
-TILE_FRAME_4                    equ 0x51
-TILE_FRAME_5                    equ 0x52
-TILE_FRAME_6                    equ 0x53
-TILE_FRAME_7                    equ 0x54
-TILE_FRAME_8                    equ 0x55
+TILE_ORE_WHITE_V                equ 0x37
+TILE_ORE_WHITE_H                equ 0x38
+TILE_ORE_BLUE_V                 equ 0x39
+TILE_ORE_BLUE_H                 equ 0x3A
+TILE_ORE_GREEN_V                equ 0x3B
+TILE_ORE_GREEN_H                equ 0x3C
+TILE_SILO_WHITE                 equ 0x3D
+TILE_SILO_BLUE                  equ 0x3E
+TILE_SILO_GREEN                 equ 0x3F
+TILE_EXTRACT_WHITE              equ 0x40
+TILE_EXTRACT_BLUE               equ 0x41
+TILE_EXTRACT_GREEN              equ 0x42
+TILE_CURSOR_MOUSE               equ 0x43
+TILE_CURSOR_BUILD               equ 0x44
+TILE_CURSOR_EDIT                equ 0x45
+TILE_CURSOR_BUILDING            equ 0x46
+TILE_CURSOR_SELECTOR            equ 0x47
+TILE_UI_BG                      equ 0x48
+TILE_UI_HEADER                  equ 0x49
+TILE_UI_LEFT                    equ 0x4A
+TILE_UI_RIGHT                   equ 0x4B
+TILE_UI_HEADER_TXT              equ 0x4C
+TILE_IO_RIGHT                   equ 0x4D
+TILE_IO_LEFT                    equ 0x4E
+TILE_IO_UP                      equ 0x4F
+TILE_IO_DOWN                    equ 0x50
 
 ; Helpers
-TILES_COUNT                     equ 98
-TILE_FOREGROUND_SHIFT           equ TILE_DETAIL_1   ; pointer to first FG tile
-TILE_ROCKET_BOTTOM_ID           equ TILE_ROCKET_BOTTOM-TILE_FOREGROUND_SHIFT
+TILES_COUNT                     equ 81
+TILE_FOREGROUND_SHIFT           equ TILE_DETAIL_0   ; pointer to first FG tile
+TILE_ROCKET_BOTTOM_ID           equ TILE_ROCKET_GEAR-TILE_FOREGROUND_SHIFT
 TILE_ROCKET_TOP_ID              equ TILE_ROCKET_TOP-TILE_FOREGROUND_SHIFT
 TILE_BUILDING_RAFINERY_ID       equ TILE_BUILDING_RAFINERY-TILE_FOREGROUND_SHIFT
 TILE_BUILDING_COLECTOR_ID      equ TILE_BUILDING_COLECTOR-TILE_FOREGROUND_SHIFT
@@ -724,7 +719,7 @@ game_logic:
 
     .place_rail:
       mov al, [_GAME_TICK_]
-      and al, 0x1                       ; TILE_MUD_1 or TILE_MUD_2
+      and al, 0x1                       ; TILE_SOIL_0 or TILE_SOIL_1
       add al, RAIL_MASK
       mov byte [fs:di], al
       mov byte [fs:di + FG], TILE_RAILS_1-TILE_FOREGROUND_SHIFT
@@ -1171,7 +1166,7 @@ window_logic:
     push si
     mov si, ax
 
-    inc dl
+    add dl, 0x2
     mov bl, COLOR_BLACK
     call font.draw_string
 
@@ -1179,9 +1174,8 @@ window_logic:
     mov ax, [si+6]
     mov dx, [si+2]
     mov si, ax
-    inc dh
-    inc dh
-    inc dl
+    add dh, 0x2
+    add dl, 0x2
 
     xor cx, cx
     .menu_array:
@@ -1724,6 +1718,7 @@ font:
       add bx, cx      ; BX = Y * 320
       add bx, ax                          ; Y * 8 * 320 + X * 8
       mov di, bx                          ; Move result to DI
+      add di, SCREEN_WIDTH*(SPRITE_SIZE/4)+(SPRITE_SIZE/4)
       pop bx                              ; Restore color
 
     .next_char_loop:
@@ -2089,19 +2084,19 @@ generate_map:
       mov byte [fs:di + FG], 0x0        ; Clear foreground data
       mov al, byte [fs:di]
 
-      cmp al, TILE_TREES_1    ; Last traversal sprite id
+      cmp al, TILE_ROCKS_0    ; Last traversal sprite id
       jge .skip_traversal               ; If greater, skip
       add byte [fs:di], TERRAIN_TRAVERSAL_MASK
 
       .add_detail:
-        cmp al, TILE_MUD_2
-        jle .skip_detail                ; between GRASS and FOREST
+        cmp al, TILE_ROCKS_0
+        jge .skip_detail                ; between GRASS and FOREST
         call get_random
         and ax, 0xF                     ; Random 0-15
         cmp ax, 0x7                     ; If less than 6, skip
         jg .skip_detail
         and ax, 0x2                     ; Convert to 0-3 for TILE_DETAIL_*
-        add al, TILE_DETAIL_1-TILE_FOREGROUND_SHIFT
+        add al, TILE_DETAIL_0-TILE_FOREGROUND_SHIFT
         add byte [fs:di + FG], al
       .skip_detail:
       .skip_traversal:
@@ -2293,7 +2288,7 @@ draw_cell:
           cmp al, 0x0
           jz .skip_resource
             shr al, RESOURCE_TYPE_SHIFT
-            add al, TILE_ORE_BLUE-1
+            add al, TILE_ORE_BLUE_H-1   ; TODO: cange to H and V
             call draw_sprite
           .skip_resource:
       .skip_cart:
@@ -2534,47 +2529,32 @@ draw_sprite:
 ; =========================================== UI SUBSYSTEM ==================|80
 ui:
   .draw_screen_frame:
-    xor di, di                            ; start at top-left corner
-
-    mov al, TILE_FRAME_1                  ; left-top corner
-    call draw_sprite
-
-    add di, SPRITE_SIZE
-    mov al, TILE_FRAME_2                  ; top frame
-    mov cx, 18
+    xor di, di                          ; start at top-left corner
+    mov al, TILE_UI_HEADER              ; top frame
+    mov cx, 20     ; TODO: magic number
     .top_loop:
       call draw_sprite
       add di, SPRITE_SIZE
     loop .top_loop
 
-    mov al, TILE_FRAME_3                  ; right-top corner
-    call draw_sprite
 
-    add di, 320*SPRITE_SIZE+SPRITE_SIZE-320
+    add di, 320*SPRITE_SIZE-320
     mov cx, 9
     .vertical_loop:
-      mov al, TILE_FRAME_4                  ; left frame
+      mov al, TILE_UI_LEFT              ; left frame
       call draw_sprite
       add di, 19*SPRITE_SIZE
-      mov al, TILE_FRAME_5                  ; right frame
+      mov al, TILE_UI_RIGHT             ; right frame
       call draw_sprite
       add di, 320*SPRITE_SIZE+SPRITE_SIZE-320
     loop .vertical_loop
 
-    mov al, TILE_FRAME_6                  ; left-bottom corner
-    call draw_sprite
-
-    add di, SPRITE_SIZE
-    mov al, TILE_FRAME_7                  ; bottom frame
-    mov cx, 18
+    mov al, TILE_UI_HEADER              ; bottom frame
+    mov cx, 20
     .bottom_loop:
       call draw_sprite
       add di, SPRITE_SIZE
     loop .bottom_loop
-
-    mov al, TILE_FRAME_8                  ; right-bottom corner
-    call draw_sprite
-
     ret
 
   .draw_footer_background:
@@ -2598,7 +2578,7 @@ ui:
     call ui.draw_footer_background
 
     mov di, UI_STATS_GFX_LINE+90   ; Resource blue icon
-    mov al, TILE_ORE_BLUE
+    mov al, TILE_RES_WHITE_MAX
     call draw_sprite
 
     mov si, [_ECONOMY_BLUE_RES_]  ; Blue resource count
@@ -2609,7 +2589,7 @@ ui:
     call font.draw_number
 
     mov di, UI_STATS_GFX_LINE+154
-    mov al, TILE_ORE_YELLOW
+    mov al, TILE_RES_BLUE_MAX
     call draw_sprite
 
     mov si, [_ECONOMY_YELLOW_RES_]  ; Yellow resource count
@@ -2620,7 +2600,7 @@ ui:
     call font.draw_number
 
     mov di, UI_STATS_GFX_LINE+218
-    mov al, TILE_ORE_RED
+    mov al, TILE_RES_GREEN_MAX
     call draw_sprite
 
     mov si, [_ECONOMY_RED_RES_]  ; Red resource count
@@ -2662,13 +2642,13 @@ ui:
     add dx, cx
     mov di, dx
 
-    mov al, TILE_CURSOR_PAN
+    mov al, TILE_CURSOR_MOUSE
     call draw_sprite
 
     pop dx
     pop cx
-    add dx, 0x08
-    add cx, 0x08
+    add dx, 0x06
+    add cx, 0x04
     shr dx, 4
     shr cx, 4
     mov word [_MOUSE_TILE_POS_X_], cx
@@ -2720,7 +2700,7 @@ ui:
     mov al, [fs:si + FG]
     and al, CURSOR_TYPE_MASK
     rol al, CURSOR_TYPE_ROL
-    add al, TILE_CURSOR_PAN
+    add al, TILE_CURSOR_MOUSE
     mov bl, al
 
     test byte [fs:si], INFRASTRUCTURE_MASK ; If not a building then skip arrows
@@ -3098,7 +3078,7 @@ InputTableEnd:
 
 ; height/width, Y/X, title, menu entry array, corresponding logic array
 WindowDefinitionsArray:
-dw 0x050A, 0x0C0A, WindowMainMenuText, MainMenuSelectionArrayText, MainMenuLogicArray
+dw 0x050C, 0x0B09, WindowMainMenuText, MainMenuSelectionArrayText, MainMenuLogicArray
 dw 0x080A, 0x040A, WindowBaseBuildingsText, WindowBaseSelectionArrayText, WindowBaseLogicArray
 dw 0x040A, 0x0A0A, WindowRemoteBuildingsText, WindowRemoteSelectionArrayText, WindowRemoteLogicArray
 dw 0x030A, 0x0A0A, WindowStationText, WindowStationSelectionArrayText, WindowStationLogicArray
@@ -3192,16 +3172,17 @@ WindowPODSSelectionArray:
 ; ==============================================================
 
 TerrainRules:
-db 0,0,0,0, 0,1,1,1                     ; 0 – Mud 1 → biased to stay muddy
-db 1,0,1,0, 2,2,3,3                     ; 1 – Mud 2 → slowly transitions
-db 2,2,2,2, 1,3,3,4                     ; 2 – Mud Grass 1 → transition zone
-db 3,3,3,3, 3,3,4,4                     ; 3 – Mud Grass 2 → strong grass push
-db 4,3,4,4, 4,4,5,5                     ; 4 – Grass → stable transition
-db 5,5,5,4, 4,6,6,3                     ; 5 – Bush → rare, transitional
-db 6,6,6,6, 7,7,5,4                     ; 6 – Trees 1 → forest cores
-db 7,7,7,7, 7,6,6,8                     ; 7 – Trees 2 → dense forest
-db 8,7,7,8, 8,8,9,9                     ; 8 – Mountains 1 → very stable
-db 9,7,8,8, 9,9,9,9                     ; 9 – Mountains 2
+db 0,0,1,1, 0,0,1,1                     ; 0 –
+db 1,0,1,0, 1,2,1,2                     ; 1 –
+db 2,0,1,2, 1,2,3,3                     ; 2 –
+db 3,2,1,3, 2,1,4,4                     ; 3 –
+db 4,3,2,4, 3,4,5,5                     ; 4 –
+db 5,5,3,4, 4,6,6,7                     ; 5 –
+db 6,5,5,6, 6,7,6,7                     ; 6 –
+db 7,6,7,7, 7,8,8,8                     ; 7 –
+db 8,7,7,8, 8,9,9,9                     ; 8 –
+db 9,7,8,8, 9,9,9,9                     ; 9 –
+db 10,9,9,10, 10,10,10,10               ; 10 –
 
 TerrainColors:
 db 0x3          ; Mud 1
@@ -3221,9 +3202,9 @@ RailroadsDict:
 db 0, 0, 1, 4, 0, 0, 3, 9, 1, 6, 1, 10, 5, 7, 8, 2
 
 Patch9Dict:
-  db TILE_WINDOW_1, TILE_WINDOW_2, TILE_WINDOW_3   ; top
-  db TILE_WINDOW_4, TILE_WINDOW_5, TILE_WINDOW_6   ; middle
-  db TILE_WINDOW_7, TILE_WINDOW_8, TILE_WINDOW_9   ; bottom
+  db TILE_UI_RIGHT, TILE_UI_HEADER_TXT, TILE_UI_LEFT   ; top
+  db TILE_UI_RIGHT, TILE_UI_BG, TILE_UI_LEFT   ; middle
+  db TILE_UI_RIGHT, TILE_UI_BG, TILE_UI_LEFT   ; bottom
 
 ; =========================================== INCLUDES ======================|80
 
