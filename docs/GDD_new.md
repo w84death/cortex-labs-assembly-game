@@ -47,3 +47,15 @@ Tiles type:
 Res 1 - game goal
 Res 2 - build infra, rails
 Res 3 - upgrades, fuel for running rails
+
+
+
+# TODO
+- smaller bounding box for curor
+- double buffer
+- draw only first layer and static things from ayer 2
+- blit
+- draw moving objects and cursor
+- draw frame
+- blit
+- profit

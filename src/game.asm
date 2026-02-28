@@ -38,6 +38,7 @@ org 0x0100
 ; =========================================== MEMORY LAYOUT =================|80
 
 SEGMENT_VGA                 equ 0xA000  ; VGA memory (fixed by hardware)
+SEGMENT_DBUFFER             equ 0xB000  ; Double buffer
 GAME_STACK_POINTER          equ 0xFFFE  ; Stack pointer for game code
 SEGMENT_SPRITES             equ 0x5400  ; 6 KB  → 95 tiles × 256 = ~24 KB
 SEGMENT_MAP                 equ 0x8000  ; 64 KB → all 4 layers
@@ -391,8 +392,8 @@ init:
   int 0x10                              ; Video BIOS interrupt
   cld                                   ; Clear DF to ensure forward string ops
 
-  push SEGMENT_VGA                      ; VGA memory segment
-  pop es                                ; Set ES to VGA memory segment
+  push SEGMENT_DBUFFER                  ; Double buffer memory segment
+  pop es                                ; Set ES to buffer memory segment
   xor di, di                            ; Set DI to 0
 
   push cs                               ; GAME CODE SEGMENT
@@ -496,6 +497,22 @@ check_keyboard:
 
 call benchmark.end
 call benchmark.draw_stats
+
+.vga_blit:
+  push es
+  push ds
+
+  push SEGMENT_VGA                     ; Set VGA memory
+  pop es                                  ; as target
+  push SEGMENT_DBUFFER                 ; Set doublebuffer memory
+  pop ds                                  ; as source
+  mov cx,0x7D00                           ; Half of 320x200 pixels
+  xor si,si                               ; Clear SI
+  xor di,di                               ; Clear DI
+  rep movsw                               ; Push words (2x pixels)
+
+  pop ds
+  pop es
 
 .cpu_delay:
   xor ax, ax                            ; 00h: Read system timer counter
@@ -1794,7 +1811,7 @@ draw_rle_image:
   push cs                               ; Code segment
   pop ds
 
-  push SEGMENT_VGA
+  push SEGMENT_DBUFFER
   pop es
 
   xor di, di
@@ -2585,7 +2602,7 @@ ui:
   .draw_map:
     push es
 
-    push SEGMENT_VGA
+    push SEGMENT_DBUFFER
     pop es
 
     mov ax, 0x0602
