@@ -76,7 +76,7 @@ _SFX_IRQ_SEGMENT_         equ _BASE_ + 0x26   ; 2 bytes
 _AUDIO_ENABLED_           equ _BASE_ + 0x28   ; 1 byte
 _LAST_ENT_POD_ID_         equ _BASE_ + 0x29   ; 2 bytes
 _MOUSE_BUTTONS_           equ _BASE_ + 0x2B   ; 1 byte
-
+_MOUSE_LOCK_              equ _BASE_ + 0x2C   ; 1 byte
 
 ; =========================================== ENGINE SETTINGS ===============|80
 ;
@@ -413,6 +413,7 @@ init:
 
   call initialize_custom_palette
   mov byte [_GAME_STATE_], STATE_INIT_ENGINE
+  mov word [_MOUSE_BUTTONS_], 0         ; clears both buttons and lock
 
 ; =========================================== GAME LOOP =====================|80
 
@@ -2582,7 +2583,25 @@ ui:
   .draw_live_cursor:
     mov ax, 0x0003
     int 0x33
+
+    cmp byte [_MOUSE_LOCK_], 1
+    jz .check_if_lock_needed
+
+    cmp bl, 0
+    jz .mouse_done
+
+    .mouse_new_click:
     mov byte [_MOUSE_BUTTONS_], bl      ; Save mouse button state
+    mov byte [_MOUSE_LOCK_], 1
+    jmp .mouse_done
+
+    .check_if_lock_needed:
+       cmp bl, 0
+       jnz .reset_mouse_click
+       mov byte [_MOUSE_LOCK_], 0
+       .reset_mouse_click:
+       mov byte [_MOUSE_BUTTONS_], 0
+    .mouse_done:
     push cx                             ; X
     push dx                             ; Y
 
@@ -2936,8 +2955,10 @@ StateJumpTable:
 StateTransitionTable:
   db STATE_P1X_SCREEN,    KB_ESC,   STATE_QUIT
   db STATE_P1X_SCREEN,    KB_ENTER, STATE_TITLE_SCREEN_INIT
+  db STATE_P1X_SCREEN,    MOUSE_LEFT_BUTTON, STATE_TITLE_SCREEN_INIT
   db STATE_TITLE_SCREEN,  KB_ESC,   STATE_QUIT
   db STATE_TITLE_SCREEN,  KB_ENTER, STATE_MENU_INIT
+  db STATE_TITLE_SCREEN,  MOUSE_LEFT_BUTTON, STATE_MENU_INIT
   db STATE_MENU,          KB_ESC,   STATE_TITLE_SCREEN_INIT
   db STATE_BRIEFING,      KB_ESC,   STATE_MENU_INIT
   db STATE_HELP,          KB_ESC,   STATE_MENU_INIT
@@ -2980,6 +3001,8 @@ InputTable:
   db STATE_WINDOW,                      SCENE_MODE_ANY, KB_ENTER
   dw menu_logic.game_menu_enter
   db STATE_WINDOW,                      SCENE_MODE_ANY, MOUSE_RIGHT_BUTTON
+  dw menu_logic.close_window
+  db STATE_WINDOW,                      SCENE_MODE_ANY, KB_ESC
   dw menu_logic.close_window
   db STATE_WINDOW,                      SCENE_MODE_ANY, KB_R
   dw benchmark.bench_bench
