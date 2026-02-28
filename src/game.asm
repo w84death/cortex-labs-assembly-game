@@ -6,7 +6,7 @@
 ;
 ; http://smol.p1x.in/assembly/#game12
 ; ===========================================================================|80
-; Copyright (C) 2025 Krzysztof Krystian Jankowski
+; Copyright (MIT) 2026 Krzysztof Krystian Jankowski
 ; This is free and open software. See LICENSE for details.
 ; ===========================================================================|80
 ;
@@ -26,8 +26,8 @@
 ;
 ; Programs used for production:
 ;   - Zed IDE
-;   - Pro Motion NG
-;   - bochs
+;   - Pro Motion NG / P1Xel Tool
+;   - bochs / dosemu
 ;   - custom tool for tileset conversion
 ;   - custom tool for RLE image compression
 ;
@@ -77,6 +77,8 @@ _AUDIO_ENABLED_           equ _BASE_ + 0x28   ; 1 byte
 _LAST_ENT_POD_ID_         equ _BASE_ + 0x29   ; 2 bytes
 _MOUSE_BUTTONS_           equ _BASE_ + 0x2B   ; 1 byte
 _MOUSE_LOCK_              equ _BASE_ + 0x2C   ; 1 byte
+_MOUSE_TILE_POS_X_        equ _BASE_ + 0x2D   ; 2 bytes
+_MOUSE_TILE_POS_Y_        equ _BASE_ + 0x2F   ; 2 bytes
 
 ; =========================================== ENGINE SETTINGS ===============|80
 ;
@@ -542,6 +544,10 @@ call benchmark.draw_stats
   call ui.draw_live_cursor
   pop es
 
+  cmp byte [_GAME_STATE_], STATE_WINDOW
+  jne .skip_check_cursor
+    call menu_logic.check_cursor_over
+  .skip_check_cursor:
 
 .cpu_delay:
   xor ax, ax                            ; 00h: Read system timer counter
@@ -1153,8 +1159,8 @@ window_logic:
     imul ax, 0xA
     add si, ax
 
-    mov bx, [si]         ; height:width
-    mov ax, [si+2]
+    mov bx, [si]                        ; height:width
+    mov ax, [si+2]                      ; y:x
     call draw_window
 
     mov ax, [si+4]
@@ -1201,6 +1207,39 @@ window_logic:
     ret
 
 menu_logic:
+  .check_cursor_over:
+    mov si, WindowDefinitionsArray
+    xor ax, ax
+    mov al, [_SCENE_MODE_]
+    imul ax, 0xA
+    add si, ax
+
+    mov bx, [si]                        ; height:width
+    mov ax, [si+2]                      ; y:x
+    shr al, 1                           ; convert from windows 8x8
+    shr ah, 1                           ; to tiles 16x16
+    add bl, al                          ; right
+    add bh, ah                          ; bottom
+    mov cx, [_MOUSE_TILE_POS_X_]
+    mov dx, [_MOUSE_TILE_POS_Y_]
+
+    cmp dl, ah
+    jl .done
+    cmp dl, bh
+    jge .done
+
+    cmp cl, al
+    jl .done
+    cmp cl, bl
+    jge .done
+
+    movzx bx, ah                        ; window y
+    sub dx, bx                          ; cursor y - window y
+    dec dx                              ; skip header
+    mov word [_MENU_SELECTION_POS_], dx
+
+    jmp window_logic.redraw_window
+
   .selection_up:
     cmp byte [_MENU_SELECTION_POS_], 0x0
     je .done
@@ -2605,9 +2644,10 @@ ui:
     push cx                             ; X
     push dx                             ; Y
 
+    ; TODO: optimize
     imul dx, 320
     add dx, cx
-    mov di,dx
+    mov di, dx
 
     mov al, TILE_CURSOR_PAN
     call draw_sprite
@@ -2618,6 +2658,8 @@ ui:
     add cx, 0x08
     shr dx, 4
     shr cx, 4
+    mov word [_MOUSE_TILE_POS_X_], cx
+    mov word [_MOUSE_TILE_POS_Y_], dx
     add cx, [_VIEWPORT_X_]
     add dx, [_VIEWPORT_Y_]
     mov ax, [_CURSOR_X_]
