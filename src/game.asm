@@ -38,7 +38,7 @@ org 0x0100
 ; =========================================== MEMORY LAYOUT =================|80
 
 SEGMENT_VGA                 equ 0xA000  ; VGA memory (fixed by hardware)
-SEGMENT_DBUFFER             equ 0xB000  ; Double buffer
+SEGMENT_DBUFFER             equ 0x7000  ; Double buffer
 GAME_STACK_POINTER          equ 0xFFFE  ; Stack pointer for game code
 SEGMENT_SPRITES             equ 0x5400  ; 6 KB  → 95 tiles × 256 = ~24 KB
 SEGMENT_MAP                 equ 0x8000  ; 64 KB → all 4 layers
