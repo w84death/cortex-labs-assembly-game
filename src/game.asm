@@ -89,7 +89,7 @@ SCREEN_WIDTH                    equ 320
 SCREEN_HEIGHT                   equ 200
 MAP_SIZE                        equ 128     ; Map size in cells DO NOT CHANGE
 VIEWPORT_WIDTH                  equ 20      ; Size in tiles 20 = 320 pixels
-VIEWPORT_HEIGHT                 equ 11      ; by 10 = 176 pixels
+VIEWPORT_HEIGHT                 equ 12      ; by 12 = 192 pixels
 VIEWPORT_GRID_SIZE              equ 16      ; Individual cell size DO NOT CHANGE
 SPRITE_SIZE                     equ 16      ; Sprite size 16x16 DO NOT CHANGE
 FONT_SIZE                       equ 8
@@ -330,7 +330,7 @@ SCENE_MODE_BRIEFING             equ 0x04
 SCENE_MODE_UPGRADE_BUILDINGS    equ 0x05
 UI_STATS_GFX_LINE               equ 320*175
 UI_STATS_TXT_LINE               equ 0x16
-UI_BOTTOM_FRAME                 equ 320*176
+UI_BOTTOM_FRAME                 equ 320*192
 
 ; =========================================== COLORS / DB16 =================|80
 
@@ -528,6 +528,13 @@ call benchmark.draw_stats
   rep movsw                               ; Push words (2x pixels)
 
   pop ds
+
+  cmp byte [_GAME_STATE_], STATE_P1X_SCREEN
+  je .skip_frame
+  cmp byte [_GAME_STATE_], STATE_TITLE_SCREEN
+  je .skip_frame
+    call ui.draw_screen_frame
+  .skip_frame:
 
   cmp byte [_GAME_STATE_], STATE_GAME
   jne .skip_game_cursor
@@ -913,11 +920,9 @@ game_logic:
 
   .redraw_terrain:
     call draw_terrain
-    call ui.draw_footer
     jmp .done
 
   .done:
-    call ui.draw_screen_frame
     ret
 
 ; in:
@@ -1437,11 +1442,6 @@ init_menu:
   mov byte [_MENU_SELECTION_POS_], 0x0
   call window_logic.create_window
 
-  mov si, MainMenuCopyText
-  mov dx, 0x170D
-  mov bl, COLOR_LIGHT_GRAY
-  call font.draw_string
-
   ;mov bx, MENU_JINGLE
   ;call audio.play_sfx
 ret
@@ -1511,7 +1511,6 @@ ret
 
 init_game:
   call draw_terrain
-  call ui.draw_screen_frame
   call ui.draw_footer
 
   mov byte [_GAME_STATE_], STATE_GAME
@@ -2531,7 +2530,7 @@ ui:
   .draw_screen_frame:
     xor di, di                          ; start at top-left corner
     mov al, TILE_UI_HEADER              ; top frame
-    mov cx, 20     ; TODO: magic number
+    mov cx, VIEWPORT_WIDTH
     .top_loop:
       call draw_sprite
       add di, SPRITE_SIZE
@@ -2539,7 +2538,7 @@ ui:
 
 
     add di, 320*SPRITE_SIZE-320
-    mov cx, 9
+    mov cx, VIEWPORT_HEIGHT-2
     .vertical_loop:
       mov al, TILE_UI_LEFT              ; left frame
       call draw_sprite
@@ -2550,17 +2549,17 @@ ui:
     loop .vertical_loop
 
     mov al, TILE_UI_HEADER              ; bottom frame
-    mov cx, 20
+    mov cx, VIEWPORT_WIDTH
     .bottom_loop:
       call draw_sprite
       add di, SPRITE_SIZE
     loop .bottom_loop
     ret
 
-  .draw_footer_background:
+  .draw_footer:
     mov di, UI_BOTTOM_FRAME
 
-    mov dx, 12
+    mov dx, 6
     .stripes_loop:
       mov cx, 320/2
       mov al, COLOR_DEEP_PURPLE
@@ -2574,8 +2573,7 @@ ui:
     jnz .stripes_loop
     ret
 
-  .draw_footer:
-    call ui.draw_footer_background
+  .draw_stats:
 
     mov di, UI_STATS_GFX_LINE+90   ; Resource blue icon
     mov al, TILE_RES_WHITE_MAX
@@ -2637,10 +2635,12 @@ ui:
     push cx                             ; X
     push dx                             ; Y
 
-    ; TODO: optimize
-    imul dx, 320
-    add dx, cx
-    mov di, dx
+    mov bx, dx
+    shl bx, 8                           ; Y * 256
+    shl dx, 6                           ; Y * 64
+    add bx, dx                          ; BX = Y * 320
+    add bx, cx                          ; Y * 16 * 320 + X * 16
+    mov di, bx                          ; Move result to DI
 
     mov al, TILE_CURSOR_MOUSE
     call draw_sprite
@@ -2719,7 +2719,7 @@ ui:
 
     call draw_sprite                      ; draw the in/out arrow
     mov al, bl
-    call draw_sprite                      ; draw cursor
+    ;call draw_sprite                      ; draw cursor
     pop es
 
     jmp .done
@@ -2741,18 +2741,18 @@ ui:
     push SEGMENT_DBUFFER
     pop es
 
-    mov ax, 0x0602
-    mov bx, 0x0909
+    mov ax, 0x0401
+    mov bx, 0x090A
     call draw_window
 
     mov si, WindowMinimapText
-    mov dx, 0x0603
+    mov dx, 0x0403
     mov bl, COLOR_BLACK
     call font.draw_string
 
     .draw_mini_map:
     xor si, si
-    mov di, SCREEN_WIDTH*59+39-16          ; Map position on screen
+    mov di, SCREEN_WIDTH*48+24          ; Map position on screen
     xor bx,bx
     mov cx, MAP_SIZE           ; Columns
     .draw_loop:
@@ -3073,17 +3073,16 @@ InputTable:
 InputTableEnd:
 
 
-
 ; =========================================== WINDOWS DEFINITIONS ===========|80
 
 ; height/width, Y/X, title, menu entry array, corresponding logic array
 WindowDefinitionsArray:
-dw 0x050C, 0x0B09, WindowMainMenuText, MainMenuSelectionArrayText, MainMenuLogicArray
-dw 0x080A, 0x040A, WindowBaseBuildingsText, WindowBaseSelectionArrayText, WindowBaseLogicArray
-dw 0x040A, 0x0A0A, WindowRemoteBuildingsText, WindowRemoteSelectionArrayText, WindowRemoteLogicArray
-dw 0x030A, 0x0A0A, WindowStationText, WindowStationSelectionArrayText, WindowStationLogicArray
-dw 0x0409, 0x1015, WindowBriefingText, WindowBriefingSelectionArrayText, WindowBriefingLogicArray
-dw 0x040F, 0x0A07, WindowPODsText, WindowPODSSelectionArrayText, WindowPODSSelectionArray
+dw 0x050C, 0x0C09, WindowMainMenuText, MainMenuSelectionArrayText, MainMenuLogicArray
+dw 0x080C, 0x0608, WindowBaseBuildingsText, WindowBaseSelectionArrayText, WindowBaseLogicArray
+dw 0x050C, 0x0C08, WindowRemoteBuildingsText, WindowRemoteSelectionArrayText, WindowRemoteLogicArray
+dw 0x030A, 0x100A, WindowStationText, WindowStationSelectionArrayText, WindowStationLogicArray
+dw 0x040A, 0x0E13, WindowBriefingText, WindowBriefingSelectionArrayText, WindowBriefingLogicArray
+dw 0x050D, 0x0C08, WindowPODsText, WindowPODSSelectionArrayText, WindowPODSSelectionArray
 
 
 WindowMainMenuText          db 'MAIN MANU',0x0
@@ -3103,8 +3102,8 @@ MainMenuLogicArray:
 WindowBaseBuildingsText     db 'BASE BUILDING',0x0
 WindowBaseSelectionArrayText:
   db '< CLOSE WINDOW',0x0
-  db 'EXPAND BASE FOUNDATIONS',0x0
-  db 'BUILD POD STATION',0x0
+  db 'EXPAND BASE',0x0
+  db 'BUILD POD FACTORY',0x0
   db 'BUILD SILOS',0x0
   db 'BUILD RAFINERY',0x0
   db 'BUILD RADAR',0x0
@@ -3122,11 +3121,13 @@ WindowBaseSelectionArrayText:
 WindowRemoteBuildingsText   db 'REMOTE BUILDINGS',0x0
 WindowRemoteSelectionArrayText:
   db '< CLOSE WINDOW',0x0
+  db 'ROTATE EXIT TARGET',0x0
   db 'BUILD EXTRACTOR',0x0
   db 'BUILD RADAR',0x0
   db 0x00
 WindowRemoteLogicArray:
   dw menu_logic.close_window, 0x0
+  dw game_logic.change_action, 0x0
   dw actions_logic.place_building, TILE_BUILDING_COLECTOR_ID
   dw actions_logic.place_building, TILE_BUILDING_RADAR_ID
 
@@ -3142,8 +3143,8 @@ WindowStationLogicArray:
 WindowMinimapText           db 'TERRAIN',0x0
 WindowBriefingText           db 'BRIEFING',0x0
 WindowBriefingSelectionArrayText:
-  db '> ACCEPT MISSION',0x0
-  db 'GENERATE NEW MAP',0x0
+  db 'START MISSION',0x0
+  db 'GENERATE NEW',0x0
   db '< REJECT',0x0
   db 0x00
 WindowBriefingLogicArray:
@@ -3154,11 +3155,13 @@ WindowBriefingLogicArray:
 WindowPODsText              db 'PODS MANUFACTURE',0x0
 WindowPODSSelectionArrayText:
   db '< CLOSE WINDOW',0x0
-  db 'BUILD STATION AT TARGET TILE',0x0
-  db 'DEPLOY NEW POD AT STATION',0x0
+  db 'ROTATE EXIT TARGET',0x0
+  db 'BUILD STATION',0x0
+  db 'DEPLOY NEW POD',0x0
   db 0x00
 WindowPODSSelectionArray:
   dw menu_logic.close_window, 0x0
+  dw game_logic.change_action, 0x0
   dw actions_logic.build_pods_station, 0x0
   dw actions_logic.build_pod, 0x0
 
