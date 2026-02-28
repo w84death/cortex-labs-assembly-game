@@ -544,9 +544,15 @@ call benchmark.draw_stats
   call ui.draw_live_cursor
   pop es
 
+  cmp byte [_GAME_STATE_], STATE_BRIEFING
+  je .check_cursor
+  cmp byte [_GAME_STATE_], STATE_MENU
+  je .check_cursor
   cmp byte [_GAME_STATE_], STATE_WINDOW
-  jne .skip_check_cursor
-    call menu_logic.check_cursor_over
+  je .check_cursor
+  jmp .skip_check_cursor
+  .check_cursor:
+  call menu_logic.check_cursor_over
   .skip_check_cursor:
 
 .cpu_delay:
@@ -1224,20 +1230,30 @@ menu_logic:
     mov dx, [_MOUSE_TILE_POS_Y_]
 
     cmp dl, ah
-    jl .done
+    jl .mouse_outside
     cmp dl, bh
-    jge .done
+    jge .mouse_outside
 
     cmp cl, al
-    jl .done
+    jl .mouse_outside
     cmp cl, bl
-    jge .done
+    jge .mouse_outside
 
     movzx bx, ah                        ; window y
     sub dx, bx                          ; cursor y - window y
     dec dx                              ; skip header
-    mov word [_MENU_SELECTION_POS_], dx
 
+    cmp dx, 0
+    jl .mouse_outside
+    cmp dx, [_MENU_SELECTION_MAX_]
+    jge .mouse_outside
+    jmp .mouse_inside
+
+    .mouse_outside:
+    xor dx, dx
+
+    .mouse_inside:
+    mov word [_MENU_SELECTION_POS_], dx
     jmp window_logic.redraw_window
 
   .selection_up:
@@ -2660,6 +2676,10 @@ ui:
     shr cx, 4
     mov word [_MOUSE_TILE_POS_X_], cx
     mov word [_MOUSE_TILE_POS_Y_], dx
+
+    cmp byte [_GAME_STATE_], STATE_GAME
+    jnz .not_update
+
     add cx, [_VIEWPORT_X_]
     add dx, [_VIEWPORT_Y_]
     mov ax, [_CURSOR_X_]
@@ -2670,6 +2690,7 @@ ui:
     cmp bx, dx
     jne .update_cursor
 
+    .not_update:
     ret
 
     .update_cursor:
@@ -3006,6 +3027,10 @@ StateTransitionTable:
   db STATE_HELP,          KB_ESC,   STATE_MENU_INIT
   db STATE_GAME,          KB_ESC,   STATE_MENU_INIT
   db STATE_DEBUG_VIEW,    KB_ESC,   STATE_MENU_INIT
+  db STATE_MENU,          MOUSE_RIGHT_BUTTON,   STATE_TITLE_SCREEN_INIT
+  db STATE_BRIEFING,      MOUSE_RIGHT_BUTTON,   STATE_MENU_INIT
+  db STATE_HELP,          MOUSE_RIGHT_BUTTON,   STATE_MENU_INIT
+  db STATE_DEBUG_VIEW,    MOUSE_RIGHT_BUTTON,   STATE_MENU_INIT
 StateTransitionTableEnd:
 
 ; In state keyboard handling
@@ -3031,6 +3056,8 @@ InputTable:
   dw menu_logic.selection_down
   db STATE_MENU,                        SCENE_MODE_ANY, KB_ENTER
   dw menu_logic.main_menu_enter
+  db STATE_MENU,                        SCENE_MODE_ANY, MOUSE_LEFT_BUTTON
+  dw menu_logic.main_menu_enter
   db STATE_MENU,                        SCENE_MODE_ANY, KB_R
   dw benchmark.bench_bench
 
@@ -3041,6 +3068,8 @@ InputTable:
   db STATE_WINDOW,                      SCENE_MODE_ANY, KB_SPACE
   dw menu_logic.game_menu_enter
   db STATE_WINDOW,                      SCENE_MODE_ANY, KB_ENTER
+  dw menu_logic.game_menu_enter
+  db STATE_WINDOW,                      SCENE_MODE_ANY, MOUSE_LEFT_BUTTON
   dw menu_logic.game_menu_enter
   db STATE_WINDOW,                      SCENE_MODE_ANY, MOUSE_RIGHT_BUTTON
   dw menu_logic.close_window
@@ -3055,10 +3084,14 @@ InputTable:
   dw menu_logic.selection_down
   db STATE_BRIEFING,                    SCENE_MODE_ANY, KB_ENTER
   dw menu_logic.game_menu_enter
+  db STATE_BRIEFING,                    SCENE_MODE_ANY, MOUSE_LEFT_BUTTON
+  dw menu_logic.game_menu_enter
   db STATE_BRIEFING,                    SCENE_MODE_ANY, KB_R
   dw benchmark.bench_bench
 
   db STATE_HELP,                        SCENE_MODE_ANY, KB_ENTER
+  dw ror_help_page
+  db STATE_HELP,                        SCENE_MODE_ANY, MOUSE_LEFT_BUTTON
   dw ror_help_page
 InputTableEnd:
 
@@ -3073,7 +3106,7 @@ dw 0x080A, 0x040A, WindowBaseBuildingsText, WindowBaseSelectionArrayText, Window
 dw 0x040A, 0x0A0A, WindowRemoteBuildingsText, WindowRemoteSelectionArrayText, WindowRemoteLogicArray
 dw 0x030A, 0x0A0A, WindowStationText, WindowStationSelectionArrayText, WindowStationLogicArray
 dw 0x0409, 0x1015, WindowBriefingText, WindowBriefingSelectionArrayText, WindowBriefingLogicArray
-dw 0x050F, 0x0A07, WindowPODsText, WindowPODSSelectionArrayText, WindowPODSSelectionArray
+dw 0x040F, 0x0A07, WindowPODsText, WindowPODSSelectionArrayText, WindowPODSSelectionArray
 
 
 WindowMainMenuText          db 'MAIN MANU',0x0
@@ -3141,7 +3174,7 @@ WindowBriefingLogicArray:
   dw new_game, 0x0
   dw menu_logic.back_to_menu, 0x0
 
-WindowPODsText              db 'PODS RAFINERY',0x0
+WindowPODsText              db 'PODS MANUFACTURE',0x0
 WindowPODSSelectionArrayText:
   db '< CLOSE WINDOW',0x0
   db 'BUILD STATION AT TARGET TILE',0x0
@@ -3151,8 +3184,6 @@ WindowPODSSelectionArray:
   dw menu_logic.close_window, 0x0
   dw actions_logic.build_pods_station, 0x0
   dw actions_logic.build_pod, 0x0
-
-WindowInspectText              db 'BUILDING INSPECTION',0x0
 
 ; =========================================== TERRAIN GEN RULES =============|80
 
