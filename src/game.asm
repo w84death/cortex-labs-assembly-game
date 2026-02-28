@@ -75,6 +75,7 @@ _SFX_IRQ_OFFSET_          equ _BASE_ + 0x24   ; 2 bytes
 _SFX_IRQ_SEGMENT_         equ _BASE_ + 0x26   ; 2 bytes
 _AUDIO_ENABLED_           equ _BASE_ + 0x28   ; 1 byte
 _LAST_ENT_POD_ID_         equ _BASE_ + 0x29   ; 2 bytes
+_MOUSE_BUTTONS_           equ _BASE_ + 0x2B   ; 1 byte
 
 
 ; =========================================== ENGINE SETTINGS ===============|80
@@ -384,6 +385,8 @@ KB_7        equ 0x08
 KB_8        equ 0x09
 KB_9        equ 0x0A
 KB_0        equ 0x0B
+MOUSE_LEFT_BUTTON equ 0xFF
+MOUSE_RIGHT_BUTTON equ 0xFE
 
 ; =========================================== INITIALIZATION ================|80
 
@@ -391,6 +394,11 @@ init:
   mov ax, 0x13                          ; Init 320x200, 256 colors mode
   int 0x10                              ; Video BIOS interrupt
   cld                                   ; Clear DF to ensure forward string ops
+
+  mov ax, 7                             ; Mouse horizontal cursor range
+  mov cx, 1                             ; from 1
+  mov dx,319                            ; to 319
+  int 33h
 
   push SEGMENT_DBUFFER                  ; Double buffer memory segment
   pop es                                ; Set ES to buffer memory segment
@@ -422,6 +430,20 @@ game_state_satisfied:
 
 ; =========================================== KEYBOARD INPUT ================|80
 
+check_mouse_click:
+
+  test byte [_MOUSE_BUTTONS_], 1        ; Test bit 0 (Left Button)
+  jnz .clicked_left
+  test byte [_MOUSE_BUTTONS_], 2        ; Test bit 1 (Right Button)
+  jnz .clicked_right
+  jmp check_keyboard
+  .clicked_left:
+    mov ah, MOUSE_LEFT_BUTTON
+    jmp check_keyboard.fake_keyboard
+  .clicked_right:
+    mov ah, MOUSE_RIGHT_BUTTON
+    jmp check_keyboard.fake_keyboard
+
 check_keyboard:
   mov ah, 01h                           ; BIOS keyboard status function
   int 16h                               ; Call BIOS interrupt
@@ -430,8 +452,7 @@ check_keyboard:
   mov ah, 00h                           ; BIOS keyboard read function
   int 16h
 
-; Call BIOS interrupt
-
+.fake_keyboard:
   ; ========================================= STATE TRANSITIONS ============|80
   ; Main state game changer. Changes states like intro, menu, game.
   mov si, StateTransitionTable
@@ -512,7 +533,14 @@ call benchmark.draw_stats
   rep movsw                               ; Push words (2x pixels)
 
   pop ds
+
+  cmp byte [_GAME_STATE_], STATE_GAME
+  jne .skip_game_cursor
+    call ui.draw_cursor
+  .skip_game_cursor:
+  call ui.draw_live_cursor
   pop es
+
 
 .cpu_delay:
   xor ax, ax                            ; 00h: Read system timer counter
@@ -876,12 +904,10 @@ game_logic:
     mov word [_CURSOR_X_OLD_], ax
     mov word [_CURSOR_Y_OLD_], bx
     call draw_selected_cell
-    call ui.draw_cursor
     jmp .done
 
   .redraw_terrain:
     call draw_terrain
-    call ui.draw_cursor
     call ui.draw_footer
     jmp .done
 
@@ -1438,7 +1464,6 @@ ret
 
 init_game:
   call draw_terrain
-  call ui.draw_cursor
   call ui.draw_screen_frame
   call ui.draw_footer
 
@@ -2554,6 +2579,47 @@ ui:
 
     ret
 
+  .draw_live_cursor:
+    mov ax, 0x0003
+    int 0x33
+    mov byte [_MOUSE_BUTTONS_], bl      ; Save mouse button state
+    push cx                             ; X
+    push dx                             ; Y
+
+    imul dx, 320
+    add dx, cx
+    mov di,dx
+
+    mov al, TILE_CURSOR_PAN
+    call draw_sprite
+
+    pop dx
+    pop cx
+    add dx, 0x08
+    add cx, 0x08
+    shr dx, 4
+    shr cx, 4
+    add cx, [_VIEWPORT_X_]
+    add dx, [_VIEWPORT_Y_]
+    mov ax, [_CURSOR_X_]
+    mov bx, [_CURSOR_Y_]
+
+    cmp ax, cx
+    jne .update_cursor
+    cmp bx, dx
+    jne .update_cursor
+
+    ret
+
+    .update_cursor:
+
+    mov word [_CURSOR_X_OLD_], ax
+    mov word [_CURSOR_Y_OLD_], bx
+    mov [_CURSOR_X_], cx
+    mov [_CURSOR_Y_], dx
+
+    ret
+
   .draw_cursor:
     mov si, [_CURSOR_Y_]    ; Absolute Y map coordinate
     shl si, 7               ; Y * 128 (optimized shl for *128)
@@ -2588,14 +2654,25 @@ ui:
     and al, TILE_DIRECTION_MASK
     add al, TILE_IO_RIGHT
 
-    call draw_sprite                      ; draw the in/out arrow
+    push es
+    push SEGMENT_VGA
+    pop es
 
+    call draw_sprite                      ; draw the in/out arrow
     mov al, bl
     call draw_sprite                      ; draw cursor
+    pop es
+
     jmp .done
 
     .no_infra:
+      test byte [fs:si + FG], CURSOR_TYPE_MASK
+      jz .done                          ; skip default cursor
+      push es
+      push SEGMENT_VGA
+      pop es
       call draw_sprite                    ; draw cursor
+      pop es
     .done:
     ret
 
@@ -2871,16 +2948,16 @@ StateTransitionTableEnd:
 ; In state keyboard handling
 InputTable:
   db STATE_GAME,                        SCENE_MODE_ANY, KB_UP
-  dw game_logic.move_cursor_up
+  dw game_logic.move_viewport_up
   db STATE_GAME,                        SCENE_MODE_ANY, KB_DOWN
-  dw game_logic.move_cursor_down
+  dw game_logic.move_viewport_down
   db STATE_GAME,                        SCENE_MODE_ANY, KB_LEFT
-  dw game_logic.move_cursor_left
+  dw game_logic.move_viewport_left
   db STATE_GAME,                        SCENE_MODE_ANY, KB_RIGHT
-  dw game_logic.move_cursor_right
-  db STATE_GAME,                        SCENE_MODE_ANY, KB_SPACE
+  dw game_logic.move_viewport_right
+  db STATE_GAME,                        SCENE_MODE_ANY, MOUSE_LEFT_BUTTON
   dw game_logic.build_action
-  db STATE_GAME,                        SCENE_MODE_ANY, KB_ENTER
+  db STATE_GAME,                        SCENE_MODE_ANY, MOUSE_RIGHT_BUTTON
   dw game_logic.change_action
   db STATE_GAME,                        SCENE_MODE_ANY, KB_R
   dw benchmark.bench_bench
@@ -2902,7 +2979,9 @@ InputTable:
   dw menu_logic.game_menu_enter
   db STATE_WINDOW,                      SCENE_MODE_ANY, KB_ENTER
   dw menu_logic.game_menu_enter
-  db STATE_WINDOW,                        SCENE_MODE_ANY, KB_R
+  db STATE_WINDOW,                      SCENE_MODE_ANY, MOUSE_RIGHT_BUTTON
+  dw menu_logic.close_window
+  db STATE_WINDOW,                      SCENE_MODE_ANY, KB_R
   dw benchmark.bench_bench
 
   db STATE_BRIEFING,                    SCENE_MODE_ANY, KB_UP
