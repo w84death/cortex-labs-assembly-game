@@ -2,6 +2,9 @@
 Real-time strategy for x86 processors made in assembly.
 ![Game screen](docs/screenshot-4.png)
 
+# PLAY
+[WEB DOS EMULATOR](https://smol.p1x.in/assembly/game12/game12.html)
+
 ## Features
 * VGA 320x200, 16 colors, 4 colors per tiles, 3 + transparency for sprites
 * Arne 16 color palette

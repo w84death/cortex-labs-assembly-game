@@ -397,10 +397,7 @@ init:
   int 0x10                              ; Video BIOS interrupt
   cld                                   ; Clear DF to ensure forward string ops
 
-  mov ax, 7                             ; Mouse horizontal cursor range
-  mov cx, 1                             ; from 1
-  mov dx,319                            ; to 319
-  int 33h
+  call mouse_init
 
   push SEGMENT_DBUFFER                  ; Double buffer memory segment
   pop es                                ; Set ES to buffer memory segment
@@ -3244,6 +3241,7 @@ include 'img_landing.asm'
 ; Thanks for reading the source code!
 ; Visit http://smol.p1x.in/assembly/ for more.
 
+include 'mouse_driver.asm'
 BitLogo:
 db "P1X"    ; Use HEX viewer to see P1X at the end of binary
 
