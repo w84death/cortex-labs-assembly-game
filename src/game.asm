@@ -536,11 +536,13 @@ call benchmark.draw_stats
     call ui.draw_screen_frame
   .skip_frame:
 
+
   cmp byte [_GAME_STATE_], STATE_GAME
   jne .skip_game_cursor
-    call ui.draw_cursor
+    call ui.draw_game_cursor
   .skip_game_cursor:
-  call ui.draw_live_cursor
+
+  call ui.draw_mouse_cursor
   pop es
 
   cmp byte [_GAME_STATE_], STATE_BRIEFING
@@ -706,6 +708,15 @@ game_logic:
     jmp .redraw_tile
 
   .build_action:
+    cmp word [_MOUSE_TILE_POS_Y_], 1
+    jl .done
+    cmp word [_MOUSE_TILE_POS_Y_], VIEWPORT_HEIGHT-2
+    jg .done
+    cmp word [_MOUSE_TILE_POS_X_], 1
+    jl .done
+    cmp word [_MOUSE_TILE_POS_X_], VIEWPORT_WIDTH-2
+    jg .done
+
     mov bx, SFX_BUILD
     call audio.play_sfx
 
@@ -2610,7 +2621,7 @@ ui:
 
     ret
 
-  .draw_live_cursor:
+  .draw_mouse_cursor:
     mov ax, 0x0003
     int 0x33
 
@@ -2621,9 +2632,9 @@ ui:
     jz .mouse_done
 
     .mouse_new_click:
-    mov byte [_MOUSE_BUTTONS_], bl      ; Save mouse button state
-    mov byte [_MOUSE_LOCK_], 1
-    jmp .mouse_done
+      mov byte [_MOUSE_BUTTONS_], bl      ; Save mouse button state
+      mov byte [_MOUSE_LOCK_], 1
+      jmp .mouse_done
 
     .check_if_lock_needed:
        cmp bl, 0
@@ -2647,8 +2658,8 @@ ui:
 
     pop dx
     pop cx
-    add dx, 0x06
-    add cx, 0x04
+    add dx, 0x03
+    add cx, 0x02
     shr dx, 4
     shr cx, 4
     mov word [_MOUSE_TILE_POS_X_], cx
@@ -2671,15 +2682,13 @@ ui:
     ret
 
     .update_cursor:
-
-    mov word [_CURSOR_X_OLD_], ax
-    mov word [_CURSOR_Y_OLD_], bx
-    mov [_CURSOR_X_], cx
-    mov [_CURSOR_Y_], dx
-
+      mov word [_CURSOR_X_OLD_], ax
+      mov word [_CURSOR_Y_OLD_], bx
+      mov [_CURSOR_X_], cx
+      mov [_CURSOR_Y_], dx
     ret
 
-  .draw_cursor:
+  .draw_game_cursor:
     mov si, [_CURSOR_Y_]    ; Absolute Y map coordinate
     shl si, 7               ; Y * 128 (optimized shl for *128)
     add si, [_CURSOR_X_]    ; + absolute X map coordinate
