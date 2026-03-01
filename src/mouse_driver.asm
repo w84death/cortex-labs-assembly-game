@@ -2,6 +2,7 @@ use16
 
 ; ===========================================================================
 ; PS/2 Mouse Driver for Bare Metal (INT 33h emulation)
+; Rewritten for better compatibility with real hardware and emulators
 ; ===========================================================================
 
 ; Driver State Variables
@@ -25,22 +26,14 @@ mouse_init:
     pusha
     push es
 
-    ; 1. Install Interrupt Handlers
+    ; Disable interrupts to prevent race conditions during initialization
+    cli
+
     xor ax, ax
     mov es, ax      ; ES = 0 (IVT)
 
-    ; Check for existing mouse driver
-    mov bx, [es:0x33*4]
-    or bx, [es:0x33*4+2]
-    jz .install
-
-    mov ax, 0
-    int 0x33
-    cmp ax, 0xFFFF
-    je .skip_init
-
-    .install:
-    cli             ; Disable interrupts while hooking
+    ; 1. Install Interrupt Handlers
+    ; We overwrite existing handlers to ensure we have control
 
     ; Hook INT 74h (IRQ 12)
     mov word [es:0x74*4], mouse_irq_handler
@@ -50,9 +43,46 @@ mouse_init:
     mov word [es:0x33*4], int33_handler
     mov word [es:0x33*4+2], cs
 
-    sti             ; Enable interrupts
+    ; 2. Enable Auxiliary Device (Mouse)
+    call mouse_wait_write
+    mov al, 0xA8    ; Enable Aux
+    out 0x64, al
 
-    ; 2. Enable IRQ 12 on PIC
+    ; 3. Enable IRQ 12 and Mouse Clock in Compaq Status Byte
+    call mouse_wait_write
+    mov al, 0x20    ; Read Command Byte
+    out 0x64, al
+    call mouse_wait_read
+    in al, 0x60
+    or al, 2        ; Enable IRQ 12 (Bit 1)
+    and al, 0xDF    ; Enable Mouse Clock (Clear bit 5)
+    push ax
+    call mouse_wait_write
+    mov al, 0x60    ; Write Command Byte
+    out 0x64, al
+    call mouse_wait_write
+    pop ax
+    out 0x60, al
+
+    ; 4. Reset Mouse (0xFF)
+    ; Crucial for real hardware to put mouse in known state.
+    mov al, 0xFF
+    call mouse_write_ack
+
+    ; Expect 0xAA (BAT successful)
+    call mouse_read_byte
+    ; Expect 0x00 (Device ID)
+    call mouse_read_byte
+
+    ; 5. Set Defaults
+    mov al, 0xF6
+    call mouse_write_ack
+
+    ; 6. Enable Data Reporting
+    mov al, 0xF4
+    call mouse_write_ack
+
+    ; 7. Enable IRQ 12 on PIC
     ; Slave PIC (Port 0xA1) - Clear bit 4 (IRQ 12)
     in al, 0xA1
     and al, 0xEF
@@ -63,62 +93,63 @@ mouse_init:
     and al, 0xFB
     out 0x21, al
 
-    ; 3. Enable Auxiliary Device (Mouse)
-    call mouse_wait_write
-    mov al, 0xA8    ; Enable Aux
-    out 0x64, al
+    sti             ; Enable interrupts
 
-    ; 4. Update Compaq Status Byte
-    call mouse_wait_write
-    mov al, 0x20    ; Read Command Byte
-    out 0x64, al
-    call mouse_wait_read
-    in al, 0x60
-    or al, 2        ; Enable IRQ 12
-    and al, 0xDF    ; Enable Mouse Clock (Clear bit 5)
-    push ax
-    call mouse_wait_write
-    mov al, 0x60    ; Write Command Byte
-    out 0x64, al
-    call mouse_wait_write
-    pop ax
-    out 0x60, al
-
-    ; 5. Set Defaults
-    mov al, 0xF6
-    call mouse_write
-
-    ; 6. Enable Data Reporting
-    mov al, 0xF4
-    call mouse_write
-
-    .skip_init:
     pop es
     popa
 
-    mov ax, 7                             ; Mouse horizontal cursor range
-    mov cx, 1                             ; from 1
-    mov dx,319                            ; to 319
+    ; Initialize default range
+    mov ax, 7
+    mov cx, 0
+    mov dx, 319
+    int 33h
+    mov ax, 8
+    mov cx, 0
+    mov dx, 199
     int 33h
     ret
 
-; Helper: Wait until 8042 input buffer is empty
+; ===========================================================================
+; Helper Functions
+; ===========================================================================
+
+; Wait until 8042 input buffer is empty (Bit 1 of Status Register 0x64 is 0)
+; Returns when controller is ready to accept command
 mouse_wait_write:
+    push cx
+    mov cx, 0xFFFF  ; Timeout loop count
+    .loop:
     in al, 0x64
     test al, 2
-    jnz mouse_wait_write
+    jz .ok
+    loop .loop
+    .ok:
+    pop cx
     ret
 
-; Helper: Wait until 8042 output buffer is full
+; Wait until 8042 output buffer is full (Bit 0 of Status Register 0x64 is 1)
+; Returns when controller has data for us to read
 mouse_wait_read:
+    push cx
+    mov cx, 0xFFFF  ; Timeout loop count
+    .loop:
     in al, 0x64
     test al, 1
-    jz mouse_wait_read
+    jnz .ok
+    loop .loop
+    .ok:
+    pop cx
     ret
 
-; Helper: Write byte to mouse (auxiliary device)
+; Read a byte from data port (0x60) with wait
+mouse_read_byte:
+    call mouse_wait_read
+    in al, 0x60
+    ret
+
+; Write a byte to mouse (aux device) and wait for ACK (0xFA)
 ; Input: AL = Byte to write
-mouse_write:
+mouse_write_ack:
     push ax
     call mouse_wait_write
     mov al, 0xD4    ; Write to Aux Device
@@ -126,8 +157,8 @@ mouse_write:
     call mouse_wait_write
     pop ax
     out 0x60, al
-    call mouse_wait_read
-    in al, 0x60     ; Read Acknowledge (0xFA)
+    ; Read Acknowledge (0xFA)
+    call mouse_read_byte
     ret
 
 ; ===========================================================================
@@ -137,14 +168,21 @@ mouse_write:
 mouse_irq_handler:
     pusha
     push ds
+    push es
     push cs
     pop ds          ; Ensure DS = CS to access variables
 
-    in al, 0x60     ; Read data port
+    ; Check Status Register to confirm data is from Auxiliary Device (Mouse)
+    in al, 0x64
+    test al, 0x20   ; Bit 5 = Aux device
+    jz .not_mouse   ; If not set, it's keyboard or spurious
+
+    ; Read Data
+    in al, 0x60
     mov bl, al      ; Save byte
 
     ; Store byte in buffer
-    mov bh, 0
+    xor bh, bh
     mov bl, [m_state]
     mov si, m_bytes
     add si, bx
@@ -216,7 +254,7 @@ mouse_irq_handler:
     jz .y_pos
     mov ch, 0xFF
     .y_pos:
-    sub [m_y], cx   ; Subtract because screen Y is inverted relative to mouse
+    sub [m_y], cx
 
     ; Clamp Y
     mov ax, [m_y]
@@ -230,11 +268,21 @@ mouse_irq_handler:
     .y_max_ok:
     mov [m_y], ax
 
+    jmp .eoi
+
+    .not_mouse:
+    ; If interrupt fired but it's not mouse data
+    ; Check if output buffer full (spurious or keyboard race)
+    test al, 1
+    jz .eoi
+    in al, 0x60     ; Read and discard to clear controller state
+
     .eoi:
     mov al, 0x20
     out 0xA0, al    ; EOI Slave
     out 0x20, al    ; EOI Master
 
+    pop es
     pop ds
     popa
     iret
@@ -256,7 +304,6 @@ int33_handler:
     iret
 
     .reset:
-    ; Reset mouse driver (re-init if needed, here just report presence)
     mov ax, 0xFFFF  ; Mouse installed
     mov bx, 2       ; 2 buttons
     iret

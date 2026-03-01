@@ -392,7 +392,8 @@ init:
   int 0x10                              ; Video BIOS interrupt
   cld                                   ; Clear DF to ensure forward string ops
 
-  call mouse_init
+  ;todo: check if not in dos
+  ;call mouse_init
 
   push SEGMENT_DBUFFER                  ; Double buffer memory segment
   pop es                                ; Set ES to buffer memory segment
@@ -497,6 +498,8 @@ check_keyboard:
 
 .keyboard_done:
 
+call ui.calculate_mouse_cursor
+
 .update_game_logic:
   cmp byte [_GAME_STATE_], STATE_GAME
   jnz .skip_turn
@@ -514,7 +517,38 @@ je .skip_frame
 cmp byte [_GAME_STATE_], STATE_TITLE_SCREEN
 je .skip_frame
   call ui.draw_screen_frame
+
+  cmp byte [_GAME_STATE_], STATE_GAME
+  je .draw_stats
+  cmp byte [_GAME_STATE_], STATE_GAME_INIT
+  je .draw_stats
+  cmp byte [_GAME_STATE_], STATE_WINDOW
+  je .draw_stats
+  cmp byte [_GAME_STATE_], STATE_WINDOW_INIT
+  je .draw_stats
+  jmp .skip_frame
+  .draw_stats:
+    call ui.draw_stats
 .skip_frame:
+
+cmp byte [_GAME_STATE_], STATE_INIT_ENGINE
+jz .skip_check_cursor
+cmp byte [_GAME_STATE_], STATE_P1X_SCREEN_INIT
+jz .skip_check_cursor
+cmp byte [_GAME_STATE_], STATE_P1X_SCREEN
+jz .skip_check_cursor
+cmp byte [_GAME_STATE_], STATE_TITLE_SCREEN_INIT
+jz .skip_check_cursor
+cmp byte [_GAME_STATE_], STATE_TITLE_SCREEN
+jz .skip_check_cursor
+cmp byte [_GAME_STATE_], STATE_GAME_INIT
+jz .skip_check_cursor
+cmp byte [_GAME_STATE_], STATE_GAME
+jz .skip_check_cursor
+
+;call menu_logic.check_cursor_over
+
+.skip_check_cursor:
 
 .vga_blit:
   push es
@@ -530,33 +564,15 @@ je .skip_frame
   rep movsw                               ; Push words (2x pixels)
 
   pop ds
-
-  cmp byte [_GAME_STATE_], STATE_P1X_SCREEN
-  jz .skip_check_cursor
-  cmp byte [_GAME_STATE_], STATE_TITLE_SCREEN
-  jz .skip_check_cursor
-  cmp byte [_GAME_STATE_], STATE_GAME
-  jz .skip_check_cursor
-
-  call menu_logic.check_cursor_over
-  .skip_check_cursor:
+  pop es
 
   cmp byte [_GAME_STATE_], STATE_GAME
   jne .skip_game_ui
     call ui.draw_game_cursor
   .skip_game_ui:
 
-  cmp byte [_GAME_STATE_], STATE_GAME
-  je .draw_stats
-  cmp byte [_GAME_STATE_], STATE_WINDOW
-  je .draw_stats
-  jmp .draw_mouse
+  call ui.draw_mouse_cursor
 
-  .draw_stats:
-    call ui.draw_stats
-  .draw_mouse:
-    call ui.draw_mouse_cursor
-  pop es
 
 .cpu_delay:
   xor ax, ax                            ; 00h: Read system timer counter
@@ -1235,6 +1251,7 @@ menu_logic:
     shr ah, 1                           ; to tiles 16x16
     add bl, al                          ; right
     add bh, ah                          ; bottom
+
     mov cx, [_MOUSE_TILE_POS_X_]
     mov dx, [_MOUSE_TILE_POS_Y_]
 
@@ -1262,8 +1279,12 @@ menu_logic:
     xor dx, dx
 
     .mouse_inside:
+    cmp word [_MENU_SELECTION_POS_], dx
+    jz .no_change
     mov word [_MENU_SELECTION_POS_], dx
-    jmp window_logic.redraw_window
+    call window_logic.redraw_window
+    .no_change:
+    ret
 
   .selection_up:
     cmp byte [_MENU_SELECTION_POS_], 0x0
@@ -2624,7 +2645,7 @@ ui:
 
     ret
 
-  .draw_mouse_cursor:
+  .calculate_mouse_cursor:
     mov ax, 0x0003
     int 0x33
 
@@ -2646,8 +2667,36 @@ ui:
        .reset_mouse_click:
        mov byte [_MOUSE_BUTTONS_], 0
     .mouse_done:
-    push cx                             ; X
-    push dx                             ; Y
+
+    add dx, 0x03                        ; Shift cursor center
+    add cx, 0x02
+    shr dx, 4
+    shr cx, 4
+    mov word [_MOUSE_TILE_POS_X_], cx
+    mov word [_MOUSE_TILE_POS_Y_], dx
+
+
+
+    cmp byte [_GAME_STATE_], STATE_GAME
+    jnz .not_update
+
+    add cx, [_VIEWPORT_X_]
+    add dx, [_VIEWPORT_Y_]
+    mov ax, [_CURSOR_X_]
+    mov bx, [_CURSOR_Y_]
+    mov word [_CURSOR_X_OLD_], ax
+    mov word [_CURSOR_Y_OLD_], bx
+    mov [_CURSOR_X_], cx
+    mov [_CURSOR_Y_], dx
+    ret
+
+    .not_update:
+    ret
+
+
+  .draw_mouse_cursor:
+    mov ax, 0x0003
+    int 0x33
 
     mov bx, dx
     shl bx, 8                           ; Y * 256
@@ -2657,39 +2706,13 @@ ui:
     mov di, bx                          ; Move result to DI
 
     mov al, TILE_CURSOR_MOUSE
+
+    push es
+    push SEGMENT_VGA
+    pop es
     call draw_sprite
-
-    pop dx
-    pop cx
-    add dx, 0x03
-    add cx, 0x02
-    shr dx, 4
-    shr cx, 4
-    mov word [_MOUSE_TILE_POS_X_], cx
-    mov word [_MOUSE_TILE_POS_Y_], dx
-
-    cmp byte [_GAME_STATE_], STATE_GAME
-    jnz .not_update
-
-    add cx, [_VIEWPORT_X_]
-    add dx, [_VIEWPORT_Y_]
-    mov ax, [_CURSOR_X_]
-    mov bx, [_CURSOR_Y_]
-
-    cmp ax, cx
-    jne .update_cursor
-    cmp bx, dx
-    jne .update_cursor
-
-    .not_update:
-    ret
-
-    .update_cursor:
-      mov word [_CURSOR_X_OLD_], ax
-      mov word [_CURSOR_Y_OLD_], bx
-      mov [_CURSOR_X_], cx
-      mov [_CURSOR_Y_], dx
-    ret
+    pop es
+  ret
 
   .draw_game_cursor:
     mov si, [_CURSOR_Y_]    ; Absolute Y map coordinate
@@ -2728,10 +2751,7 @@ ui:
     push es
     push SEGMENT_VGA
     pop es
-
     call draw_sprite                      ; draw the in/out arrow
-    mov al, bl
-    ;call draw_sprite                      ; draw cursor
     pop es
 
     jmp .done
