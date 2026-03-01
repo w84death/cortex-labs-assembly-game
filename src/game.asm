@@ -389,10 +389,17 @@ MOUSE_RIGHT_BUTTON equ 0xFE
 
 init:
 
-  cmp word [es:0x21*4+2], 0             ; Check for DOS (INT 21h vector)
-  jnz .skip_mouse_init
-    call mouse_init
-  .skip_mouse_init:
+  ; todo: check on real hardware
+  ; works in:
+  ; - bochs
+  ; - https://copy.sh/v86/
+  ; do not work:
+  ; - fujitsu futro usb mouse
+  ;
+  ;cmp word [es:0x21*4+2], 0             ; Check for DOS (INT 21h vector)
+  ;jnz .skip_mouse_init
+  ;  call mouse_init
+  ;.skip_mouse_init:
 
   mov ax, 0x13                          ; Init 320x200, 256 colors mode
   int 0x10                              ; Video BIOS interrupt
@@ -515,23 +522,28 @@ call ui.calculate_mouse_cursor
 
 ; =========================================== GAME TICK =====================|80
 
+cmp byte [_GAME_STATE_], STATE_GAME
+jne .skip_mouse_boudries
+  call game_logic.check_mouse_boudries
+.skip_mouse_boudries:
+
 cmp byte [_GAME_STATE_], STATE_P1X_SCREEN
 je .skip_frame
 cmp byte [_GAME_STATE_], STATE_TITLE_SCREEN
 je .skip_frame
   call ui.draw_screen_frame
 
-  cmp byte [_GAME_STATE_], STATE_GAME
-  je .draw_stats
-  cmp byte [_GAME_STATE_], STATE_GAME_INIT
-  je .draw_stats
-  cmp byte [_GAME_STATE_], STATE_WINDOW
-  je .draw_stats
-  cmp byte [_GAME_STATE_], STATE_WINDOW_INIT
-  je .draw_stats
-  jmp .skip_frame
-  .draw_stats:
-    call ui.draw_stats
+cmp byte [_GAME_STATE_], STATE_GAME_INIT
+je .draw_stats
+cmp byte [_GAME_STATE_], STATE_GAME
+je .draw_stats
+cmp byte [_GAME_STATE_], STATE_WINDOW_INIT
+je .draw_stats
+cmp byte [_GAME_STATE_], STATE_WINDOW
+je .draw_stats
+jmp .skip_frame
+.draw_stats:
+  call ui.draw_stats
 .skip_frame:
 
 cmp byte [_GAME_STATE_], STATE_WINDOW
@@ -611,6 +623,17 @@ ret                                     ; Return to DOS
 game_logic:
 
 ; =========================================== VIEWPORT MOVE =================|80
+  .check_mouse_boudries:
+    cmp word [_MOUSE_TILE_POS_Y_], 1
+    jl .move_viewport_up
+    cmp word [_MOUSE_TILE_POS_Y_], VIEWPORT_HEIGHT-2
+    jg .move_viewport_down
+    cmp word [_MOUSE_TILE_POS_X_], 1
+    jl .move_viewport_left
+    cmp word [_MOUSE_TILE_POS_X_], VIEWPORT_WIDTH-2
+    jg .move_viewport_right
+  ret
+
   .move_cursor_up:
     mov ax, [_VIEWPORT_Y_]              ; viewport top position
     inc ax                              ; one tile before
@@ -722,15 +745,6 @@ game_logic:
     jmp .redraw_tile
 
   .build_action:
-    cmp word [_MOUSE_TILE_POS_Y_], 1
-    jl .done
-    cmp word [_MOUSE_TILE_POS_Y_], VIEWPORT_HEIGHT-2
-    jg .done
-    cmp word [_MOUSE_TILE_POS_X_], 1
-    jl .done
-    cmp word [_MOUSE_TILE_POS_X_], VIEWPORT_WIDTH-2
-    jg .done
-
     mov bx, SFX_BUILD
     call audio.play_sfx
 
@@ -1189,6 +1203,7 @@ window_logic:
 
     mov bx, [si]                        ; height:width
     mov ax, [si+2]                      ; y:x
+
     call draw_window
 
     mov ax, [si+4]
@@ -1640,7 +1655,46 @@ init_window:
 ret
 
 live_window:
+  mov si, WindowDefinitionsArray
+  xor ax, ax
+  mov al, [_SCENE_MODE_]
+  imul ax, 0xA
+  add si, ax
 
+  mov bx, [si]                        ; height:width
+  mov ax, [si+2]                      ; y:x
+
+
+  mov si, [_CURSOR_Y_]                ; Calculate map position
+  shl si, 7   ; Y * 128
+  add si, [_CURSOR_X_]               ; For quick random number
+
+
+  ; custom widgets
+  cmp byte [_SCENE_MODE_], SCENE_MODE_UPGRADE_BUILDINGS
+  je .widget_rotate
+
+  jmp .done
+  .widget_rotate:
+    add ah, 4
+    shl al, 3
+    shl ah, 3
+    movzx di, ah
+    imul di, 320
+    xor ah,ah
+    add di, ax
+
+    sub bl, 2
+    shl bl, 4
+    xor bh, bh
+    add di, bx
+
+
+    mov al, [fs:si + META]
+    and al, TILE_DIRECTION_MASK
+    add al, TILE_IO_RIGHT
+    call draw_sprite
+  .done:
 ret
 
 
@@ -1809,6 +1863,7 @@ font:
   ;   BX - Color
   ;   CX - digits length
   .draw_number:
+    ; todo: use font drawing
     pusha
     mov ah, 0x02                          ; Set cursor
     xor bh, bh                            ; Page 0
@@ -2665,12 +2720,25 @@ ui:
         mov byte [_MOUSE_BUTTONS_], 0
     .mouse_done:
 
+
+    cmp cx, 0
+    jl .not_update
+    cmp cx, SCREEN_WIDTH
+    jge .not_update
+    cmp dx, 0
+    jl .not_update
+    cmp dx, SCREEN_HEIGHT
+    jge .not_update
+
+
     add dx, 0x03                        ; Shift cursor center
     add cx, 0x02
     shr dx, 4
     shr cx, 4
+
     mov word [_MOUSE_TILE_POS_X_], cx
     mov word [_MOUSE_TILE_POS_Y_], dx
+
 
     cmp byte [_GAME_STATE_], STATE_GAME
     jnz .not_update
@@ -2688,10 +2756,18 @@ ui:
     .not_update:
     ret
 
-
   .draw_mouse_cursor:
     mov ax, 0x0003
     int 0x33
+
+    cmp cx, 0
+    jl .outside_screen
+    cmp cx, SCREEN_WIDTH-1
+    jge .outside_screen
+    cmp dx, 0
+    jl .outside_screen
+    cmp dx, SCREEN_HEIGHT-1
+    jge .outside_screen
 
     mov bx, dx
     shl bx, 8                           ; Y * 256
@@ -2707,9 +2783,19 @@ ui:
     pop es
     call draw_sprite
     pop es
+    .outside_screen:
   ret
 
   .draw_game_cursor:
+    cmp word [_MOUSE_TILE_POS_Y_], 1
+    jl .done
+    cmp word [_MOUSE_TILE_POS_Y_], VIEWPORT_HEIGHT-2
+    jg .done
+    cmp word [_MOUSE_TILE_POS_X_], 1
+    jl .done
+    cmp word [_MOUSE_TILE_POS_X_], VIEWPORT_WIDTH-2
+    jg .done
+
     mov si, [_CURSOR_Y_]    ; Absolute Y map coordinate
     shl si, 7               ; Y * 128 (optimized shl for *128)
     add si, [_CURSOR_X_]    ; + absolute X map coordinate
@@ -3087,7 +3173,7 @@ WindowBaseSelectionArrayText:
 WindowRemoteBuildingsText   db 'REMOTE BUILDINGS',0x0
 WindowRemoteSelectionArrayText:
   db '< CLOSE WINDOW',0x0
-  db 'ROTATE EXIT TARGET',0x0
+  db 'ROTATE EXIT TARGET:',0x0
   db 'BUILD EXTRACTOR',0x0
   db 'BUILD RADAR',0x0
   db 0x00
@@ -3121,7 +3207,7 @@ WindowBriefingLogicArray:
 WindowPODsText              db 'PODS MANUFACTURE',0x0
 WindowPODSSelectionArrayText:
   db '< CLOSE WINDOW',0x0
-  db 'ROTATE EXIT TARGET',0x0
+  db 'ROTATE EXIT TARGET:',0x0
   db 'BUILD STATION',0x0
   db 'DEPLOY NEW POD',0x0
   db 0x00
