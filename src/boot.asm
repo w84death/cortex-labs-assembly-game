@@ -20,7 +20,7 @@ nop
 
 ; FAT12 BIOS Parameter Block (BPB) ============================================
 ; This must be preserved for DOS compatibility
-OEMLabel        db "P1X     "           ; 8 bytes
+OEMLabel        db "P1X GAME"           ; 8 bytes
 BytesPerSector  dw 512
 SectorsPerCluster db 1
 ReservedSectors dw 1
@@ -37,7 +37,7 @@ DriveNumber     db 0
 Reserved        db 0
 BootSignature   db 0x29
 VolumeSerial    dd 0x12345678
-VolumeLabel     db "GAME-12    "        ; 11 bytes
+VolumeLabel     db "CORTEX LABS"        ; 11 bytes
 FileSystem      db "FAT12   "           ; 8 bytes
 
 ; Start of the bootloader ======================================================

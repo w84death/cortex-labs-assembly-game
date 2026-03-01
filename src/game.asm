@@ -328,8 +328,8 @@ SCENE_MODE_REMOTE_BUILDINGS     equ 0x02
 SCENE_MODE_STATION              equ 0x03
 SCENE_MODE_BRIEFING             equ 0x04
 SCENE_MODE_UPGRADE_BUILDINGS    equ 0x05
-UI_STATS_GFX_LINE               equ 320*175
-UI_STATS_TXT_LINE               equ 0x16
+UI_STATS_GFX_LINE               equ 0x0
+UI_STATS_TXT_LINE               equ 0x1
 UI_BOTTOM_FRAME                 equ 320*192
 
 ; =========================================== COLORS / DB16 =================|80
@@ -538,9 +538,10 @@ call benchmark.draw_stats
 
 
   cmp byte [_GAME_STATE_], STATE_GAME
-  jne .skip_game_cursor
+  jne .skip_game_ui
+    call ui.draw_stats
     call ui.draw_game_cursor
-  .skip_game_cursor:
+  .skip_game_ui:
 
   call ui.draw_mouse_cursor
   pop es
@@ -1183,7 +1184,7 @@ window_logic:
     mov si, ax
 
     add dl, 0x2
-    mov bl, COLOR_BLACK
+    mov bl, COLOR_ORANGE
     call font.draw_string
 
     pop si
@@ -1732,11 +1733,11 @@ font:
       pop bx                              ; Restore color
 
     .next_char_loop:
-      xor ax, ax                          ; Clear leftover in ax
+      xor ax, ax                        ; Clear leftover in ax
       lodsb
-      test al, al                         ; Test for 0x0 terminator in text string
+      test al, al                       ; Test for 0x0 terminator in text string
       jz .done
-      cmp ax, 32                          ; space
+      cmp ax, 32                        ; space
       jnz .is_not_space
         add di,FONT_SIZE
         jmp .next_char_loop
@@ -1760,6 +1761,7 @@ font:
       mov si, Font
       add si, ax
 
+    mov bh, 0x0
     mov cx, FONT_SIZE
     .char_line:
       lodsb                             ; Load font byte
@@ -1772,7 +1774,7 @@ font:
       loop .pixel
         jmp .next_line                  ; Jump to next line on last pixel
         .draw_px:
-        mov [es:di], bl                 ; Color pixel
+        mov word [es:di], bx            ; Color pixel
         inc di
       loop .pixel                       ; Next pixel
       .next_line:
@@ -2756,7 +2758,7 @@ ui:
 
     mov si, WindowMinimapText
     mov dx, 0x0403
-    mov bl, COLOR_BLACK
+    mov bl, COLOR_ORANGE
     call font.draw_string
 
     .draw_mini_map:
@@ -3220,6 +3222,7 @@ Patch9Dict:
 
 ; =========================================== INCLUDES ======================|80
 
+include 'mouse_driver.asm'
 include 'text_en.asm'
 include 'font.asm'
 include 'sfx.asm'
@@ -3234,7 +3237,6 @@ include 'img_landing.asm'
 ; Thanks for reading the source code!
 ; Visit http://smol.p1x.in/assembly/ for more.
 
-include 'mouse_driver.asm'
 BitLogo:
 db "P1X"    ; Use HEX viewer to see P1X at the end of binary
 
