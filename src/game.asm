@@ -413,8 +413,6 @@ init:
 
 main_loop:
 
-  call benchmark.start
-
 ; =========================================== GAME STATES ===================|80
 
   movzx bx, byte [_GAME_STATE_]         ; Load state into BX
@@ -511,8 +509,12 @@ check_keyboard:
 
 ; =========================================== GAME TICK =====================|80
 
-call benchmark.end
-call benchmark.draw_stats
+cmp byte [_GAME_STATE_], STATE_P1X_SCREEN
+je .skip_frame
+cmp byte [_GAME_STATE_], STATE_TITLE_SCREEN
+je .skip_frame
+  call ui.draw_screen_frame
+.skip_frame:
 
 .vga_blit:
   push es
@@ -530,32 +532,31 @@ call benchmark.draw_stats
   pop ds
 
   cmp byte [_GAME_STATE_], STATE_P1X_SCREEN
-  je .skip_frame
+  jz .skip_check_cursor
   cmp byte [_GAME_STATE_], STATE_TITLE_SCREEN
-  je .skip_frame
-    call ui.draw_screen_frame
-  .skip_frame:
+  jz .skip_check_cursor
+  cmp byte [_GAME_STATE_], STATE_GAME
+  jz .skip_check_cursor
 
+  call menu_logic.check_cursor_over
+  .skip_check_cursor:
 
   cmp byte [_GAME_STATE_], STATE_GAME
   jne .skip_game_ui
-    call ui.draw_stats
     call ui.draw_game_cursor
   .skip_game_ui:
 
-  call ui.draw_mouse_cursor
-  pop es
-
-  cmp byte [_GAME_STATE_], STATE_BRIEFING
-  je .check_cursor
-  cmp byte [_GAME_STATE_], STATE_MENU
-  je .check_cursor
+  cmp byte [_GAME_STATE_], STATE_GAME
+  je .draw_stats
   cmp byte [_GAME_STATE_], STATE_WINDOW
-  je .check_cursor
-  jmp .skip_check_cursor
-  .check_cursor:
-  call menu_logic.check_cursor_over
-  .skip_check_cursor:
+  je .draw_stats
+  jmp .draw_mouse
+
+  .draw_stats:
+    call ui.draw_stats
+  .draw_mouse:
+    call ui.draw_mouse_cursor
+  pop es
 
 .cpu_delay:
   xor ax, ax                            ; 00h: Read system timer counter
@@ -2921,61 +2922,6 @@ audio:
     sti
     ret
 
-; ============================================================================
-benchmark:
-  .start:
-    rdtsc
-    mov [bench_prev], eax
-    mov [bench_prev+4], edx
-    ret
-
-  .end:
-    rdtsc
-    sub eax, [bench_prev]
-    sbb edx, [bench_prev+4]
-
-    mov [bench_current], eax
-    mov [bench_current+4], edx
-
-    cmp edx, [bench_worst + 4]
-    jb .not_the_worst
-    ja .new_worst
-    cmp eax, [bench_worst]
-    jbe .not_the_worst
-    .new_worst:
-    mov [bench_worst], eax
-    mov [bench_worst+4], edx
-    .not_the_worst:
-    ret
-
-  .draw_stats:
-    mov eax, [bench_current]
-    adc edx, [bench_current+4]
-    mov esi, eax
-    shr esi, 8
-    mov dh, UI_STATS_TXT_LINE
-    mov dl, 0x01
-    mov bl, COLOR_YELLOW
-    mov cx, 10000
-    call font.draw_number
-
-    inc dh
-    mov eax, [bench_worst]
-    adc edx, [bench_worst+4]
-    mov esi, eax
-    shr esi, 8
-    call font.draw_number
-    ret
-
-  .bench_bench:
-    mov [bench_worst], 0
-    mov [bench_worst+4], 0
-    ret
-
-bench_prev      dd 0, 0
-bench_current   dd 0, 0
-bench_worst     dd 0, 0
-
 ; =========================================== LOGIC FOR GAME STATES =========|80
 
 ; This table needs to corespond to the STATE_ variables IDs
@@ -3035,8 +2981,6 @@ InputTable:
   dw game_logic.build_action
   db STATE_GAME,                        SCENE_MODE_ANY, MOUSE_RIGHT_BUTTON
   dw game_logic.change_action
-  db STATE_GAME,                        SCENE_MODE_ANY, KB_R
-  dw benchmark.bench_bench
 
   db STATE_MENU,                        SCENE_MODE_ANY, KB_UP
   dw menu_logic.selection_up
@@ -3046,8 +2990,6 @@ InputTable:
   dw menu_logic.main_menu_enter
   db STATE_MENU,                        SCENE_MODE_ANY, MOUSE_LEFT_BUTTON
   dw menu_logic.main_menu_enter
-  db STATE_MENU,                        SCENE_MODE_ANY, KB_R
-  dw benchmark.bench_bench
 
   db STATE_WINDOW,                      SCENE_MODE_ANY, KB_UP
   dw menu_logic.selection_up
@@ -3063,8 +3005,6 @@ InputTable:
   dw menu_logic.close_window
   db STATE_WINDOW,                      SCENE_MODE_ANY, KB_ESC
   dw menu_logic.close_window
-  db STATE_WINDOW,                      SCENE_MODE_ANY, KB_R
-  dw benchmark.bench_bench
 
   db STATE_BRIEFING,                    SCENE_MODE_ANY, KB_UP
   dw menu_logic.selection_up
@@ -3074,8 +3014,6 @@ InputTable:
   dw menu_logic.game_menu_enter
   db STATE_BRIEFING,                    SCENE_MODE_ANY, MOUSE_LEFT_BUTTON
   dw menu_logic.game_menu_enter
-  db STATE_BRIEFING,                    SCENE_MODE_ANY, KB_R
-  dw benchmark.bench_bench
 
   db STATE_HELP,                        SCENE_MODE_ANY, KB_ENTER
   dw ror_help_page
