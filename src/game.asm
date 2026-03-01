@@ -546,7 +546,7 @@ jz .skip_check_cursor
 cmp byte [_GAME_STATE_], STATE_GAME
 jz .skip_check_cursor
 
-;call menu_logic.check_cursor_over
+call menu_logic.check_cursor_over
 
 .skip_check_cursor:
 
@@ -1271,7 +1271,7 @@ menu_logic:
 
     cmp dx, 0
     jl .mouse_outside
-    cmp dx, [_MENU_SELECTION_MAX_]
+    cmp byte dl, [_MENU_SELECTION_MAX_]
     jge .mouse_outside
     jmp .mouse_inside
 
@@ -1279,10 +1279,10 @@ menu_logic:
     xor dx, dx
 
     .mouse_inside:
-    cmp word [_MENU_SELECTION_POS_], dx
+    cmp byte [_MENU_SELECTION_POS_], dl
     jz .no_change
-    mov word [_MENU_SELECTION_POS_], dx
-    call window_logic.redraw_window
+      mov byte [_MENU_SELECTION_POS_], dl
+      call window_logic.redraw_window
     .no_change:
     ret
 
@@ -2649,23 +2649,24 @@ ui:
     mov ax, 0x0003
     int 0x33
 
-    cmp byte [_MOUSE_LOCK_], 1
-    jz .check_if_lock_needed
+    .check_buttons_clicks:
+      cmp byte [_MOUSE_LOCK_], 1
+      jz .check_if_lock_needed
 
-    cmp bl, 0
-    jz .mouse_done
+      cmp bl, 0
+      jz .mouse_done
 
-    .mouse_new_click:
-      mov byte [_MOUSE_BUTTONS_], bl      ; Save mouse button state
-      mov byte [_MOUSE_LOCK_], 1
-      jmp .mouse_done
+      .mouse_new_click:
+        mov byte [_MOUSE_BUTTONS_], bl      ; Save mouse button state
+        mov byte [_MOUSE_LOCK_], 1
+        jmp .mouse_done
 
-    .check_if_lock_needed:
-       cmp bl, 0
-       jnz .reset_mouse_click
-       mov byte [_MOUSE_LOCK_], 0
-       .reset_mouse_click:
-       mov byte [_MOUSE_BUTTONS_], 0
+      .check_if_lock_needed:
+        cmp bl, 0
+        jnz .reset_mouse_click
+        mov byte [_MOUSE_LOCK_], 0
+        .reset_mouse_click:
+        mov byte [_MOUSE_BUTTONS_], 0
     .mouse_done:
 
     add dx, 0x03                        ; Shift cursor center
@@ -2674,8 +2675,6 @@ ui:
     shr cx, 4
     mov word [_MOUSE_TILE_POS_X_], cx
     mov word [_MOUSE_TILE_POS_Y_], dx
-
-
 
     cmp byte [_GAME_STATE_], STATE_GAME
     jnz .not_update
