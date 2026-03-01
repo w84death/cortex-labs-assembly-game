@@ -388,12 +388,15 @@ MOUSE_RIGHT_BUTTON equ 0xFE
 ; =========================================== INITIALIZATION ================|80
 
 init:
+
+  cmp word [es:0x21*4+2], 0             ; Check for DOS (INT 21h vector)
+  jnz .skip_mouse_init
+    call mouse_init
+  .skip_mouse_init:
+
   mov ax, 0x13                          ; Init 320x200, 256 colors mode
   int 0x10                              ; Video BIOS interrupt
   cld                                   ; Clear DF to ensure forward string ops
-
-  ;todo: check if not in dos
-  ;call mouse_init
 
   push SEGMENT_DBUFFER                  ; Double buffer memory segment
   pop es                                ; Set ES to buffer memory segment
@@ -531,24 +534,17 @@ je .skip_frame
     call ui.draw_stats
 .skip_frame:
 
-cmp byte [_GAME_STATE_], STATE_INIT_ENGINE
-jz .skip_check_cursor
-cmp byte [_GAME_STATE_], STATE_P1X_SCREEN_INIT
-jz .skip_check_cursor
-cmp byte [_GAME_STATE_], STATE_P1X_SCREEN
-jz .skip_check_cursor
-cmp byte [_GAME_STATE_], STATE_TITLE_SCREEN_INIT
-jz .skip_check_cursor
-cmp byte [_GAME_STATE_], STATE_TITLE_SCREEN
-jz .skip_check_cursor
-cmp byte [_GAME_STATE_], STATE_GAME_INIT
-jz .skip_check_cursor
-cmp byte [_GAME_STATE_], STATE_GAME
-jz .skip_check_cursor
+cmp byte [_GAME_STATE_], STATE_WINDOW
+jz .check_cursor_over_menus
+cmp byte [_GAME_STATE_], STATE_MENU
+jz .check_cursor_over_menus
+cmp byte [_GAME_STATE_], STATE_BRIEFING
+jz .check_cursor_over_menus
 
-call menu_logic.check_cursor_over
-
-.skip_check_cursor:
+jmp .check_done
+.check_cursor_over_menus:
+  call menu_logic.check_cursor_over
+.check_done:
 
 .vga_blit:
   push es
@@ -1255,14 +1251,14 @@ menu_logic:
     mov cx, [_MOUSE_TILE_POS_X_]
     mov dx, [_MOUSE_TILE_POS_Y_]
 
-    cmp dl, ah
+    cmp dl, ah                          ; mouse y vs top
     jl .mouse_outside
-    cmp dl, bh
+    cmp dl, bh                          ; mouse y vs bottom
     jge .mouse_outside
 
-    cmp cl, al
+    cmp cl, al                          ; mouse x vs left
     jl .mouse_outside
-    cmp cl, bl
+    cmp cl, bl                          ; mouse x vs right
     jge .mouse_outside
 
     movzx bx, ah                        ; window y
@@ -1272,7 +1268,7 @@ menu_logic:
     cmp dx, 0
     jl .mouse_outside
     cmp byte dl, [_MENU_SELECTION_MAX_]
-    jge .mouse_outside
+    jg .mouse_outside
     jmp .mouse_inside
 
     .mouse_outside:
@@ -2998,7 +2994,9 @@ InputTable:
   dw game_logic.move_viewport_right
   db STATE_GAME,                        SCENE_MODE_ANY, MOUSE_LEFT_BUTTON
   dw game_logic.build_action
-  db STATE_GAME,                        SCENE_MODE_ANY, MOUSE_RIGHT_BUTTON
+  db STATE_GAME,                        SCENE_MODE_ANY, MOUSE_LEFT_BUTTON
+  dw game_logic.build_action
+  db STATE_GAME,                        SCENE_MODE_ANY, KB_ENTER
   dw game_logic.change_action
 
   db STATE_MENU,                        SCENE_MODE_ANY, KB_UP

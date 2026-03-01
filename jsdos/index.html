@@ -152,6 +152,44 @@
       body:-ms-fullscreen {
         background: #000;
       }
+
+      /* Hide controls and remove frame in fullscreen */
+      body:fullscreen .controls,
+      body:-webkit-full-screen .controls,
+      body:-moz-full-screen .controls,
+      body:-ms-fullscreen .controls {
+        display: none;
+      }
+
+      body:fullscreen .crt-container,
+      body:-webkit-full-screen .crt-container,
+      body:-moz-full-screen .crt-container,
+      body:-ms-fullscreen .crt-container {
+        padding: 0;
+        max-width: 100%;
+        max-height: 100%;
+      }
+
+      body:fullscreen .crt-monitor,
+      body:-webkit-full-screen .crt-monitor,
+      body:-moz-full-screen .crt-monitor,
+      body:-ms-fullscreen .crt-monitor {
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+      }
+
+      /* Remove CRT effects in fullscreen for clean view */
+      body:fullscreen .crt-screen::before,
+      body:-webkit-full-screen .crt-screen::before,
+      body:-moz-full-screen .crt-screen::before,
+      body:-ms-fullscreen .crt-screen::before,
+      body:fullscreen .crt-screen::after,
+      body:-webkit-full-screen .crt-screen::after,
+      body:-moz-full-screen .crt-screen::after,
+      body:-ms-fullscreen .crt-screen::after {
+        display: none;
+      }
     </style>
     <script src="js-dos.js"></script>
   </head>

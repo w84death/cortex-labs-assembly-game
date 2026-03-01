@@ -1,6 +1,6 @@
 # ![Cortex Labs](docs/logo.png)
 Real-time strategy for x86 processors made in assembly.
-![Game screen](docs/screenshot-4.png)
+![Game screen](docs/screenshot-6.png)
 
 # PLAY
 [WEB DOS EMULATOR](https://smol.p1x.in/assembly/game12/game12.html)
@@ -31,8 +31,10 @@ Real-time strategy for x86 processors made in assembly.
 ## Running
 Boot from a floppy or run on MS-DOS (FreeDOS).
 
-![Game Title screen](docs/screenshot-1.png)
 ![Menu screen](docs/screenshot-2.png)
+![Menu screen](docs/screenshot-3.png)
+![Menu screen](docs/screenshot-4.png)
+![Menu screen](docs/screenshot-5.png)
 
 ## Building
 Create floppy and binary:
