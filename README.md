@@ -1,35 +1,38 @@
 # ![Cortex Labs](docs/logo.png)
+
 Real-time strategy for x86 processors made in assembly.
-![Game screen](docs/screenshot-6.png)
 
 # PLAY
+
 [WEB DOS EMULATOR](https://smol.p1x.in/assembly/game12/game12.html)
 
+![Game screen](docs/screenshot-6.png)
+
+
 ## Features
-* VGA 320x200, 16 colors, 4 colors per tiles, 3 + transparency for sprites
-* Arne 16 color palette
-* 2D tile-based top-down view
-* Procedural map generation
-* Big, 128x128 tiles, map
+* VGA 320x200, 16 colors, 4 colors per tiles, 3 colors + transparency for sprites
+* Arne's 16-color palette
+* 2D tile-based, top-down view
+* Full mouse support
 * 16x16 sprites/tiles in 4 colors
-* No framebuffer, redrawing only parts that changed
+* Procedural map generation
+* Big, 128x128 tiles map
+* Framebuffer with redrawing terrain parts that changed
 * RLE image compression for pre-rendered backgrounds
-* Game state machine
-* Windows and Menu system
 * Sound effects (PC Speaker)
 * Rails system with pods transporting goods
 * Main base expansion + buildings
 * 3 type of resources to extract, transport, and refine
 * Development tools (vibe coded C):
-  * png2asm - compress tileset to assembly db
   * rleimg2asm - compress 320x200 images to assembly RLE db
   * fnt2asm - compress font tileset to assemlby db
+* Dedicated art creation tool **P1Xel Tool**
 
 ## Tileset
 ![Sprites](docs/sprites.png)
 
 ## Running
-Boot from a floppy or run on MS-DOS (FreeDOS).
+Boot from a floppy or run from MS-DOS (FreeDOS). Floppy image has game file (game.com), instruction, and bootloder for bare-metal run.
 
 ![Menu screen](docs/screenshot-2.png)
 ![Menu screen](docs/screenshot-3.png)

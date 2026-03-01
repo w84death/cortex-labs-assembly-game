@@ -5,6 +5,7 @@
 ASM = fasm
 UPX = upx
 BOCHS = bochs -q -f .bochsrc
+QEMU = qemu-system-i386
 DD = dd
 MKDIR = mkdir -p
 RM = rm -f
@@ -93,6 +94,10 @@ $(FLOPPY_IMG): $(BOOTLOADER) $(GAME_COM) | $(IMG_DIR)
 # Debug in Bochs
 bochs: $(FLOPPY_IMG)
 	$(BOCHS)
+
+# Debug in QEMU
+qemu: $(FLOPPY_IMG)
+	$(QEMU) -drive format=raw,file=$(FLOPPY_IMG),if=floppy -boot a
 
 # Build jsdos version
 jsdos: $(GAME_COM)
@@ -202,6 +207,7 @@ help:
 	@echo "  com         - Build compressed COM file with UPX"
 	@echo "  com-raw     - Build uncompressed COM file"
 	@echo "  bochs       - Run in Bochs debugger"
+	@echo "  qemu        - Run in QEMU emulator"
 	@echo "  jsdos       - Build jsdos archive"
 	@echo "  burn        - Burn to physical floppy"
 	@echo "  stats       - Display project statistics"
@@ -223,4 +229,4 @@ help:
 	@echo "  GAME.COM   - The game executable"
 	@echo "  MANUAL.TXT - Game manual"
 
-.PHONY: all com com-raw bochs jsdos burn stats tools decompress test-upx check-upx clean clean-tools help
+.PHONY: all com com-raw bochs qemu jsdos burn stats tools decompress test-upx check-upx clean clean-tools help

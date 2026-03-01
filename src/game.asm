@@ -1,10 +1,11 @@
 ; ===========================================================================|80
 ; CORTEX LABS - 2D Strategic game for x86 processors (and Free/MS-DOS)
 ;
-; Real-time strategy, economic game about extracting and managing resources.
-; Havely based on building optimized train (pods) lines.
+; Real-time strategy, economic game about extracting and managing resources
+; on alien planet. Havely based on building optimized train (pods) lines.
 ;
 ; http://smol.p1x.in/assembly/#game12
+; http://smol.p1x.in/assembly/cortex-labs/
 ; ===========================================================================|80
 ; Copyright (MIT) 2026 Krzysztof Krystian Jankowski
 ; This is free and open software. See LICENSE for details.
@@ -13,7 +14,7 @@
 ; Should run on any x86 processor and system that supports legacy BIOS.
 ; Can boot to baremetal or run on MS-DOS/FreeDOS from COM file.
 ;
-; Tested hardware:
+; Target hardware:
 ; Compaq Contura 430C (FreeDOS & Boot Floppy)
 ; * CPU: 486 DX4, 100Mhz
 ; * Graphics: VGA
@@ -26,7 +27,7 @@
 ;
 ; Programs used for production:
 ;   - Zed IDE
-;   - Pro Motion NG / P1Xel Tool
+;   - Propiretary P1Xel Tool
 ;   - bochs / dosemu
 ;   - custom tool for tileset conversion
 ;   - custom tool for RLE image compression
@@ -394,12 +395,12 @@ init:
   ; - bochs
   ; - https://copy.sh/v86/
   ; do not work:
-  ; - fujitsu futro usb mouse
+  ; - fujitsu futro usb2ps2 mouse
   ;
-  ;cmp word [es:0x21*4+2], 0             ; Check for DOS (INT 21h vector)
-  ;jnz .skip_mouse_init
-  ;  call mouse_init
-  ;.skip_mouse_init:
+  cmp word [es:0x21*4+2], 0             ; Check for DOS (INT 21h vector)
+  jnz .skip_mouse_init
+    call mouse_init
+  .skip_mouse_init:
 
   mov ax, 0x13                          ; Init 320x200, 256 colors mode
   int 0x10                              ; Video BIOS interrupt
@@ -527,11 +528,15 @@ jne .skip_mouse_boudries
   call game_logic.check_mouse_boudries
 .skip_mouse_boudries:
 
+cmp byte [_GAME_STATE_], STATE_P1X_SCREEN_INIT
+je .skip_frame
 cmp byte [_GAME_STATE_], STATE_P1X_SCREEN
+je .skip_frame
+cmp byte [_GAME_STATE_], STATE_TITLE_SCREEN_INIT
 je .skip_frame
 cmp byte [_GAME_STATE_], STATE_TITLE_SCREEN
 je .skip_frame
-  call ui.draw_screen_frame
+  call ui.draw_frame
 
 cmp byte [_GAME_STATE_], STATE_GAME_INIT
 je .draw_stats
@@ -551,8 +556,7 @@ jz .check_cursor_over_menus
 cmp byte [_GAME_STATE_], STATE_MENU
 jz .check_cursor_over_menus
 cmp byte [_GAME_STATE_], STATE_BRIEFING
-jz .check_cursor_over_menus
-
+jz .check_cursor_over_menu
 jmp .check_done
 .check_cursor_over_menus:
   call menu_logic.check_cursor_over
@@ -574,12 +578,13 @@ jmp .check_done
   pop ds
   pop es
 
-  cmp byte [_GAME_STATE_], STATE_GAME
-  jne .skip_game_ui
-    call ui.draw_game_cursor
-  .skip_game_ui:
+cmp byte [_GAME_STATE_], STATE_GAME
+jne .skip_game_ui
+  call game_render.draw_front_elements
+  call ui.draw_game_cursor
+.skip_game_ui:
 
-  call ui.draw_mouse_cursor
+call ui.draw_mouse_cursor
 
 
 .cpu_delay:
@@ -963,6 +968,15 @@ game_logic:
 
   .done:
     ret
+
+game_render:
+  .draw_front_elements:
+    ; draw rocket
+  ret
+
+game_cinematic:
+  .animate:
+  ret
 
 ; in:
 ; DI position
@@ -2613,7 +2627,7 @@ draw_sprite:
 
 ; =========================================== UI SUBSYSTEM ==================|80
 ui:
-  .draw_screen_frame:
+  .draw_frame:
     xor di, di                          ; start at top-left corner
     mov al, TILE_UI_HEADER              ; top frame
     mov cx, VIEWPORT_WIDTH
@@ -2720,41 +2734,38 @@ ui:
         mov byte [_MOUSE_BUTTONS_], 0
     .mouse_done:
 
+    .clamp_cursor_position:
+      cmp cx, 016
+      jl .not_update
+      cmp cx, SCREEN_WIDTH-1
+      jge .not_update
+      cmp dx, 0
+      jl .not_update
+      cmp dx, SCREEN_HEIGHT-1
+      jge .not_update
 
-    cmp cx, 0
-    jl .not_update
-    cmp cx, SCREEN_WIDTH
-    jge .not_update
-    cmp dx, 0
-    jl .not_update
-    cmp dx, SCREEN_HEIGHT
-    jge .not_update
-
-
-    add dx, 0x03                        ; Shift cursor center
-    add cx, 0x02
-    shr dx, 4
-    shr cx, 4
-
-    mov word [_MOUSE_TILE_POS_X_], cx
-    mov word [_MOUSE_TILE_POS_Y_], dx
-
+    .convert_to_grid:
+      add dx, 0x03                        ; Shift cursor center
+      add cx, 0x02
+      shr dx, 4
+      shr cx, 4
+      mov word [_MOUSE_TILE_POS_X_], cx
+      mov word [_MOUSE_TILE_POS_Y_], dx
 
     cmp byte [_GAME_STATE_], STATE_GAME
     jnz .not_update
 
-    add cx, [_VIEWPORT_X_]
-    add dx, [_VIEWPORT_Y_]
-    mov ax, [_CURSOR_X_]
-    mov bx, [_CURSOR_Y_]
-    mov word [_CURSOR_X_OLD_], ax
-    mov word [_CURSOR_Y_OLD_], bx
-    mov [_CURSOR_X_], cx
-    mov [_CURSOR_Y_], dx
-    ret
-
+    .update_values:
+      add cx, [_VIEWPORT_X_]
+      add dx, [_VIEWPORT_Y_]
+      mov ax, [_CURSOR_X_]
+      mov bx, [_CURSOR_Y_]
+      mov word [_CURSOR_X_OLD_], ax
+      mov word [_CURSOR_Y_OLD_], bx
+      mov [_CURSOR_X_], cx
+      mov [_CURSOR_Y_], dx
     .not_update:
-    ret
+  ret
 
   .draw_mouse_cursor:
     mov ax, 0x0003
@@ -2762,11 +2773,11 @@ ui:
 
     cmp cx, 0
     jl .outside_screen
-    cmp cx, SCREEN_WIDTH-1
+    cmp cx, SCREEN_WIDTH-SPRITE_SIZE
     jge .outside_screen
     cmp dx, 0
     jl .outside_screen
-    cmp dx, SCREEN_HEIGHT-1
+    cmp dx, SCREEN_HEIGHT-SPRITE_SIZE
     jge .outside_screen
 
     mov bx, dx
