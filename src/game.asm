@@ -389,11 +389,7 @@ MOUSE_RIGHT_BUTTON equ 0xFE
 ; =========================================== INITIALIZATION ================|80
 
 init:
-.install_mouse_driver:
-  cmp word [es:0x21*4+2], 0             ; Check for DOS (INT 21h vector)
-  jnz .skip_mouse_driver
-    call install_mouse_driver
-  .skip_mouse_driver:
+  call install_mouse_driver
 
   mov ax, 0x13                          ; Init 320x200, 256 colors mode
   int 0x10                              ; Video BIOS interrupt
