@@ -389,11 +389,11 @@ MOUSE_RIGHT_BUTTON equ 0xFE
 ; =========================================== INITIALIZATION ================|80
 
 init:
-  .install_mouse_driver:
-    cmp word [es:0x21*4+2], 0             ; Check for DOS (INT 21h vector)
-    jnz .skip_mouse_driver
-      call install_mouse_driver
-    .skip_mouse_driver:
+.install_mouse_driver:
+  cmp word [es:0x21*4+2], 0             ; Check for DOS (INT 21h vector)
+  jnz .skip_mouse_driver
+    call install_mouse_driver
+  .skip_mouse_driver:
 
   mov ax, 0x13                          ; Init 320x200, 256 colors mode
   int 0x10                              ; Video BIOS interrupt
@@ -450,7 +450,8 @@ check_keyboard:
   mov ah, 00h                           ; BIOS keyboard read function
   int 16h
 
-.fake_keyboard:
+  .fake_keyboard:
+
   ; ========================================= STATE TRANSITIONS ============|80
   ; Main state game changer. Changes states like intro, menu, game.
   mov si, StateTransitionTable
@@ -924,6 +925,7 @@ game_logic:
   .redraw_terrain:
     call draw_terrain
     call ui.draw_frame
+    call ui.draw_stats
     jmp .done
 
   .done:
@@ -1536,6 +1538,7 @@ ret
 init_game:
   call draw_terrain
   call ui.draw_frame
+  call ui.draw_stats
   mov byte [_GAME_STATE_], STATE_GAME
   mov byte [_SCENE_MODE_], SCENE_MODE_ANY
 
@@ -1544,7 +1547,9 @@ init_game:
 ret
 
 live_game:
+  call ui.draw_frame
   call ui.draw_footer
+  call ui.draw_stats
   nop
 ret
 
@@ -2092,8 +2097,8 @@ draw_window:
     loop .bottom_loop
   .no_bottom_fill:
 
-  ; corner
-  mov al, [si+8]
+
+  mov al, [si+8]                        ; corner
   call draw_sprite
 
   popa
@@ -2541,16 +2546,18 @@ draw_tile:
   push SEGMENT_SPRITES
   pop ds
 
-  mov ah, al        ; Multiply by 256 (tile size in array) by swapping nibles
-  xor al, al        ; clear low nibble
-  mov si, ax        ; Point to tile data
+  mov ah, al                            ; Quick multiply by 256 by copying
+                                        ; low byte to highbyte and then clean
+                                        ; low byte. Same as shifting 8 times.
+  xor al, al                            ; Clear low nibble
+  mov si, ax                            ; Point to tile data
   mov bx, SPRITE_SIZE
   .draw_tile_line:
-    movsd       ; Move 4px at a time
+    movsd                               ; Move 4px at a time
     movsd
     movsd
     movsd
-    add di, SCREEN_WIDTH-SPRITE_SIZE ; Next line
+    add di, SCREEN_WIDTH-SPRITE_SIZE    ; Next line
     dec bx
   jnz .draw_tile_line
 
@@ -2574,16 +2581,16 @@ draw_sprite:
   mov si, ax        ; Point to tile data
   mov bx, SPRITE_SIZE
   .draw_tile_line:
-    rept SPRITE_SIZE/2 {
-      lodsw
-      test al, al
+    rept SPRITE_SIZE/2 {                ; Half the width as we draw 2 pixels
+      lodsw                             ; Read two pixels
+      test al, al                       ; test if color is transparent (0)
       jz $+5
-      mov byte [es:di], al
-      inc di
-      test ah, ah
+      mov byte [es:di], al              ; Draw first pixel
+      inc di                            ; Next pixel pos
+      test ah, ah                       ; Test if color is transparent (0)
       jz $+5
-      mov byte [es:di], ah
-      inc di
+      mov byte [es:di], ah              ; Draw second pixel
+      inc di                            ; Next pixel pos
     }
     add di, SCREEN_WIDTH-SPRITE_SIZE ; Next line
     dec bx
@@ -2603,7 +2610,6 @@ ui:
       call draw_sprite
       add di, SPRITE_SIZE
     loop .top_loop
-
 
     add di, 320*SPRITE_SIZE-320
     mov cx, VIEWPORT_HEIGHT-2
