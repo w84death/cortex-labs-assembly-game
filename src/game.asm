@@ -528,19 +528,6 @@ jne .skip_mouse_boudries
   call game_logic.check_mouse_boudries
 .skip_mouse_boudries:
 
-
-
-cmp byte [_GAME_STATE_], STATE_WINDOW
-jz .check_cursor_over_menus
-cmp byte [_GAME_STATE_], STATE_MENU
-jz .check_cursor_over_menus
-cmp byte [_GAME_STATE_], STATE_BRIEFING
-jz .check_cursor_over_menus
-jmp .check_done
-.check_cursor_over_menus:
-  call menu_logic.check_cursor_over
-.check_done:
-
 .vga_blit:
   push es
   push ds
@@ -1455,7 +1442,7 @@ init_briefing:
 ret
 
 live_briefing:
-nop
+  call menu_logic.check_cursor_over
 ret
 
 live_title_screen:
@@ -1487,7 +1474,7 @@ init_menu:
 ret
 
 live_menu:
-  nop
+  call menu_logic.check_cursor_over
 ret
 
 init_help:
@@ -1655,7 +1642,7 @@ init_window:
 ret
 
 live_window:
-
+  call menu_logic.check_cursor_over
 
   mov si, WindowDefinitionsArray
   xor ax, ax
