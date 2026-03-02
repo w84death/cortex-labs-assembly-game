@@ -132,9 +132,9 @@ process_mouse_byte:
 
     ; Clamp X 0-79
     mov al, [cursor_x]
+    js .x_zero
     cmp al, 80
     jb .update_y
-    jc .x_zero
     mov al, 79
     jmp .save_x
 .x_zero:
@@ -151,9 +151,9 @@ process_mouse_byte:
 
     ; Clamp Y 0-24
     mov al, [cursor_y]
+    js .y_zero
     cmp al, 25
     jb .draw
-    jc .y_zero
     mov al, 24
     jmp .save_y
 .y_zero:
