@@ -389,18 +389,11 @@ MOUSE_RIGHT_BUTTON equ 0xFE
 ; =========================================== INITIALIZATION ================|80
 
 init:
-
-  ; todo: check on real hardware
-  ; works in:
-  ; - bochs
-  ; - https://copy.sh/v86/
-  ; do not work:
-  ; - fujitsu futro usb2ps2 mouse
-  ;
-  cmp word [es:0x21*4+2], 0             ; Check for DOS (INT 21h vector)
-  jnz .skip_mouse_init
-    call mouse_init
-  .skip_mouse_init:
+  .install_mouse_driver:
+    cmp word [es:0x21*4+2], 0             ; Check for DOS (INT 21h vector)
+    jnz .skip_mouse_driver
+      call install_mouse_driver
+    .skip_mouse_driver:
 
   mov ax, 0x13                          ; Init 320x200, 256 colors mode
   int 0x10                              ; Video BIOS interrupt
@@ -930,6 +923,7 @@ game_logic:
 
   .redraw_terrain:
     call draw_terrain
+    call ui.draw_frame
     jmp .done
 
   .done:
@@ -1541,7 +1535,7 @@ ret
 
 init_game:
   call draw_terrain
-
+  call ui.draw_frame
   mov byte [_GAME_STATE_], STATE_GAME
   mov byte [_SCENE_MODE_], SCENE_MODE_ANY
 
@@ -1550,7 +1544,6 @@ init_game:
 ret
 
 live_game:
-  call ui.draw_frame
   call ui.draw_footer
   nop
 ret

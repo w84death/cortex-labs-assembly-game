@@ -9,9 +9,9 @@ start:
     mov ss, ax
     mov sp, 0x7C00
 
-    ; Set 80x25 text mode
-    mov ax, 0x03
-    int 0x10
+; Set 320x200 graphics mode (mode 13h)
+mov ax, 0x13
+int 0x10
 
     mov si, msg_boot
     call print_string
@@ -97,12 +97,12 @@ remap_pic:
 ; Mouse Data Processing (works for both interrupt and polling)
 ; =============================================================================
 
-packet_idx  db 0
+packet_idx db 0
 packet_data rb 3
-cursor_x    db 40
-cursor_y    db 12
-prev_x      db 40
-prev_y      db 12
+cursor_x dw 160
+cursor_y dw 100
+prev_x dw 160
+prev_y dw 100
 
 process_mouse_byte:
     push ax
@@ -125,41 +125,41 @@ process_mouse_byte:
     ; Process complete packet
     mov byte [packet_idx], 0
 
-    ; Update X
-    mov al, [packet_data + 1]
-    cbw
-    add [cursor_x], al
+; Update X (signed byte to word)
+	mov al, [packet_data + 1]
+	cbw
+	add [cursor_x], ax
 
-    ; Clamp X 0-79
-    mov al, [cursor_x]
-    js .x_zero
-    cmp al, 80
-    jb .update_y
-    mov al, 79
-    jmp .save_x
+	; Clamp X 0-319
+	mov ax, [cursor_x]
+	js .x_zero
+	cmp ax, 320
+	jb .update_y
+	mov ax, 319
+	jmp .save_x
 .x_zero:
-    xor al, al
+	xor ax, ax
 .save_x:
-    mov [cursor_x], al
+	mov [cursor_x], ax
 
 .update_y:
-    ; Update Y (inverted)
-    mov al, [packet_data + 2]
-    cbw
-    neg ax
-    add [cursor_y], al
+	; Update Y (inverted, signed byte to word)
+	mov al, [packet_data + 2]
+	cbw
+	neg ax
+	add [cursor_y], ax
 
-    ; Clamp Y 0-24
-    mov al, [cursor_y]
-    js .y_zero
-    cmp al, 25
-    jb .draw
-    mov al, 24
-    jmp .save_y
+	; Clamp Y 0-199
+	mov ax, [cursor_y]
+	js .y_zero
+	cmp ax, 200
+	jb .draw
+	mov ax, 199
+	jmp .save_y
 .y_zero:
-    xor al, al
+	xor ax, ax
 .save_y:
-    mov [cursor_y], al
+	mov [cursor_y], ax
 
 .draw:
     call update_cursor
@@ -200,41 +200,37 @@ irq12_handler:
 ; =============================================================================
 
 update_cursor:
-    push es
-    pusha
+	push es
+	pusha
 
-    mov ax, 0xB800
-    mov es, ax
+	mov ax, 0xA000
+	mov es, ax
 
-    ; Erase previous
-    xor ax, ax
-    mov al, [prev_y]
-    mov cx, 160             ; 80 cols * 2 bytes
-    mul cx
-    movzx bx, [prev_x]
-    shl bx, 1
-    add bx, ax
-    mov word [es:bx], 0x0720    ; Space
+	; Erase previous pixel
+	mov ax, [prev_y]
+	mov cx, 320
+	mul cx
+	add ax, [prev_x]
+	mov di, ax
+	mov byte [es:di], 0
 
-    ; Draw new cursor (solid block)
-    xor ax, ax
-    mov al, [cursor_y]
-    mov cx, 160
-    mul cx
-    movzx bx, [cursor_x]
-    shl bx, 1
-    add bx, ax
-    mov word [es:bx], 0x0FDB    ; Light shade block, white
+	; Draw new cursor (white pixel = color 15)
+	mov ax, [cursor_y]
+	mov cx, 320
+	mul cx
+	add ax, [cursor_x]
+	mov di, ax
+	mov byte [es:di], 15
 
-    ; Save position
-    mov al, [cursor_x]
-    mov [prev_x], al
-    mov al, [cursor_y]
-    mov [prev_y], al
+	; Save position
+	mov ax, [cursor_x]
+	mov [prev_x], ax
+	mov ax, [cursor_y]
+	mov [prev_y], ax
 
-    popa
-    pop es
-    ret
+	popa
+	pop es
+	ret
 
 ; =============================================================================
 ; Mouse Initialization (8042 Controller)
