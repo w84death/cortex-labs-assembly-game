@@ -556,7 +556,7 @@ jz .check_cursor_over_menus
 cmp byte [_GAME_STATE_], STATE_MENU
 jz .check_cursor_over_menus
 cmp byte [_GAME_STATE_], STATE_BRIEFING
-jz .check_cursor_over_menu
+jz .check_cursor_over_menus
 jmp .check_done
 .check_cursor_over_menus:
   call menu_logic.check_cursor_over
@@ -2735,7 +2735,7 @@ ui:
     .mouse_done:
 
     .clamp_cursor_position:
-      cmp cx, 016
+      cmp cx, 0
       jl .not_update
       cmp cx, SCREEN_WIDTH-1
       jge .not_update
@@ -2772,13 +2772,29 @@ ui:
     int 0x33
 
     cmp cx, 0
-    jl .outside_screen
+    jl .outside_left
     cmp cx, SCREEN_WIDTH-SPRITE_SIZE
-    jge .outside_screen
+    jge .outside_right
     cmp dx, 0
-    jl .outside_screen
+    jl .outside_top
     cmp dx, SCREEN_HEIGHT-SPRITE_SIZE
-    jge .outside_screen
+    jge .outside_bottom
+    jmp .fixed_clipping
+
+    .outside_left:
+      xor cx, cx
+      jmp .fixed_clipping
+    .outside_right:
+      mov cx, SCREEN_WIDTH-SPRITE_SIZE
+      jmp .fixed_clipping
+    .outside_top:
+      xor dx, dx
+      jmp .fixed_clipping
+    .outside_bottom:
+      mov dx, SCREEN_HEIGHT-SPRITE_SIZE
+      jmp .fixed_clipping
+
+    .fixed_clipping:
 
     mov bx, dx
     shl bx, 8                           ; Y * 256
@@ -2794,7 +2810,6 @@ ui:
     pop es
     call draw_sprite
     pop es
-    .outside_screen:
   ret
 
   .draw_game_cursor:
