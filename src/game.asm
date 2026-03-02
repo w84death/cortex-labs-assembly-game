@@ -528,28 +528,7 @@ jne .skip_mouse_boudries
   call game_logic.check_mouse_boudries
 .skip_mouse_boudries:
 
-cmp byte [_GAME_STATE_], STATE_P1X_SCREEN_INIT
-je .skip_frame
-cmp byte [_GAME_STATE_], STATE_P1X_SCREEN
-je .skip_frame
-cmp byte [_GAME_STATE_], STATE_TITLE_SCREEN_INIT
-je .skip_frame
-cmp byte [_GAME_STATE_], STATE_TITLE_SCREEN
-je .skip_frame
-  call ui.draw_frame
 
-cmp byte [_GAME_STATE_], STATE_GAME_INIT
-je .draw_stats
-cmp byte [_GAME_STATE_], STATE_GAME
-je .draw_stats
-cmp byte [_GAME_STATE_], STATE_WINDOW_INIT
-je .draw_stats
-cmp byte [_GAME_STATE_], STATE_WINDOW
-je .draw_stats
-jmp .skip_frame
-.draw_stats:
-  call ui.draw_stats
-.skip_frame:
 
 cmp byte [_GAME_STATE_], STATE_WINDOW
 jz .check_cursor_over_menus
@@ -566,14 +545,14 @@ jmp .check_done
   push es
   push ds
 
-  push SEGMENT_VGA                     ; Set VGA memory
-  pop es                                  ; as target
-  push SEGMENT_DBUFFER                 ; Set doublebuffer memory
-  pop ds                                  ; as source
-  mov cx,0x7D00                           ; Half of 320x200 pixels
-  xor si,si                               ; Clear SI
-  xor di,di                               ; Clear DI
-  rep movsw                               ; Push words (2x pixels)
+  push SEGMENT_VGA                      ; Set VGA memory
+  pop es                                ; as target
+  push SEGMENT_DBUFFER                  ; Set doublebuffer memory
+  pop ds                                ; as source
+  mov cx,0x7D00                         ; Half of 320x200 pixels
+  xor si,si                             ; Clear SI
+  xor di,di                             ; Clear DI
+  rep movsw                             ; Push words (2x pixels)
 
   pop ds
   pop es
@@ -1467,6 +1446,7 @@ init_briefing:
 
   mov si, landing_image
   call draw_rle_image
+  call ui.draw_frame
 
   call ui.draw_map
   mov byte [_GAME_STATE_], STATE_BRIEFING
@@ -1495,6 +1475,7 @@ init_menu:
 
   mov si, menu_image
   call draw_rle_image
+  call ui.draw_frame
 
   mov byte [_GAME_STATE_], STATE_MENU
   mov byte [_SCENE_MODE_], SCENE_MODE_MAIN_MENU
@@ -1510,7 +1491,7 @@ live_menu:
 ret
 
 init_help:
-
+  call ui.draw_frame
   mov byte [_SCENE_MODE_], 0x0
   call draw_help_page
   mov byte [_GAME_STATE_], STATE_HELP
@@ -1522,6 +1503,7 @@ draw_help_page:
 
   mov si, help_image
   call draw_rle_image
+  call ui.draw_frame
 
   mov di, HelpArrayText
   movzx ax, byte [_SCENE_MODE_]
@@ -1530,7 +1512,9 @@ draw_help_page:
   mov si, [di]
 
   mov bl, COLOR_WHITE
-  mov dx, 0x0102
+  mov dx, 0x0002
+  call font.draw_string
+  mov dx, 0x0101
   .help_entry:
     cmp byte [si], 0x00
     jz .done
@@ -1570,7 +1554,6 @@ ret
 
 init_game:
   call draw_terrain
-  call ui.draw_footer
 
   mov byte [_GAME_STATE_], STATE_GAME
   mov byte [_SCENE_MODE_], SCENE_MODE_ANY
@@ -1580,6 +1563,8 @@ init_game:
 ret
 
 live_game:
+  call ui.draw_frame
+  call ui.draw_footer
   nop
 ret
 
@@ -1598,6 +1583,7 @@ ret
 init_debug_view:
   mov al, COLOR_BLACK
   call clear_screen
+  call ui.draw_frame
 
   .draw_loaded_sprites:
   mov di, 320*16+16                     ; Position on screen
@@ -1669,6 +1655,8 @@ init_window:
 ret
 
 live_window:
+
+
   mov si, WindowDefinitionsArray
   xor ax, ax
   mov al, [_SCENE_MODE_]
@@ -3106,8 +3094,8 @@ InputTable:
   dw game_logic.move_viewport_right
   db STATE_GAME,                        SCENE_MODE_ANY, MOUSE_LEFT_BUTTON
   dw game_logic.build_action
-  db STATE_GAME,                        SCENE_MODE_ANY, MOUSE_LEFT_BUTTON
-  dw game_logic.build_action
+  db STATE_GAME,                        SCENE_MODE_ANY, MOUSE_RIGHT_BUTTON
+  dw game_logic.change_action
   db STATE_GAME,                        SCENE_MODE_ANY, KB_ENTER
   dw game_logic.change_action
 
@@ -3124,8 +3112,6 @@ InputTable:
   dw menu_logic.selection_up
   db STATE_WINDOW,                      SCENE_MODE_ANY, KB_DOWN
   dw menu_logic.selection_down
-  db STATE_WINDOW,                      SCENE_MODE_ANY, KB_SPACE
-  dw menu_logic.game_menu_enter
   db STATE_WINDOW,                      SCENE_MODE_ANY, KB_ENTER
   dw menu_logic.game_menu_enter
   db STATE_WINDOW,                      SCENE_MODE_ANY, MOUSE_LEFT_BUTTON
@@ -3150,8 +3136,9 @@ InputTable:
   dw ror_help_page
 InputTableEnd:
 
-
 ; =========================================== WINDOWS DEFINITIONS ===========|80
+
+
 
 ; height/width, Y/X, title, menu entry array, corresponding logic array
 WindowDefinitionsArray:
