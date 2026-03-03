@@ -64,8 +64,8 @@ _SCENE_MODE_              equ _BASE_ + 0x13   ; 1 byte
 _GAME_TURN_               equ _BASE_ + 0x14   ; 1 bytes
 _XXX_                     equ _BASE_ + 0x15   ; 1 bytes
 _ECONOMY_BLUE_RES_        equ _BASE_ + 0x16   ; 2 bytes
-_ECONOMY_YELLOW_RES_      equ _BASE_ + 0x18   ; 2 bytes
-_ECONOMY_RED_RES_         equ _BASE_ + 0x1A   ; 2 bytes
+_ECONOMY_WHITE_RES_      equ _BASE_ + 0x18   ; 2 bytes
+_ECONOMY_GREEN_RES_         equ _BASE_ + 0x1A   ; 2 bytes
 _UPGRADES_                equ _BASE_ + 0x1C   ; 2 bytes
 _MENU_SELECTION_POS_      equ _BASE_ + 0x1E   ; 1 byte
 _MENU_SELECTION_MAX_      equ _BASE_ + 0x1F   ; 1 byte
@@ -329,9 +329,9 @@ SCENE_MODE_REMOTE_BUILDINGS     equ 0x02
 SCENE_MODE_STATION              equ 0x03
 SCENE_MODE_BRIEFING             equ 0x04
 SCENE_MODE_UPGRADE_BUILDINGS    equ 0x05
-UI_STATS_GFX_LINE               equ 0x0
-UI_STATS_TXT_LINE               equ 0x1
-UI_BOTTOM_FRAME                 equ 320*192
+UI_STATS_POS                    equ SPRITE_SIZE
+UI_STATS_TXT_POS                equ 0x04
+UI_BOTTOM_FRAME                 equ SCREEN_WIDTH*192
 
 ; =========================================== COLORS / DB16 =================|80
 
@@ -1368,8 +1368,8 @@ reset_to_default_values:
   mov word [_LAST_ENT_POD_ID_], 0
 
   mov word [_ECONOMY_BLUE_RES_], 0xF
-  mov word [_ECONOMY_YELLOW_RES_], 0xF
-  mov word [_ECONOMY_RED_RES_], 0xF
+  mov word [_ECONOMY_WHITE_RES_], 0xF
+  mov word [_ECONOMY_GREEN_RES_], 0xF
 ret
 
 init_p1x_screen:
@@ -1772,20 +1772,7 @@ font:
   ;  DH - Y position (in character font size)
   ;  BX - Color
   .draw_string:
-    .calculate_vga_pointer:
-      push bx                             ; Save color
-      movzx ax, dl                        ; Extract X
-      movzx bx, dh                        ; Extract Y
-      shl ax, 3                           ; X * 8
-      shl bx, 3                           ; Y * 8
-      mov cx, bx      ; make copy of Y
-      shl bx, 8       ; Y * 256
-      shl cx, 6       ; Y * 64
-      add bx, cx      ; BX = Y * 320
-      add bx, ax                          ; Y * 8 * 320 + X * 8
-      mov di, bx                          ; Move result to DI
-      add di, SCREEN_WIDTH*(SPRITE_SIZE/4)+(SPRITE_SIZE/4)
-      pop bx                              ; Restore color
+    call .calculate_vga_pointer
 
     .next_char_loop:
       xor ax, ax                        ; Clear leftover in ax
@@ -1846,24 +1833,20 @@ font:
   ;   BX - Color
   ;   CX - digits length
   .draw_number:
-    ; todo: use font drawing
     pusha
-    mov ah, 0x02                          ; Set cursor
-    xor bh, bh                            ; Page 0
-    int 0x10
-
+    call .calculate_vga_pointer
     mov ax, si                            ; Copy the number to AX for division
-
     .next_digit:
       xor dx, dx                          ; Clear DX for division
       div cx                              ; Divide, remainder in DX
       add al, '0'                         ; Convert to ASCII
 
-      mov ah, 0x0E                        ; Teletype output
       push dx                             ; Save remainder
       push cx                             ; Save divisor
-      mov bh, 0                           ; Page 0
-      int 0x10                            ; BIOS video interrupt
+      push di
+      call .draw_character
+      pop di
+      add di, FONT_SIZE
       pop cx                              ; Restore divisor
       pop dx                              ; Restore remainder
 
@@ -1881,8 +1864,26 @@ font:
 
       cmp cx, 0                           ; If divisor is 0, we're done
       jne .next_digit
-  popa
-  ret
+    popa
+    ret
+
+  .calculate_vga_pointer:
+    push bx                             ; Save color
+    push cx
+    movzx ax, dl                        ; Extract X
+    movzx bx, dh                        ; Extract Y
+    shl ax, 3                           ; X * 8
+    shl bx, 3                           ; Y * 8
+    mov cx, bx                          ; make copy of Y
+    shl bx, 8                           ; Y * 256
+    shl cx, 6                           ; Y * 64
+    add bx, cx                          ; BX = Y * 320
+    add bx, ax                          ; Y * 8 * 320 + X * 8
+    mov di, bx                          ; Move result to DI
+    add di, SCREEN_WIDTH*(SPRITE_SIZE/4)+(SPRITE_SIZE/4)
+    pop cx
+    pop bx                              ; Restore color
+    ret
 
 ; =========================================== GET RANDOM ====================|80
 ; OUT: AX - Random number
@@ -2644,36 +2645,53 @@ ui:
     ret
 
   .draw_stats:
+    mov di, UI_STATS_POS
+    mov al, TILE_UI_HEADER_TXT
+    mov cx, 4
+    .bg1:
+      call draw_sprite
+      add di, SPRITE_SIZE
+    loop .bg1
 
-    mov di, UI_STATS_GFX_LINE+90   ; Resource blue icon
+    mov di, UI_STATS_POS
     mov al, TILE_RES_WHITE_MAX
     call draw_sprite
-
-    mov si, [_ECONOMY_BLUE_RES_]  ; Blue resource count
-    mov dh, UI_STATS_TXT_LINE
-    mov dl, 0x0D
+    mov si, [_ECONOMY_WHITE_RES_]       ; White resource count
+    mov dx, UI_STATS_TXT_POS
     mov bl, COLOR_WHITE
     mov cx, 10000
     call font.draw_number
 
-    mov di, UI_STATS_GFX_LINE+154
+    add di, 80
+    push di
+    mov al, TILE_UI_HEADER_TXT
+    mov cx, 4
+    .bg2:
+      call draw_sprite
+      add di, SPRITE_SIZE
+    loop .bg2
     mov al, TILE_RES_BLUE_MAX
+    pop di
     call draw_sprite
-
-    mov si, [_ECONOMY_YELLOW_RES_]  ; Yellow resource count
-    mov dh, UI_STATS_TXT_LINE
-    mov dl, 0x15
+    mov si, [_ECONOMY_BLUE_RES_]       ; Blue resource count
+    add dl, 0xA
     mov bl, COLOR_WHITE
     mov cx, 10000
     call font.draw_number
 
-    mov di, UI_STATS_GFX_LINE+218
+    add di, 80
+    push di
+    mov al, TILE_UI_HEADER_TXT
+    mov cx, 4
+    .bg3:
+      call draw_sprite
+      add di, SPRITE_SIZE
+    loop .bg3
     mov al, TILE_RES_GREEN_MAX
+    pop di
     call draw_sprite
-
-    mov si, [_ECONOMY_RED_RES_]  ; Red resource count
-    mov dh, UI_STATS_TXT_LINE
-    mov dl, 0x1D
+    mov si, [_ECONOMY_GREEN_RES_]       ; Green resource count
+    add dl, 0xA
     mov bl, COLOR_WHITE
     mov cx, 10000
     call font.draw_number
