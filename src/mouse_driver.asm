@@ -7,7 +7,6 @@
 mouse_x          dw 160
 mouse_y          dw 100
 mouse_buttons    db 0
-mouse_installed  db 0
 
 ; --- Internal State ---
 mouse_packet     db 0, 0, 0
@@ -45,8 +44,6 @@ install_mouse_driver:
     in al, 0x21
     and al, 0xFB          ; Clear bit 2 (IRQ2)
     out 0x21, al
-
-    mov byte [mouse_installed], 1
     ret
 
 ; ============================================================================

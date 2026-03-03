@@ -389,7 +389,14 @@ MOUSE_RIGHT_BUTTON equ 0xFE
 ; =========================================== INITIALIZATION ================|80
 
 init:
-  call install_mouse_driver
+  xor ax, ax
+  mov es, ax
+  xor ax, ax                 ; AH=00h - Reset/Status
+  int 0x33                   ; Call mouse driver
+  cmp ax, 0xFFFF             ; Returns FFFFh if driver installed
+  jz .already_installed
+    call install_mouse_driver
+  .already_installed:
 
   mov ax, 0x13                          ; Init 320x200, 256 colors mode
   int 0x10                              ; Video BIOS interrupt

@@ -4,3 +4,4 @@ build/img
 *.bin
 *.o
 *_raw.com
+.zig-cache/
