@@ -84,17 +84,18 @@ _MOUSE_TILE_POS_Y_        equ _BASE_ + 0x2F   ; 2 bytes
 ; =========================================== ENGINE SETTINGS ===============|80
 ;
 
-TRUE                            equ 1
-FALSE                           equ 0
-SCREEN_WIDTH                    equ 320
-SCREEN_HEIGHT                   equ 200
-MAP_SIZE                        equ 128     ; Map size in cells DO NOT CHANGE
-VIEWPORT_WIDTH                  equ 20      ; Size in tiles 20 = 320 pixels
-VIEWPORT_HEIGHT                 equ 12      ; by 12 = 192 pixels
-VIEWPORT_GRID_SIZE              equ 16      ; Individual cell size DO NOT CHANGE
-SPRITE_SIZE                     equ 16      ; Sprite size 16x16 DO NOT CHANGE
-FONT_SIZE                       equ 8
-GAME_TURN_LENGTH                equ 4
+TRUE                                    equ 1
+FALSE                                   equ 0
+SCREEN_WIDTH                            equ 320     ; In pixels
+SCREEN_HEIGHT                           equ 200     ; In pixels
+MAP_SIZE                                equ 128     ; Map size in cells (tiles)
+VIEWPORT_WIDTH                          equ 20      ; In tiles (*SPRITE_SIZE)
+VIEWPORT_HEIGHT                         equ 12      ; In tiles
+VIEWPORT_GRID_SIZE                      equ 16      ; In pixels
+SPRITE_SIZE                             equ 16      ; In pixels
+FONT_SIZE                               equ 8       ; In pixels
+GAME_TURN_LENGTH                        equ 4       ; in game loops
+TILES_COUNT                             equ 81
 
 ; =========================================== GAME STATES ===================|80
 
@@ -207,12 +208,11 @@ TILE_IO_UP                      equ 0x4F
 TILE_IO_DOWN                    equ 0x50
 
 ; Helpers
-TILES_COUNT                     equ 81
 TILE_FOREGROUND_SHIFT           equ TILE_DETAIL_0   ; pointer to first FG tile
 TILE_ROCKET_BOTTOM_ID           equ TILE_ROCKET_GEAR-TILE_FOREGROUND_SHIFT
 TILE_ROCKET_TOP_ID              equ TILE_ROCKET_TOP-TILE_FOREGROUND_SHIFT
 TILE_BUILDING_RAFINERY_ID       equ TILE_BUILDING_RAFINERY-TILE_FOREGROUND_SHIFT
-TILE_BUILDING_COLECTOR_ID      equ TILE_BUILDING_COLECTOR-TILE_FOREGROUND_SHIFT
+TILE_BUILDING_COLECTOR_ID       equ TILE_BUILDING_COLECTOR-TILE_FOREGROUND_SHIFT
 TILE_BUILDING_SILOS_ID          equ TILE_BUILDING_SILOS-TILE_FOREGROUND_SHIFT
 TILE_BUILDING_LAB_ID            equ TILE_BUILDING_LAB-TILE_FOREGROUND_SHIFT
 TILE_BUILDING_RADAR_ID          equ TILE_BUILDING_RADAR-TILE_FOREGROUND_SHIFT
@@ -229,18 +229,18 @@ TILE_BUILDING_POWER_ID          equ TILE_BUILDING_POWER-TILE_FOREGROUND_SHIFT
 ; | '- resource (1)
 ; '- infrastructure building, station (1)
 ;
-BACKGROUND_SPRITE_MASK          equ 0xF
-BACKGROUND_SPRITE_CLIP          equ 0xF0
-TERRAIN_TRAVERSAL_MASK          equ 0x10
-TERRAIN_TRAVERSAL_SHIFT         equ 0x4
-TERRAIN_TRAVERSAL_CLIP          equ 0xEF
-TERRAIN_SECOND_LAYER_DRAW_CLIP  equ 0xE0
-RAIL_MASK                       equ 0x20
-RAIL_SHIFT                      equ 0x5
-RESOURCE_MASK                   equ 0x40
-RESOURCE_SHIFT                  equ 0x6
-INFRASTRUCTURE_MASK             equ 0x80
-INFRASTRUCTURE_SHIFT            equ 0x7
+BACKGROUND_SPRITE_MASK                  equ 0xF
+BACKGROUND_SPRITE_CLIP                  equ 0xF0
+TERRAIN_TRAVERSAL_MASK                  equ 0x10
+TERRAIN_TRAVERSAL_SHIFT                 equ 0x4
+TERRAIN_TRAVERSAL_CLIP                  equ 0xEF
+TERRAIN_SECOND_LAYER_DRAW_CLIP          equ 0xE0
+RAIL_MASK                               equ 0x20
+RAIL_SHIFT                              equ 0x5
+RESOURCE_MASK                           equ 0x40
+RESOURCE_SHIFT                          equ 0x6
+INFRASTRUCTURE_MASK                     equ 0x80
+INFRASTRUCTURE_SHIFT                    equ 0x7
 
 ; SEGMENT FG
 ; 00 0 00000
@@ -249,14 +249,14 @@ INFRASTRUCTURE_SHIFT            equ 0x7
 ; |  '- draw cart (1)
 ; '- cursor type (4)
 ;
-FOREGROUND_SPRITE_MASK          equ 0x1F
-FOREGROUND_SPRITE_CLIP          equ 0xE0
-CART_DRAW_MASK                  equ 0x20
-CART_DRAW_CLIP                  equ 0xDF
-CURSOR_TYPE_MASK                equ 0xC0
-CURSOR_TYPE_CLIP                equ 0x3F
-CURSOR_TYPE_SHIFT               equ 0x06
-CURSOR_TYPE_ROL                 equ 0x02
+FOREGROUND_SPRITE_MASK                  equ 0x1F
+FOREGROUND_SPRITE_CLIP                  equ 0xE0
+CART_DRAW_MASK                          equ 0x20
+CART_DRAW_CLIP                          equ 0xDF
+CURSOR_TYPE_MASK                        equ 0xC0
+CURSOR_TYPE_CLIP                        equ 0x3F
+CURSOR_TYPE_SHIFT                       equ 0x06
+CURSOR_TYPE_ROL                         equ 0x02
 
 ; SEGMENT META
 ; 0 00 0 00 00
@@ -272,17 +272,17 @@ CURSOR_TYPE_ROL                 equ 0x02
 ; 0000 00 00
 ; '- resource amount (16)
 ;
-TILE_DIRECTION_MASK             equ 0x3
-SWITCH_DATA_CLIP                equ 0xEC
-RESOURCE_TYPE_MASK              equ 0xC
-RESOURCE_TYPE_SHIFT             equ 0x2
-RESOURCE_TYPE_CLIP              equ 0xF3
-SWITCH_MASK                     equ 0x10
-CART_DIRECTION_MASK             equ 0x60
-CART_DIRECTION_SHIFT            equ 0x5
-CART_DIRECTION_CLIP             equ 0x9F
-RESOURCE_AMOUNT_MASK            equ 0xF0
-RESOURCE_AMOUNT_SHIFT           equ 0x4
+TILE_DIRECTION_MASK                     equ 0x3
+SWITCH_DATA_CLIP                        equ 0xEC
+RESOURCE_TYPE_MASK                      equ 0xC
+RESOURCE_TYPE_SHIFT                     equ 0x2
+RESOURCE_TYPE_CLIP                      equ 0xF3
+SWITCH_MASK                             equ 0x10
+CART_DIRECTION_MASK                     equ 0x60
+CART_DIRECTION_SHIFT                    equ 0x5
+CART_DIRECTION_CLIP                     equ 0x9F
+RESOURCE_AMOUNT_MASK                    equ 0xF0
+RESOURCE_AMOUNT_SHIFT                   equ 0x4
 
 ; UPGRADES
 ; **** . . . . * * ** .. ..
@@ -298,18 +298,18 @@ RESOURCE_AMOUNT_SHIFT           equ 0x4
 ; |    | '- pods factory: lower cost of production 1x-2x
 ; |    '- TBD
 ; '- TBD
-UPGRADE_PODS_SPEED_MASK         equ 0x3
-UPGRADE_PODS_STORAGE_MASK       equ 0xC
-UPGRADE_PODS_STORAGE_SHIFT      equ 0x2
-UPGRADE_PODS_LOAD_MASK          equ 0x30
-UPGRADE_PODS_LOAD_SHIFT         equ 0x4
-UPGRADE_RAFINERY_SPEED_MASK     equ 0x40
-UPGRADE_RAFINERY_EFFICIENCY_MASK equ 0x80
-UPGRADE_RAFINERY_COST_MASK      equ 0x100
-UPGRADE_SILOS_CAPACITY_MASK     equ 0x200
-UPGRADE_PODS_FACTORY_COST_MASK  equ 0x400
-UPGRADE_SILOS_SPEED_MASK        equ 0x800
-UPGRADE_PODS_FACTORYCOST_MASK   equ 0x1000
+UPGRADE_PODS_SPEED_MASK                 equ 0x3
+UPGRADE_PODS_STORAGE_MASK               equ 0xC
+UPGRADE_PODS_STORAGE_SHIFT              equ 0x2
+UPGRADE_PODS_LOAD_MASK                  equ 0x30
+UPGRADE_PODS_LOAD_SHIFT                 equ 0x4
+UPGRADE_RAFINERY_SPEED_MASK             equ 0x40
+UPGRADE_RAFINERY_EFFICIENCY_MASK        equ 0x80
+UPGRADE_RAFINERY_COST_MASK              equ 0x100
+UPGRADE_SILOS_CAPACITY_MASK             equ 0x200
+UPGRADE_PODS_FACTORY_COST_MASK          equ 0x400
+UPGRADE_SILOS_SPEED_MASK                equ 0x800
+UPGRADE_PODS_FACTORYCOST_MASK           equ 0x1000
 
 ; MISC
 
@@ -1079,17 +1079,14 @@ actions_logic:
     jz .skip_station
 
     .set_rail_tile:
-      and al, 0x1           ; horizontal or vertical initial rails
-      mov bl, TILE_RAILS_2
+      and al, 0x1                       ; horizontal or vertical initial rails
+      mov bl, TILE_RAILS_2-TILE_FOREGROUND_SHIFT
       sub bl, al
-      sub bl, TILE_FOREGROUND_SHIFT
+      mov byte [fs:di + FG], bl
 
     .set_station_tile:
-      mov al, TILE_STATION
-      add al, RAIL_MASK
+      mov al, TILE_STATION + RAIL_MASK
       mov byte [fs:di], al
-
-      mov byte [fs:di + FG], bl
 
     .recalculate_near_rails:
       dec di
@@ -1101,10 +1098,24 @@ actions_logic:
       call recalculate_rails
       sub di, MAP_SIZE*2
       call recalculate_rails
+      jmp .done
 
     .skip_station:
-
-    jmp .done
+      test byte [fs:di], RAIL_MASK      ; If target is on rails
+      jnz .place_station_on_rails        ; place station
+      jmp .done                         ; dont place on other rails
+      .place_station_on_rails:
+        mov al, [fs:di + FG]
+        and al, FOREGROUND_SPRITE_MASK
+        cmp al, TILE_RAILS_1-TILE_FOREGROUND_SHIFT  ; horizontal
+        jz .correct_rails
+        cmp al, TILE_RAILS_2-TILE_FOREGROUND_SHIFT ; vertical
+        jz .correct_rails
+        jmp .done                       ; no for turns, only diagonal
+        .correct_rails:
+          mov al, TILE_STATION + RAIL_MASK
+          mov byte [fs:di], al
+          jmp .done
 
   .build_pod:
     mov di, [_CURSOR_Y_]    ; Absolute Y map coordinate
@@ -2450,6 +2461,8 @@ recalculate_rails:
     mov ax, CURSOR_ICON_EDIT
     jmp .save_switch
   .prepare_station:
+    cmp byte [fs:di], TILE_STATION + RAIL_MASK  ; Check for station
+    jz .done
     mov dl, 0                           ; No switch
     mov ax, CURSOR_ICON_PLACE_BUILDING
     test byte [fs:di], INFRASTRUCTURE_MASK  ; Check if its a station
