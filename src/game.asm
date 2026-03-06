@@ -95,7 +95,7 @@ VIEWPORT_GRID_SIZE                      equ 16      ; In pixels
 SPRITE_SIZE                             equ 16      ; In pixels
 FONT_SIZE                               equ 8       ; In pixels
 GAME_TURN_LENGTH                        equ 4       ; in game loops
-TILES_COUNT                             equ 81
+TILES_COUNT                             equ 87
 
 ; =========================================== GAME STATES ===================|80
 
@@ -206,6 +206,12 @@ TILE_IO_RIGHT                   equ 0x4D
 TILE_IO_LEFT                    equ 0x4E
 TILE_IO_UP                      equ 0x4F
 TILE_IO_DOWN                    equ 0x50
+TILE_WINDOW_1                   equ 0x51
+TILE_WINDOW_2                   equ 0x52
+TILE_WINDOW_3                   equ 0x53
+TILE_WINDOW_4                   equ 0x54
+TILE_WINDOW_5                   equ 0x48  ; Reuse of UI_BG
+TILE_WINDOW_6                   equ 0x55
 
 ; Helpers
 TILE_FOREGROUND_SHIFT           equ TILE_DETAIL_0   ; pointer to first FG tile
@@ -1202,7 +1208,7 @@ window_logic:
     mov si, ax
 
     add dl, 0x2
-    mov bl, COLOR_ORANGE
+    mov bl, COLOR_WHITE
     call font.draw_string
 
     pop si
@@ -2888,13 +2894,13 @@ ui:
     push SEGMENT_DBUFFER
     pop es
 
-    mov ax, 0x0401
-    mov bx, 0x090A
+    mov ax, 0x0402
+    mov bx, 0x0909
     call draw_window
 
     mov si, WindowMinimapText
     mov dx, 0x0403
-    mov bl, COLOR_ORANGE
+    mov bl, COLOR_WHITE
     call font.draw_string
 
     .draw_mini_map:
@@ -3166,7 +3172,7 @@ dw 0x050C, 0x0C09, WindowMainMenuText, MainMenuSelectionArrayText, MainMenuLogic
 dw 0x080C, 0x0608, WindowBaseBuildingsText, WindowBaseSelectionArrayText, WindowBaseLogicArray
 dw 0x050C, 0x0C08, WindowRemoteBuildingsText, WindowRemoteSelectionArrayText, WindowRemoteLogicArray
 dw 0x030A, 0x100A, WindowStationText, WindowStationSelectionArrayText, WindowStationLogicArray
-dw 0x040A, 0x0E13, WindowBriefingText, WindowBriefingSelectionArrayText, WindowBriefingLogicArray
+dw 0x040B, 0x0E11, WindowBriefingText, WindowBriefingSelectionArrayText, WindowBriefingLogicArray
 dw 0x050D, 0x0C08, WindowPODsText, WindowPODSSelectionArrayText, WindowPODSSelectionArray
 
 
@@ -3225,11 +3231,11 @@ WindowStationLogicArray:
   dw menu_logic.close_window, 0x0
   dw actions_logic.place_station, 0x0
 
-WindowMinimapText           db 'TERRAIN',0x0
+WindowMinimapText           db 'SATELITE IMAGE',0x0
 WindowBriefingText           db 'BRIEFING',0x0
 WindowBriefingSelectionArrayText:
-  db 'START MISSION',0x0
-  db 'GENERATE NEW',0x0
+  db 'START MISSION >',0x0
+  db 'RANDOMIZE TERRAIN',0x0
   db '< REJECT',0x0
   db 0x00
 WindowBriefingLogicArray:
@@ -3290,9 +3296,9 @@ RailroadsDict:
 db 0, 0, 1, 4, 0, 0, 3, 9, 1, 6, 1, 10, 5, 7, 8, 2
 
 Patch9Dict:
-  db TILE_UI_RIGHT, TILE_UI_HEADER_TXT, TILE_UI_LEFT   ; top
-  db TILE_UI_RIGHT, TILE_UI_BG, TILE_UI_LEFT   ; middle
-  db TILE_UI_RIGHT, TILE_UI_BG, TILE_UI_LEFT   ; bottom
+  db TILE_WINDOW_1, TILE_WINDOW_2, TILE_WINDOW_3   ; top
+  db TILE_WINDOW_4, TILE_WINDOW_5, TILE_WINDOW_6   ; middle
+  db TILE_WINDOW_4, TILE_WINDOW_5, TILE_WINDOW_6  ; bottom
 
 ; =========================================== INCLUDES ======================|80
 
