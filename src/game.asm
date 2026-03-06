@@ -164,6 +164,7 @@ TILE_ROCKET_MIDDLE              equ 0x23
 TILE_ROCKET_GEAR                equ 0x24
 TILE_ROCKET_BOOSTERS            equ 0x25
 TILE_ROCKET_SMOKE               equ 0x26
+
 TILE_BUILDING_SILOS             equ 0x27
 TILE_BUILDING_EXTRACTOR         equ 0x28
 TILE_BUILDING_COLECTOR          equ 0x29
@@ -172,6 +173,7 @@ TILE_BUILDING_RAFINERY          equ 0x2B
 TILE_BUILDING_RADAR             equ 0x2C
 TILE_BUILDING_PODS              equ 0x2D
 TILE_BUILDING_POWER             equ 0x2E
+
 TILE_RAIL_STATION_V             equ 0x2F
 TILE_RAIL_STATION_H             equ 0x30
 TILE_CART_VERTICAL              equ 0x31
@@ -335,6 +337,8 @@ SCENE_MODE_REMOTE_BUILDINGS     equ 0x02
 SCENE_MODE_STATION              equ 0x03
 SCENE_MODE_BRIEFING             equ 0x04
 SCENE_MODE_UPGRADE_BUILDINGS    equ 0x05
+SCENE_MODE_RADAR_VIEW           equ 0x06
+
 UI_STATS_POS                    equ SPRITE_SIZE
 UI_STATS_TXT_POS                equ 0x04
 UI_BOTTOM_FRAME                 equ SCREEN_WIDTH*192
@@ -759,8 +763,14 @@ game_logic:
 
     .place_building:
       mov al, [fs:di]
+      mov bl, [fs:di + FG]
+      and bl, FOREGROUND_SPRITE_MASK
+
       test al, RAIL_MASK
       jnz .station
+
+      cmp bl, TILE_BUILDING_RADAR_ID
+      jz .radar_view
 
       test al, INFRASTRUCTURE_MASK
       jnz .upgrade_building
@@ -783,6 +793,10 @@ game_logic:
 
       .station:
         mov bx, SCENE_MODE_STATION
+        jmp .pop_window
+
+      .radar_view:
+        mov bx, SCENE_MODE_RADAR_VIEW
         jmp .pop_window
 
     .pop_window:
@@ -1680,8 +1694,10 @@ live_window:
   ; custom widgets
   cmp byte [_SCENE_MODE_], SCENE_MODE_UPGRADE_BUILDINGS
   je .widget_rotate
-
+  cmp byte [_SCENE_MODE_], SCENE_MODE_RADAR_VIEW
+  je .widget_radar
   jmp .done
+
   .widget_rotate:
     add ah, 4
     shl al, 3
@@ -1701,6 +1717,12 @@ live_window:
     and al, TILE_DIRECTION_MASK
     add al, TILE_IO_RIGHT
     call draw_sprite
+    jmp .done
+
+  .widget_radar:
+    call ui.draw_map
+    ;jmp .done
+
   .done:
 ret
 
@@ -3173,8 +3195,8 @@ dw 0x080C, 0x0608, WindowBaseBuildingsText, WindowBaseSelectionArrayText, Window
 dw 0x050C, 0x0C08, WindowRemoteBuildingsText, WindowRemoteSelectionArrayText, WindowRemoteLogicArray
 dw 0x030A, 0x100A, WindowStationText, WindowStationSelectionArrayText, WindowStationLogicArray
 dw 0x040B, 0x0E11, WindowBriefingText, WindowBriefingSelectionArrayText, WindowBriefingLogicArray
-dw 0x050D, 0x0C08, WindowPODsText, WindowPODSSelectionArrayText, WindowPODSSelectionArray
-
+dw 0x050D, 0x0C08, WindowPODsText, WindowPODsSelectionArrayText, WindowPODsSelectionArray
+dw 0x0109, 0x1215, WindowRadarText, WindowRadarSelectionArrayText, WindowRadarSelectionArray
 
 WindowMainMenuText          db 'MAIN MANU',0x0
 MainMenuSelectionArrayText:
@@ -3194,19 +3216,19 @@ WindowBaseBuildingsText     db 'BASE BUILDING',0x0
 WindowBaseSelectionArrayText:
   db '< CLOSE WINDOW',0x0
   db 'EXPAND BASE',0x0
+  db 'BUILD COLECTOR',0x0
   db 'BUILD POD FACTORY',0x0
   db 'BUILD SILOS',0x0
   db 'BUILD RAFINERY',0x0
-  db 'BUILD RADAR',0x0
   db 'BUIILD LABORATORY',0x0
   db 0x00
   WindowBaseLogicArray:
     dw menu_logic.close_window, 0x0
     dw actions_logic.expand_foundation, 0x0
+    dw actions_logic.place_building, TILE_BUILDING_COLECTOR_ID
     dw actions_logic.place_building, TILE_BUILDING_PODS_ID
     dw actions_logic.place_building, TILE_BUILDING_SILOS_ID
     dw actions_logic.place_building, TILE_BUILDING_RAFINERY_ID
-    dw actions_logic.place_building, TILE_BUILDING_RADAR_ID
     dw actions_logic.place_building, TILE_BUILDING_LAB_ID
 
 WindowRemoteBuildingsText   db 'REMOTE BUILDINGS',0x0
@@ -3244,18 +3266,24 @@ WindowBriefingLogicArray:
   dw menu_logic.back_to_menu, 0x0
 
 WindowPODsText              db 'PODS MANUFACTURE',0x0
-WindowPODSSelectionArrayText:
+WindowPODsSelectionArrayText:
   db '< CLOSE WINDOW',0x0
   db 'ROTATE EXIT TARGET:',0x0
   db 'BUILD STATION',0x0
   db 'DEPLOY NEW POD',0x0
   db 0x00
-WindowPODSSelectionArray:
+WindowPODsSelectionArray:
   dw menu_logic.close_window, 0x0
   dw game_logic.change_action, 0x0
   dw actions_logic.build_pods_station, 0x0
   dw actions_logic.build_pod, 0x0
 
+WindowRadarText              db 'MAP VIEW',0x0
+WindowRadarSelectionArrayText:
+  db '< CLOSE WINDOW',0x0
+  db 0x00
+WindowRadarSelectionArray:
+  dw menu_logic.close_window, 0x0
 ; =========================================== TERRAIN GEN RULES =============|80
 
 ; ==============================================================
