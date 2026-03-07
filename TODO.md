@@ -1,3 +1,3 @@
 todo:
-- clicking on radar = show map
+- update rada colors
 - spray initial cristal

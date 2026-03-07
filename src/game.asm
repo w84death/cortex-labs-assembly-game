@@ -2938,7 +2938,7 @@ ui:
         inc si
         and al, BACKGROUND_SPRITE_MASK ; Clear metadata
         mov bl, al
-        mov al, [TerrainColors + bx]
+        mov al, [RadarTerrainColors + bx]
         mov [es:di], al      ; Draw 1 pixels
         add di, 1            ; Move to next column
       loop .draw_row
@@ -3306,17 +3306,18 @@ db 8,7,7,8, 8,9,9,9                     ; 8 –
 db 9,7,8,8, 9,9,9,9                     ; 9 –
 db 10,9,9,10, 10,10,10,10               ; 10 –
 
-TerrainColors:
-db 0x3          ; Mud 1
-db 0x3          ; Mud 2
-db 0x4          ; Mud Grass 1
-db 0x4          ; Mud Grass 2
-db 0x4          ; Grass
-db 0x4          ; Bush
-db 0x5          ; Trees 1
-db 0x5          ; Trees 2
-db 0x6          ; Mountains/Rocks 1
-db 0x6          ; Mountains/Rocks 2
+RadarTerrainColors:
+db 0x4          ; soil 0
+db 0x4          ; 1
+db 0x4          ; 2
+db 0x4          ; 3
+db 0x4          ; 4
+db 0x4          ; 5
+db 0x4          ; 6
+db 0x9          ; rock 0
+db 0x9          ; 1
+db 0x9          ; 2
+db 0x9         ; 3
 
 ; =========================================== DICTS =========================|80
 
