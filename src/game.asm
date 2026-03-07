@@ -277,12 +277,8 @@ CURSOR_TYPE_ROL                         equ 0x02
 ; | |  '- switch on rail (or not initialized)
 ; | '- cart drive direction (4)
 ; '- visible to radar
-;
-; if building/resource then least significant bits are used for:
-; 0000 00 00
-; '- resource amount (16)
-;
-TILE_DIRECTION_MASK                     equ 0
+
+TILE_DIRECTION_MASK                     equ 0x3
 SWITCH_DATA_CLIP                        equ 0xEC
 RESOURCE_TYPE_MASK                      equ 0xC
 RESOURCE_TYPE_SHIFT                     equ 0x2
@@ -292,35 +288,6 @@ CART_DIRECTION_MASK                     equ 0x60
 CART_DIRECTION_SHIFT                    equ 0x5
 CART_DIRECTION_CLIP                     equ 0x9F
 RADAR_VISIBILITY_MASK                   equ 0x80
-RESOURCE_AMOUNT_MASK                    equ 0xF0
-RESOURCE_AMOUNT_SHIFT                   equ 0x4
-
-; UPGRADES
-; **** . . . . * * ** .. ..
-; 0000 0 0 0 0 0 0 00 00 00 (16)
-; |    | | | | | | |  |  |
-; |    | | | | | | |  |  '- pods: faster movement 1x-2x-4x-(TBD)
-; |    | | | | | | |  '- pods: more storage 4-8-16-(TBD)
-; |    | | | | | | '- pods: faster load/unload 1x-2x-4x-(TBD)
-; |    | | | | | '- rafinery: speed of refining 1x-2x
-; |    | | | | '- rafinery: efficient of refining 1x-2x
-; |    | | | '- rafinery: lower cost of refining 1x-2x
-; |    | | '- silosL double capacity 1x-2x
-; |    | '- pods factory: lower cost of production 1x-2x
-; |    '- TBD
-; '- TBD
-UPGRADE_PODS_SPEED_MASK                 equ 0x3
-UPGRADE_PODS_STORAGE_MASK               equ 0xC
-UPGRADE_PODS_STORAGE_SHIFT              equ 0x2
-UPGRADE_PODS_LOAD_MASK                  equ 0x30
-UPGRADE_PODS_LOAD_SHIFT                 equ 0x4
-UPGRADE_RAFINERY_SPEED_MASK             equ 0x40
-UPGRADE_RAFINERY_EFFICIENCY_MASK        equ 0x80
-UPGRADE_RAFINERY_COST_MASK              equ 0x100
-UPGRADE_SILOS_CAPACITY_MASK             equ 0x200
-UPGRADE_PODS_FACTORY_COST_MASK          equ 0x400
-UPGRADE_SILOS_SPEED_MASK                equ 0x800
-UPGRADE_PODS_FACTORYCOST_MASK           equ 0x1000
 
 ; MISC
 
@@ -717,9 +684,11 @@ game_logic:
       mov al, [fs:di + META]
       and al, TILE_DIRECTION_MASK
       inc al
-      and ax, 0x3                       ; Clip to 0-3
+      and al, 0x3                       ; Clip to 0-3
       and byte [fs:di + META], SWITCH_DATA_CLIP
       add byte [fs:di + META], al
+      mov al,  [fs:di + META]
+
     jmp .change_action_done
 
     .change_action_done:
