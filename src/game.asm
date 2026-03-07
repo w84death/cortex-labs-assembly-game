@@ -145,10 +145,10 @@ TILE_DETAIL_1                   equ 0x0F
 TILE_DETAIL_2                   equ 0x10
 TILE_RES_WHITE_LOW              equ 0x11
 TILE_RES_WHITE_MAX              equ 0x12
-TILE_RES_BLUE_LOW               equ 0x13
-TILE_RES_BLUE_MAX               equ 0x14
-TILE_RES_GREEN_LOW              equ 0x15
-TILE_RES_GREEN_MAX              equ 0x16
+TILE_RES_GREEN_LOW              equ 0x13
+TILE_RES_GREEN_MAX              equ 0x14
+TILE_RES_BLUE_LOW               equ 0x15
+TILE_RES_BLUE_MAX               equ 0x16
 TILE_RAILS_1                    equ 0x17
 TILE_RAILS_2                    equ 0x18
 TILE_RAILS_3                    equ 0x19
@@ -277,6 +277,11 @@ CURSOR_TYPE_ROL                         equ 0x02
 ; | |  '- switch on rail (or not initialized)
 ; | '- cart drive direction (4)
 ; '- visible to radar
+;
+; if resource type > 0
+; 0 000 00 00
+;   | |
+;    '- resource amount (8)
 
 TILE_DIRECTION_MASK                     equ 0x3
 SWITCH_DATA_CLIP                        equ 0xEC
@@ -288,6 +293,9 @@ CART_DIRECTION_MASK                     equ 0x60
 CART_DIRECTION_SHIFT                    equ 0x5
 CART_DIRECTION_CLIP                     equ 0x9F
 RADAR_VISIBILITY_MASK                   equ 0x80
+RESOURCE_AMOUNT_MASK                    equ 0x70
+RESOURCE_AMOUNT_SHIFT                   equ 0x4
+RESOURCE_AMOUNT_CLIP                    equ 0xFF-0x70
 
 ; MISC
 
@@ -2192,18 +2200,17 @@ generate_map:
     mov cx, MAP_SIZE*MAP_SIZE
     .background_cell:
       mov byte [fs:di + FG], 0x0        ; Clear foreground data
-      mov al, byte [fs:di]
+      mov bl, byte [fs:di]
 
-      cmp al, TILE_ROCKS_0    ; Last traversal sprite id
+      cmp bl, TILE_ROCKS_0    ; Last traversal sprite id
       jge .skip_traversal               ; If greater, skip
       add byte [fs:di], TERRAIN_TRAVERSAL_MASK
 
       .add_detail:
-        cmp al, TILE_ROCKS_0
+        cmp bl, TILE_ROCKS_0
         jge .skip_detail                ; between GRASS and FOREST
         call get_random
-        and ax, 0xF                     ; Random 0-15
-        cmp ax, 0x7                     ; If less than 6, skip
+        cmp ax, 0x2                     ; If less than 6, skip
         jg .skip_detail
         and ax, 0x2                     ; Convert to 0-3 for TILE_DETAIL_*
         add al, TILE_DETAIL_0-TILE_FOREGROUND_SHIFT
@@ -2211,6 +2218,39 @@ generate_map:
       .skip_detail:
       .skip_traversal:
 
+
+      .add_resource:
+      call get_random
+      and ax, 0x3f
+      cmp ax, 0x1
+      jge .skip_resource
+
+      cmp bl, TILE_SOIL_2
+      jl .spawn_res1
+      cmp bl, TILE_SOIL_4
+      jl .spawn_res2
+      cmp bl, TILE_ROCKS_1
+      jl .spawn_res3
+      jmp .skip_resource
+
+      .spawn_res1:
+        mov al, 0x1
+        jmp .spawn_res
+      .spawn_res2:
+        mov al, 0x2
+        jmp .spawn_res
+      .spawn_res3:
+        mov al, 0x3
+
+      .spawn_res:
+        shl al, RESOURCE_TYPE_SHIFT
+        add al, RESOURCE_AMOUNT_MASK      ; Nax amount
+        or byte [fs:di], RESOURCE_MASK
+        mov byte [fs:di + META], al
+        jmp .skip_resource
+
+
+      .skip_resource:
       inc di
     loop .background_cell
 
@@ -2372,6 +2412,23 @@ draw_cell:
       add al, TILE_FOREGROUND_SHIFT
       call draw_sprite
 
+    .draw_resource:
+      mov al, [fs:si + META]
+      and al, RESOURCE_TYPE_MASK
+      cmp al, 0x0
+      jz .skip_resource
+        dec al                          ; sprites are 0-2, type 1-3
+        shr al, RESOURCE_TYPE_SHIFT-1   ; 2* for 6 tiles (low/hi)
+        add al, TILE_RES_WHITE_LOW-1
+        mov bl, [fs:si + META]
+        and bl, RESOURCE_AMOUNT_CLIP
+        shr bl, RESOURCE_AMOUNT_SHIFT+2 ; 0-7 / 4 = 1-2 (low-hi)
+        dec bl                          ; now 0-1 (low-hi)
+        add al, bl                      ; add to low sprite to get hi
+
+        call draw_sprite
+      .skip_resource:
+
     mov dl, [fs:si]
     .draw_rails_stuff:
       test dl, RAIL_MASK                ; DL - Background layer
@@ -2404,11 +2461,11 @@ draw_cell:
           mov al, [fs:si + META]
           and al, RESOURCE_TYPE_MASK
           cmp al, 0x0
-          jz .skip_resource
+          jz .skip_cart_resource
             shr al, RESOURCE_TYPE_SHIFT
             add al, TILE_ORE_BLUE_H-1   ; TODO: cange to H and V
             call draw_sprite
-          .skip_resource:
+          .skip_cart_resource:
       .skip_cart:
     .skip_rails_stuff:
 
