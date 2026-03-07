@@ -95,7 +95,7 @@ VIEWPORT_GRID_SIZE                      equ 16      ; In pixels
 SPRITE_SIZE                             equ 16      ; In pixels
 FONT_SIZE                               equ 8       ; In pixels
 GAME_TURN_LENGTH                        equ 4       ; in game loops
-RADAR_VISIBILITY_RANGE                  equ 16      ; In tiles
+RADAR_VISIBILITY_RANGE                  equ 32      ; In tiles
 TILES_COUNT                             equ 88
 
 ; =========================================== GAME STATES ===================|80
@@ -2243,16 +2243,41 @@ generate_map:
         mov al, 0x3
 
       .spawn_res:
+      ; todo: clipping
+        push cx
+        push di
+
         shl al, RESOURCE_TYPE_SHIFT
         add al, RESOURCE_AMOUNT_MASK      ; Nax amount
-        or byte [fs:di], RESOURCE_MASK
-        mov byte [fs:di + META], al
+        mov bl, al
+
+        sub di, MAP_SIZE*2-2
+        mov cx, 4
+        .spray_row:
+          push cx
+          mov cx, 4
+          .spray_col:
+              call get_random
+              and ax, 0xf
+              cmp ax, 0x4
+              jge .skip_spray
+                or byte [fs:di], RESOURCE_MASK
+                mov byte [fs:di + META], bl
+            .skip_spray:
+            inc di
+          loop .spray_col
+          add di, MAP_SIZE-4
+        pop cx
+        loop .spray_row
+        pop di
+        pop cx
         jmp .skip_resource
 
 
       .skip_resource:
       inc di
-    loop .background_cell
+    dec cx
+    jnz .background_cell
 
   pop es
   ret
