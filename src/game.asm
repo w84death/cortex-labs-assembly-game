@@ -38,15 +38,15 @@ org 0x0100
 
 ; =========================================== MEMORY LAYOUT =================|80
 
-SEGMENT_VGA                 equ 0xA000  ; VGA memory (fixed by hardware)
-SEGMENT_DBUFFER             equ 0x7000  ; Double buffer
-GAME_STACK_POINTER          equ 0xFFFE  ; Stack pointer for game code
-SEGMENT_SPRITES             equ 0x5400  ; 6 KB  → 95 tiles × 256 = ~24 KB
-SEGMENT_MAP                 equ 0x8000  ; 64 KB → all 4 layers
-BG  equ 0x0000
-FG  equ 0x4000
-META equ 0x8000
-ENTS  equ 0xC000
+SEGMENT_VGA                             equ 0xA000
+SEGMENT_DBUFFER                         equ 0x7000
+GAME_STACK_POINTER                      equ 0xFFFE
+SEGMENT_SPRITES                         equ 0x5400
+SEGMENT_MAP                             equ 0x8000
+BG                                      equ 0x0000
+FG                                      equ 0x4000
+META                                    equ 0x8000
+ENTS                                    equ 0xC000
 
 ; =========================================== MEMORY ALLOCATION =============|80
 
@@ -62,10 +62,10 @@ _CURSOR_X_OLD_            equ _BASE_ + 0x0F   ; 2 bytes
 _CURSOR_Y_OLD_            equ _BASE_ + 0x11   ; 2 bytes
 _SCENE_MODE_              equ _BASE_ + 0x13   ; 1 byte
 _GAME_TURN_               equ _BASE_ + 0x14   ; 1 bytes
-_XXX_                     equ _BASE_ + 0x15   ; 1 bytes
+_FREE_SLOT_               equ _BASE_ + 0x15   ; 1 bytes
 _ECONOMY_BLUE_RES_        equ _BASE_ + 0x16   ; 2 bytes
-_ECONOMY_WHITE_RES_      equ _BASE_ + 0x18   ; 2 bytes
-_ECONOMY_GREEN_RES_         equ _BASE_ + 0x1A   ; 2 bytes
+_ECONOMY_WHITE_RES_       equ _BASE_ + 0x18   ; 2 bytes
+_ECONOMY_GREEN_RES_       equ _BASE_ + 0x1A   ; 2 bytes
 _UPGRADES_                equ _BASE_ + 0x1C   ; 2 bytes
 _MENU_SELECTION_POS_      equ _BASE_ + 0x1E   ; 1 byte
 _MENU_SELECTION_MAX_      equ _BASE_ + 0x1F   ; 1 byte
@@ -95,7 +95,8 @@ VIEWPORT_GRID_SIZE                      equ 16      ; In pixels
 SPRITE_SIZE                             equ 16      ; In pixels
 FONT_SIZE                               equ 8       ; In pixels
 GAME_TURN_LENGTH                        equ 4       ; in game loops
-TILES_COUNT                             equ 87
+RADAR_VISIBILITY_RANGE                  equ 16      ; In tiles
+TILES_COUNT                             equ 88
 
 ; =========================================== GAME STATES ===================|80
 
@@ -214,6 +215,7 @@ TILE_WINDOW_3                   equ 0x53
 TILE_WINDOW_4                   equ 0x54
 TILE_WINDOW_5                   equ 0x48  ; Reuse of UI_BG
 TILE_WINDOW_6                   equ 0x55
+TILE_FOG_OF_WAR                 equ 0x56
 
 ; Helpers
 TILE_FOREGROUND_SHIFT           equ TILE_DETAIL_0   ; pointer to first FG tile
@@ -274,13 +276,13 @@ CURSOR_TYPE_ROL                         equ 0x02
 ; | |  | '- resource type (4) (for source/pods cargo/buildings)
 ; | |  '- switch on rail (or not initialized)
 ; | '- cart drive direction (4)
-; '- empty
+; '- visible to radar
 ;
 ; if building/resource then least significant bits are used for:
 ; 0000 00 00
 ; '- resource amount (16)
 ;
-TILE_DIRECTION_MASK                     equ 0x3
+TILE_DIRECTION_MASK                     equ 0
 SWITCH_DATA_CLIP                        equ 0xEC
 RESOURCE_TYPE_MASK                      equ 0xC
 RESOURCE_TYPE_SHIFT                     equ 0x2
@@ -289,6 +291,7 @@ SWITCH_MASK                             equ 0x10
 CART_DIRECTION_MASK                     equ 0x60
 CART_DIRECTION_SHIFT                    equ 0x5
 CART_DIRECTION_CLIP                     equ 0x9F
+RADAR_VISIBILITY_MASK                   equ 0x80
 RESOURCE_AMOUNT_MASK                    equ 0xF0
 RESOURCE_AMOUNT_SHIFT                   equ 0x4
 
@@ -1080,10 +1083,33 @@ actions_logic:
     add ax, bx
     mov byte [fs:di + FG], al
 
+    cmp bx, TILE_BUILDING_RADAR_ID
+    jnz .done
+    call .update_radar_visibility
     jmp .done
 
   .inspect_building:
     jmp .done
+
+  .update_radar_visibility:
+    sub di, MAP_SIZE * (RADAR_VISIBILITY_RANGE / 2)
+    ; todo: top edge
+    sub di, RADAR_VISIBILITY_RANGE / 2
+    ; clip left edge
+    mov cx, RADAR_VISIBILITY_RANGE
+    .radar_row:
+      push cx
+      mov cx, RADAR_VISIBILITY_RANGE
+      .radar_col:
+        or byte [fs:di + META], RADAR_VISIBILITY_MASK
+        inc di
+        ; clip right edge
+      loop .radar_col
+      add di, MAP_SIZE - RADAR_VISIBILITY_RANGE
+      ; clip bottom edge
+      pop cx
+    loop .radar_row
+    ret
 
   .build_pods_station:
     mov di, [_CURSOR_Y_]    ; Absolute Y map coordinate
@@ -1465,7 +1491,7 @@ init_briefing:
   call draw_rle_image
   call ui.draw_frame
 
-  call ui.draw_map
+  call ui.draw_radar_map
   mov byte [_GAME_STATE_], STATE_BRIEFING
   mov byte [_SCENE_MODE_], SCENE_MODE_BRIEFING
   call window_logic.create_window
@@ -1588,7 +1614,7 @@ live_game:
 ret
 
 init_map_view:
-  call ui.draw_map
+  call ui.draw_radar_map
   mov byte [_GAME_STATE_], STATE_MAP_VIEW
 
   ;mov bx, MAP_JINGLE
@@ -1720,7 +1746,7 @@ live_window:
     jmp .done
 
   .widget_radar:
-    call ui.draw_map
+    call ui.draw_radar_map
     ;jmp .done
 
   .done:
@@ -2255,6 +2281,8 @@ build_initial_base:
   add bx, TILE_ROCKET_TOP_ID
   mov byte [fs:di-MAP_SIZE + FG], bl
 
+  call actions_logic.update_radar_visibility
+
   ret
 
 ; =========================================== DRAW TERRAIN ==================|80
@@ -2354,6 +2382,12 @@ draw_single_cell:
   ret
 
 draw_cell:
+  test byte [fs:si + META], RADAR_VISIBILITY_MASK
+  jnz .radar_visible
+    mov ax, TILE_FOG_OF_WAR
+    call draw_tile
+    ret
+  .radar_visible:
   mov al, [fs:si]
   mov bl, al
   and al, BACKGROUND_SPRITE_MASK
@@ -2523,6 +2557,7 @@ recalculate_rails:
     mov byte [fs:di + FG], al
 
   .done:
+    or byte [fs:di + META], RADAR_VISIBILITY_MASK
   ret
 
 ; =========================================== DECOMPRESS SPRITE ============|80
@@ -2910,7 +2945,7 @@ ui:
     .done:
     ret
 
-  .draw_map:
+  .draw_radar_map:
     push es
 
     push SEGMENT_DBUFFER
@@ -2929,21 +2964,32 @@ ui:
     xor si, si
     mov di, SCREEN_WIDTH*48+24          ; Map position on screen
     xor bx,bx
-    mov cx, MAP_SIZE           ; Columns
+    mov cx, MAP_SIZE                    ; Columns
     .draw_loop:
       push cx
-      mov cx, MAP_SIZE        ; Rows
+
+      mov cx, MAP_SIZE                  ; Rows
       .draw_row:
-        mov al, [fs:si]                ; Load map cell
+        mov al, [fs:si]                 ; Load map cell
         inc si
-        and al, BACKGROUND_SPRITE_MASK ; Clear metadata
+
+        and al, BACKGROUND_SPRITE_MASK
         mov bl, al
-        mov al, [RadarTerrainColors + bx]
-        mov [es:di], al      ; Draw 1 pixels
-        add di, 1            ; Move to next column
+        mov al, COLOR_BLACK             ; Invisible terrain color
+        test byte [fs:si + META], RADAR_VISIBILITY_MASK
+        jz .radar_invisible
+          mov al, [RadarTerrainColors + bx]
+          test byte [fs:si + BG], RAIL_MASK
+          jz .skip_rail_color
+            mov al, COLOR_WHITE         ;  Rails color
+          .skip_rail_color:
+        .radar_invisible:
+          mov [es:di], al               ; Draw 1 pixels
+        .next_column:
+          add di, 1
       loop .draw_row
       pop cx
-      add di, 320-MAP_SIZE    ; Move to next row
+      add di, 320-MAP_SIZE              ; Move to next row
     loop .draw_loop
 
     pop es
@@ -3191,7 +3237,7 @@ InputTableEnd:
 ; height/width, Y/X, title, menu entry array, corresponding logic array
 WindowDefinitionsArray:
 dw 0x050C, 0x0C09, WindowMainMenuText, MainMenuSelectionArrayText, MainMenuLogicArray
-dw 0x080C, 0x0608, WindowBaseBuildingsText, WindowBaseSelectionArrayText, WindowBaseLogicArray
+dw 0x090C, 0x0408, WindowBaseBuildingsText, WindowBaseSelectionArrayText, WindowBaseLogicArray
 dw 0x050C, 0x0C08, WindowRemoteBuildingsText, WindowRemoteSelectionArrayText, WindowRemoteLogicArray
 dw 0x030A, 0x100A, WindowStationText, WindowStationSelectionArrayText, WindowStationLogicArray
 dw 0x040B, 0x0E11, WindowBriefingText, WindowBriefingSelectionArrayText, WindowBriefingLogicArray
@@ -3221,6 +3267,7 @@ WindowBaseSelectionArrayText:
   db 'BUILD SILOS',0x0
   db 'BUILD RAFINERY',0x0
   db 'BUIILD LABORATORY',0x0
+  db 'BUIILD RADAR',0x0
   db 0x00
   WindowBaseLogicArray:
     dw menu_logic.close_window, 0x0
@@ -3230,6 +3277,7 @@ WindowBaseSelectionArrayText:
     dw actions_logic.place_building, TILE_BUILDING_SILOS_ID
     dw actions_logic.place_building, TILE_BUILDING_RAFINERY_ID
     dw actions_logic.place_building, TILE_BUILDING_LAB_ID
+    dw actions_logic.place_building, TILE_BUILDING_RADAR_ID
 
 WindowRemoteBuildingsText   db 'REMOTE BUILDINGS',0x0
 WindowRemoteSelectionArrayText:
