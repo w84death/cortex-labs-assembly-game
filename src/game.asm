@@ -36,6 +36,8 @@
 
 org 0x0100
 
+BUILD_VER                               equ 0314
+
 ; =========================================== MEMORY LAYOUT =================|80
 
 SEGMENT_VGA                             equ 0xA000
@@ -680,6 +682,9 @@ game_logic:
       test byte [fs:di + META], SWITCH_MASK
       jz .change_action_done
 
+      mov bx, SFX_CHANGE_SWITCH
+      call audio.play_sfx
+
       mov al, [fs:di + META]
       and al, TILE_DIRECTION_MASK
       xor al, 0x2                       ; invert swich top-down or left-right
@@ -689,6 +694,9 @@ game_logic:
     jmp .change_action_done
 
     .building_exit_rotate:
+      mov bx, SFX_EXIT_ROT
+      call audio.play_sfx
+
       mov al, [fs:di + META]
       and al, TILE_DIRECTION_MASK
       inc al
@@ -703,9 +711,6 @@ game_logic:
     jmp .redraw_tile
 
   .build_action:
-    mov bx, SFX_BUILD
-    call audio.play_sfx
-
     mov di, [_CURSOR_Y_]                ; Calculate map position
     shl di, 7   ; Y * 128
     add di, [_CURSOR_X_]               ; For quick random number
@@ -722,6 +727,9 @@ game_logic:
     jmp .build_action_done
 
     .place_rail:
+      mov bx, SFX_BUILD_RAIL
+      call audio.play_sfx
+
       mov al, [_GAME_TICK_]
       and al, 0x1                       ; TILE_SOIL_0 or TILE_SOIL_1
       add al, RAIL_MASK
@@ -742,6 +750,9 @@ game_logic:
       jmp .redraw_four_tiles
 
     .place_building:
+      mov bx, SFX_BUILD_BUILDING
+      call audio.play_sfx
+
       mov al, [fs:di]
       mov bl, [fs:di + FG]
       and bl, FOREGROUND_SPRITE_MASK
@@ -1501,6 +1512,16 @@ init_menu:
   mov byte [_SCENE_MODE_], SCENE_MODE_MAIN_MENU
   mov byte [_MENU_SELECTION_POS_], 0x0
   call window_logic.create_window
+
+  mov si, VerText
+  mov bl, COLOR_WHITE
+  call font.draw_string
+
+  mov si, BUILD_VER
+  mov bl, COLOR_YELLOW
+  add dl, 0xF
+  mov cx, 1000
+  call font.draw_number
 
   ;mov bx, MENU_JINGLE
   ;call audio.play_sfx
@@ -3393,17 +3414,17 @@ WindowRadarSelectionArray:
 ; ==============================================================
 
 TerrainRules:
-db 0,0,1,1, 0,0,1,1                     ; 0 –
-db 1,0,1,0, 1,2,1,2                     ; 1 –
-db 2,0,1,2, 1,2,3,3                     ; 2 –
-db 3,2,1,3, 2,1,4,4                     ; 3 –
-db 4,3,2,4, 3,4,5,5                     ; 4 –
-db 5,5,3,4, 4,6,6,7                     ; 5 –
-db 6,5,5,6, 6,7,6,7                     ; 6 –
-db 7,6,7,7, 7,8,8,8                     ; 7 –
-db 8,7,7,8, 8,9,9,9                     ; 8 –
-db 9,7,8,8, 9,9,9,9                     ; 9 –
-db 10,9,9,10, 10,10,10,10               ; 10 –
+db 0,0,1,1, 0,0,1,1
+db 1,0,1,0, 1,2,1,2
+db 2,0,1,2, 1,2,3,3
+db 3,2,1,3, 2,1,4,4
+db 4,3,2,4, 3,4,5,5
+db 5,5,3,4, 4,6,6,7
+db 6,5,5,6, 6,7,6,7
+db 7,6,7,7, 7,8,8,8
+db 8,7,7,8, 8,9,9,9
+db 9,7,8,8, 9,9,9,9
+db 10,9,9,10, 10,10,10,10
 
 RadarTerrainColors:
 db 0x4          ; soil 0

@@ -3,7 +3,7 @@ KKJText db 'KRZYSZTOF KRYSTIAN JANKOWSKI',0x0
 PressEnterText db 'PRESS ENTER', 0x0
 MainMenuCopyText db '(MIT) 2026 P1X',0x0
 QuitText db 'Thanks for playing!',0x0D,0x0A,'Visit http://smol.p1x.in/assembly for more...', 0x0D, 0x0A, 0x0
-
+VerText db 'BUILD VERSION: ',0x0
 Fontset1Text db ' !',34,'#$%&',39,'()*+,-./:;<=>?',0x0
 Fontset2Text db '@ 0123456789',0x0
 Fontset3Text db 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',0x0

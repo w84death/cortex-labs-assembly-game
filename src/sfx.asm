@@ -74,77 +74,77 @@ NoteTable:
   dw 0x01F9      ; 62: C#7 (2217.46 Hz)
   dw 0x01C8      ; 63: D7  (2349.32 Hz)
 
-; Enhanced note name constants for all octaves
-NOTE_REST     equ 0
-; Octave 2
-NOTE_C2       equ 1
-NOTE_CS2      equ 2
-NOTE_D2       equ 3
-NOTE_DS2      equ 4
-NOTE_E2       equ 5
-NOTE_F2       equ 6
-NOTE_FS2      equ 7
-NOTE_G2       equ 8
-NOTE_GS2      equ 9
-NOTE_A2       equ 10
-NOTE_AS2      equ 11
-NOTE_B2       equ 12
-; Octave 3
-NOTE_C3       equ 13
-NOTE_CS3      equ 14
-NOTE_D3       equ 15
-NOTE_DS3      equ 16
-NOTE_E3       equ 17
-NOTE_F3       equ 18
-NOTE_FS3      equ 19
-NOTE_G3       equ 20
-NOTE_GS3      equ 21
-NOTE_A3       equ 22
-NOTE_AS3      equ 23
-NOTE_B3       equ 24
-; Octave 4
-NOTE_C4       equ 25
-NOTE_CS4      equ 26
-NOTE_D4       equ 27
-NOTE_DS4      equ 28
-NOTE_E4       equ 29
-NOTE_F4       equ 30
-NOTE_FS4      equ 31
-NOTE_G4       equ 32
-NOTE_GS4      equ 33
-NOTE_A4       equ 34
-NOTE_AS4      equ 35
-NOTE_B4       equ 36
-; Octave 5
-NOTE_C5       equ 37
-NOTE_CS5      equ 38
-NOTE_D5       equ 39
-NOTE_DS5      equ 40
-NOTE_E5       equ 41
-NOTE_F5       equ 42
-NOTE_FS5      equ 43
-NOTE_G5       equ 44
-NOTE_GS5      equ 45
-NOTE_A5       equ 46
-NOTE_AS5      equ 47
-NOTE_B5       equ 48
-; Octave 6
-NOTE_C6       equ 49
-NOTE_CS6      equ 50
-NOTE_D6       equ 51
-NOTE_DS6      equ 52
-NOTE_E6       equ 53
-NOTE_F6       equ 54
-NOTE_FS6      equ 55
-NOTE_G6       equ 56
-NOTE_GS6      equ 57
-NOTE_A6       equ 58
-NOTE_AS6      equ 59
-NOTE_B6       equ 60
-; Octave 7
-NOTE_C7       equ 61
-NOTE_CS7      equ 62
-NOTE_D7       equ 63
+  ; Enhanced note name constants for all octaves
+  NOTE_REST     equ 0
+  ; Octave 2
+  NOTE_C2       equ 1
+  NOTE_CS2      equ 2
+  NOTE_D2       equ 3
+  NOTE_DS2      equ 4
+  NOTE_E2       equ 5
+  NOTE_F2       equ 6
+  NOTE_FS2      equ 7
+  NOTE_G2       equ 8
+  NOTE_GS2      equ 9
+  NOTE_A2       equ 10
+  NOTE_AS2      equ 11
+  NOTE_B2       equ 12
+  ; Octave 3
+  NOTE_C3       equ 13
+  NOTE_CS3      equ 14
+  NOTE_D3       equ 15
+  NOTE_DS3      equ 16
+  NOTE_E3       equ 17
+  NOTE_F3       equ 18
+  NOTE_FS3      equ 19
+  NOTE_G3       equ 20
+  NOTE_GS3      equ 21
+  NOTE_A3       equ 22
+  NOTE_AS3      equ 23
+  NOTE_B3       equ 24
+  ; Octave 4
+  NOTE_C4       equ 25
+  NOTE_CS4      equ 26
+  NOTE_D4       equ 27
+  NOTE_DS4      equ 28
+  NOTE_E4       equ 29
+  NOTE_F4       equ 30
+  NOTE_FS4      equ 31
+  NOTE_G4       equ 32
+  NOTE_GS4      equ 33
+  NOTE_A4       equ 34
+  NOTE_AS4      equ 35
+  NOTE_B4       equ 36
+  ; Octave 5
+  NOTE_C5       equ 37
+  NOTE_CS5      equ 38
+  NOTE_D5       equ 39
+  NOTE_DS5      equ 40
+  NOTE_E5       equ 41
+  NOTE_F5       equ 42
+  NOTE_FS5      equ 43
+  NOTE_G5       equ 44
+  NOTE_GS5      equ 45
+  NOTE_A5       equ 46
+  NOTE_AS5      equ 47
+  NOTE_B5       equ 48
+  ; Octave 6
+  NOTE_C6       equ 49
+  NOTE_CS6      equ 50
+  NOTE_D6       equ 51
+  NOTE_DS6      equ 52
+  NOTE_E6       equ 53
+  NOTE_F6       equ 54
+  NOTE_FS6      equ 55
+  NOTE_G6       equ 56
+  NOTE_GS6      equ 57
+  NOTE_A6       equ 58
+  NOTE_AS6      equ 59
+  NOTE_B6       equ 60
+  ; Octave 7
+  NOTE_C7       equ 61
+  NOTE_CS7      equ 62
+  NOTE_D7       equ 63
 
 ; Enhanced sound effects with new note range
 SFX_NULL:
@@ -167,11 +167,9 @@ SFX_MENU_UP:
   db NOTE_C3, NOTE_C6
   db 0x0
 
-SFX_COLLECT:
-  db NOTE_C5, NOTE_D5, NOTE_E5, NOTE_G5
-  db 0x0
-
 SFX_BUILD:
+SFX_BUILD_RAIL:
+SFX_BUILD_BUILDING:
   db NOTE_C4, NOTE_F4, NOTE_A4
   db 0x0
 
@@ -179,10 +177,7 @@ SFX_ERROR:
   db NOTE_F3, NOTE_E3, NOTE_DS3
   db 0x0
 
-SFX_POWERUP:
-  db NOTE_C4, NOTE_G4, NOTE_C5, NOTE_G5, NOTE_C6
-  db 0x0
-
-SFX_EXPLOSION:
-  db NOTE_B2, NOTE_G2, NOTE_E2, NOTE_C2
+SFX_CHANGE_SWITCH:
+SFX_EXIT_ROT:
+  db NOTE_A4
   db 0x0
