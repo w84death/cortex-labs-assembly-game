@@ -28,7 +28,7 @@
 ; Programs used for production:
 ;   - Zed IDE
 ;   - Propiretary P1Xel Tool
-;   - bochs / dosemu
+;   - bochs / qemu /dosemu
 ;   - custom tool for tileset conversion
 ;   - custom tool for RLE image compression
 ;
@@ -224,6 +224,7 @@ TILE_FOREGROUND_SHIFT           equ TILE_DETAIL_0   ; pointer to first FG tile
 TILE_ROCKET_BOTTOM_ID           equ TILE_ROCKET_GEAR-TILE_FOREGROUND_SHIFT
 TILE_ROCKET_TOP_ID              equ TILE_ROCKET_TOP-TILE_FOREGROUND_SHIFT
 TILE_BUILDING_RAFINERY_ID       equ TILE_BUILDING_RAFINERY-TILE_FOREGROUND_SHIFT
+TILE_BUILDING_EXTRACTOR_ID      equ TILE_BUILDING_EXTRACTOR-TILE_FOREGROUND_SHIFT
 TILE_BUILDING_COLECTOR_ID       equ TILE_BUILDING_COLECTOR-TILE_FOREGROUND_SHIFT
 TILE_BUILDING_SILOS_ID          equ TILE_BUILDING_SILOS-TILE_FOREGROUND_SHIFT
 TILE_BUILDING_LAB_ID            equ TILE_BUILDING_LAB-TILE_FOREGROUND_SHIFT
@@ -318,6 +319,7 @@ SCENE_MODE_STATION              equ 0x03
 SCENE_MODE_BRIEFING             equ 0x04
 SCENE_MODE_UPGRADE_BUILDINGS    equ 0x05
 SCENE_MODE_RADAR_VIEW           equ 0x06
+SCENE_MODE_EXTRACTOR_SETUP      equ 0x07
 
 UI_STATS_POS                    equ SPRITE_SIZE
 UI_STATS_TXT_POS                equ 0x04
@@ -763,6 +765,9 @@ game_logic:
       cmp bl, TILE_BUILDING_RADAR_ID
       jz .radar_view
 
+      cmp bl, TILE_BUILDING_EXTRACTOR_ID
+      jz .extractor_setup
+
       test al, INFRASTRUCTURE_MASK
       jnz .upgrade_building
 
@@ -788,6 +793,10 @@ game_logic:
 
       .radar_view:
         mov bx, SCENE_MODE_RADAR_VIEW
+        jmp .pop_window
+
+      .extractor_setup:
+        mov bx, SCENE_MODE_EXTRACTOR_SETUP
         jmp .pop_window
 
     .pop_window:
@@ -1715,14 +1724,7 @@ live_window:
   add si, [_CURSOR_X_]               ; For quick random number
 
 
-  ; custom widgets
-  cmp byte [_SCENE_MODE_], SCENE_MODE_UPGRADE_BUILDINGS
-  je .widget_rotate
-  cmp byte [_SCENE_MODE_], SCENE_MODE_RADAR_VIEW
-  je .widget_radar
-  jmp .done
-
-  .widget_rotate:
+  .get_position:
     add ah, 4
     shl al, 3
     shl ah, 3
@@ -1737,6 +1739,16 @@ live_window:
     add di, bx
 
 
+  .select_widget:
+    cmp byte [_SCENE_MODE_], SCENE_MODE_UPGRADE_BUILDINGS
+    je .widget_rotate
+    cmp byte [_SCENE_MODE_], SCENE_MODE_RADAR_VIEW
+    je .widget_radar
+    cmp byte [_SCENE_MODE_], SCENE_MODE_EXTRACTOR_SETUP
+    je .widget_resources
+    jmp .done
+
+  .widget_rotate:
     mov al, [fs:si + META]
     and al, TILE_DIRECTION_MASK
     add al, TILE_IO_RIGHT
@@ -1745,7 +1757,20 @@ live_window:
 
   .widget_radar:
     call ui.draw_radar_map
-    ;jmp .done
+    jmp .done
+
+  .widget_resources:
+    mov al, TILE_RES_WHITE_MAX
+    call draw_sprite
+    add di, SCREEN_WIDTH*SPRITE_SIZE
+    mov al, TILE_RES_GREEN_MAX
+    call draw_sprite
+    add di, SCREEN_WIDTH*SPRITE_SIZE
+    mov al, TILE_RES_BLUE_MAX
+    call draw_sprite
+    add di, SCREEN_WIDTH*SPRITE_SIZE
+
+    ;jmp .done;
 
   .done:
 ret
@@ -3315,6 +3340,7 @@ dw 0x030A, 0x100A, WindowStationText, WindowStationSelectionArrayText, WindowSta
 dw 0x040B, 0x0E11, WindowBriefingText, WindowBriefingSelectionArrayText, WindowBriefingLogicArray
 dw 0x050D, 0x0C08, WindowPODsText, WindowPODsSelectionArrayText, WindowPODsSelectionArray
 dw 0x0109, 0x1215, WindowRadarText, WindowRadarSelectionArrayText, WindowRadarSelectionArray
+dw 0x060C, 0x0A08, WindowExtractorText, WindowExtractorSelectionArrayText, WindowExtractorSelectionArray
 
 WindowMainMenuText          db 'MAIN MANU',0x0
 MainMenuSelectionArrayText:
@@ -3361,7 +3387,7 @@ WindowRemoteSelectionArrayText:
 WindowRemoteLogicArray:
   dw menu_logic.close_window, 0x0
   dw game_logic.change_action, 0x0
-  dw actions_logic.place_building, TILE_BUILDING_COLECTOR_ID
+  dw actions_logic.place_building, TILE_BUILDING_EXTRACTOR_ID
   dw actions_logic.place_building, TILE_BUILDING_RADAR_ID
 
 WindowStationText           db 'STATION',0x0
@@ -3404,6 +3430,23 @@ WindowRadarSelectionArrayText:
   db 0x00
 WindowRadarSelectionArray:
   dw menu_logic.close_window, 0x0
+
+WindowExtractorText              db 'EXTRACTOR SETUP',0x0
+WindowExtractorSelectionArrayText:
+  db '< CLOSE WINDOW',0x0
+  db 'EXTRACT: WHITE',0x00
+  db 'EXTRACT: GREEN',0x00
+  db 'EXTRACT: BLUE',0x00
+  db 'TURN OFF EXTRACTION',0x00
+  db 0x00
+WindowExtractorSelectionArray:
+  dw menu_logic.close_window, 0x0
+  dw menu_logic.close_window, 0x0
+  dw menu_logic.close_window, 0x0
+  dw menu_logic.close_window, 0x0
+  dw menu_logic.close_window, 0x0
+
+
 ; =========================================== TERRAIN GEN RULES =============|80
 
 ; ==============================================================
