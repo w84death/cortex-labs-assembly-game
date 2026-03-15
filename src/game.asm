@@ -98,7 +98,7 @@ SPRITE_SIZE                             equ 16      ; In pixels
 FONT_SIZE                               equ 8       ; In pixels
 GAME_TURN_LENGTH                        equ 4       ; in game loops
 RADAR_VISIBILITY_RANGE                  equ 32      ; In tiles
-TILES_COUNT                             equ 88
+TILES_COUNT                             equ 0x54
 
 ; =========================================== GAME STATES ===================|80
 
@@ -124,7 +124,16 @@ STATE_WINDOW_INIT       equ 17
 STATE_WINDOW            equ 18
 STATE_BRIEFING_INIT     equ 19
 STATE_BRIEFING          equ 20
-
+SCENE_MODE_ANY                  equ 0x00
+SCENE_MODE_MAIN_MENU            equ 0x00
+SCENE_MODE_BASE_BUILDINGS       equ 0x01
+SCENE_MODE_REMOTE_BUILDINGS     equ 0x02
+SCENE_MODE_STATION              equ 0x03
+SCENE_MODE_BRIEFING             equ 0x04
+SCENE_MODE_UPGRADE_BUILDINGS    equ 0x05
+SCENE_MODE_RADAR_VIEW           equ 0x06
+SCENE_MODE_EXTRACTOR_SETUP      equ 0x07
+SCENE_MODE_EXTRACTOR_INFO       equ 0x08
 
 ; =========================================== TILES NAMES ===================|80
 
@@ -142,89 +151,84 @@ TILE_ROCKS_3                    equ 0x0A
 TILE_STATION_EXTEND             equ 0x0B
 TILE_STATION                    equ 0x0C
 TILE_FOUNDATION                 equ 0x0D
-TILE_DETAIL_0                   equ 0x0E
-TILE_DETAIL_1                   equ 0x0F
-TILE_DETAIL_2                   equ 0x10
-TILE_RES_WHITE_LOW              equ 0x11
-TILE_RES_WHITE_MAX              equ 0x12
-TILE_RES_GREEN_LOW              equ 0x13
-TILE_RES_GREEN_MAX              equ 0x14
-TILE_RES_BLUE_LOW               equ 0x15
-TILE_RES_BLUE_MAX               equ 0x16
-TILE_RAILS_1                    equ 0x17
-TILE_RAILS_2                    equ 0x18
-TILE_RAILS_3                    equ 0x19
-TILE_RAILS_4                    equ 0x1A
-TILE_RAILS_5                    equ 0x1B
-TILE_RAILS_6                    equ 0x1C
-TILE_RAILS_7                    equ 0x1D
-TILE_RAILS_8                    equ 0x1E
-TILE_RAILS_9                    equ 0x1F
-TILE_RAILS_10                   equ 0x20
-TILE_RAILS_11                   equ 0x21
-TILE_ROCKET_TOP                 equ 0x22
-TILE_ROCKET_MIDDLE              equ 0x23
-TILE_ROCKET_GEAR                equ 0x24
-TILE_ROCKET_BOOSTERS            equ 0x25
-TILE_ROCKET_SMOKE               equ 0x26
+TILE_RES_WHITE_LOW              equ 0x0E
+TILE_RES_WHITE_MAX              equ 0x0F
+TILE_RES_GREEN_LOW              equ 0x10
+TILE_RES_GREEN_MAX              equ 0x11
+TILE_RES_BLUE_LOW               equ 0x12
+TILE_RES_BLUE_MAX               equ 0x13
+TILE_RAILS_1                    equ 0x14
+TILE_RAILS_2                    equ 0x15
+TILE_RAILS_3                    equ 0x16
+TILE_RAILS_4                    equ 0x17
+TILE_RAILS_5                    equ 0x18
+TILE_RAILS_6                    equ 0x19
+TILE_RAILS_7                    equ 0x1A
+TILE_RAILS_8                    equ 0x1B
+TILE_RAILS_9                    equ 0x1C
+TILE_RAILS_10                   equ 0x1D
+TILE_RAILS_11                   equ 0x1E
+TILE_ROCKET_GEAR                equ 0x1F
+TILE_BUILDING_SILOS             equ 0x20
+TILE_BUILDING_EXTRACTOR         equ 0x21
+TILE_BUILDING_COLECTOR          equ 0x22
+TILE_BUILDING_LAB               equ 0x23
+TILE_BUILDING_RAFINERY          equ 0x24
+TILE_BUILDING_RADAR             equ 0x25
+TILE_BUILDING_PODS              equ 0x26
+TILE_BUILDING_POWER             equ 0x27
+TILE_SILO_WHITE                 equ 0x28
+TILE_SILO_BLUE                  equ 0x29
+TILE_SILO_GREEN                 equ 0x2A
+TILE_EXTRACT_WHITE              equ 0x2B
+TILE_EXTRACT_GREEN              equ 0x2C
+TILE_EXTRACT_BLUE               equ 0x2D
+TILE_ROCKET_TOP                 equ 0x2E
+TILE_ROCKET_MIDDLE              equ 0x2F
+TILE_ROCKET_BOOSTERS            equ 0x30
+TILE_ROCKET_SMOKE               equ 0x31
+TILE_CART_VERTICAL              equ 0x32
+TILE_CART_HORIZONTAL            equ 0x33
+TILE_SWITCH_LEFT                equ 0x34
+TILE_SWITCH_DOWN                equ 0x35
+TILE_SWITCH_RIGHT               equ 0x36
+TILE_SWITCH_UP                  equ 0x37
+TILE_ORE_WHITE_V                equ 0x38
+TILE_ORE_WHITE_H                equ 0x39
+TILE_ORE_BLUE_V                 equ 0x3A
+TILE_ORE_BLUE_H                 equ 0x3B
+TILE_ORE_GREEN_V                equ 0x3C
+TILE_ORE_GREEN_H                equ 0x3D
+TILE_CURSOR_MOUSE               equ 0x3E
+TILE_CURSOR_BUILD               equ 0x3F
+TILE_CURSOR_EDIT                equ 0x40
+TILE_CURSOR_BUILDING            equ 0x41
+TILE_CURSOR_SELECTOR            equ 0x42
+TILE_UI_BG                      equ 0x43
+TILE_UI_HEADER                  equ 0x44
+TILE_UI_LEFT                    equ 0x45
+TILE_UI_RIGHT                   equ 0x46
+TILE_UI_HEADER_TXT              equ 0x47
+TILE_IO_RIGHT                   equ 0x48
+TILE_IO_LEFT                    equ 0x49
+TILE_IO_UP                      equ 0x4A
+TILE_IO_DOWN                    equ 0x4B
+TILE_WINDOW_1                   equ 0x4C
+TILE_WINDOW_2                   equ 0x4D
+TILE_WINDOW_3                   equ 0x4E
+TILE_WINDOW_4                   equ 0x4F
+TILE_WINDOW_5                   equ 0x50
+TILE_FOG_OF_WAR                 equ 0x51
 
-TILE_BUILDING_SILOS             equ 0x27
-TILE_BUILDING_EXTRACTOR         equ 0x28
-TILE_BUILDING_COLECTOR          equ 0x29
-TILE_BUILDING_LAB               equ 0x2A
-TILE_BUILDING_RAFINERY          equ 0x2B
-TILE_BUILDING_RADAR             equ 0x2C
-TILE_BUILDING_PODS              equ 0x2D
-TILE_BUILDING_POWER             equ 0x2E
-
-TILE_RAIL_STATION_V             equ 0x2F
-TILE_RAIL_STATION_H             equ 0x30
-TILE_CART_VERTICAL              equ 0x31
-TILE_CART_HORIZONTAL            equ 0x32
-TILE_SWITCH_LEFT                equ 0x33
-TILE_SWITCH_DOWN                equ 0x34
-TILE_SWITCH_RIGHT               equ 0x35
-TILE_SWITCH_UP                  equ 0x36
-TILE_ORE_WHITE_V                equ 0x37
-TILE_ORE_WHITE_H                equ 0x38
-TILE_ORE_BLUE_V                 equ 0x39
-TILE_ORE_BLUE_H                 equ 0x3A
-TILE_ORE_GREEN_V                equ 0x3B
-TILE_ORE_GREEN_H                equ 0x3C
-TILE_SILO_WHITE                 equ 0x3D
-TILE_SILO_BLUE                  equ 0x3E
-TILE_SILO_GREEN                 equ 0x3F
-TILE_EXTRACT_WHITE              equ 0x40
-TILE_EXTRACT_BLUE               equ 0x41
-TILE_EXTRACT_GREEN              equ 0x42
-TILE_CURSOR_MOUSE               equ 0x43
-TILE_CURSOR_BUILD               equ 0x44
-TILE_CURSOR_EDIT                equ 0x45
-TILE_CURSOR_BUILDING            equ 0x46
-TILE_CURSOR_SELECTOR            equ 0x47
-TILE_UI_BG                      equ 0x48
-TILE_UI_HEADER                  equ 0x49
-TILE_UI_LEFT                    equ 0x4A
-TILE_UI_RIGHT                   equ 0x4B
-TILE_UI_HEADER_TXT              equ 0x4C
-TILE_IO_RIGHT                   equ 0x4D
-TILE_IO_LEFT                    equ 0x4E
-TILE_IO_UP                      equ 0x4F
-TILE_IO_DOWN                    equ 0x50
-TILE_WINDOW_1                   equ 0x51
-TILE_WINDOW_2                   equ 0x52
-TILE_WINDOW_3                   equ 0x53
-TILE_WINDOW_4                   equ 0x54
-TILE_WINDOW_5                   equ 0x48  ; Reuse of UI_BG
-TILE_WINDOW_6                   equ 0x55
-TILE_FOG_OF_WAR                 equ 0x56
-
-; Helpers
-TILE_FOREGROUND_SHIFT           equ TILE_DETAIL_0   ; pointer to first FG tile
+; FOREGROUND TILES IDS
+TILE_FOREGROUND_SHIFT           equ TILE_RES_WHITE_LOW ; pointer to first FG tile
 TILE_ROCKET_BOTTOM_ID           equ TILE_ROCKET_GEAR-TILE_FOREGROUND_SHIFT
 TILE_ROCKET_TOP_ID              equ TILE_ROCKET_TOP-TILE_FOREGROUND_SHIFT
 TILE_BUILDING_RAFINERY_ID       equ TILE_BUILDING_RAFINERY-TILE_FOREGROUND_SHIFT
 TILE_BUILDING_EXTRACTOR_ID      equ TILE_BUILDING_EXTRACTOR-TILE_FOREGROUND_SHIFT
+TILE_EXTRACT_WHITE_ID           equ TILE_EXTRACT_WHITE-TILE_FOREGROUND_SHIFT
+TILE_EXTRACT_GREEN_ID           equ TILE_EXTRACT_GREEN-TILE_FOREGROUND_SHIFT
+TILE_EXTRACT_BLUE_ID            equ TILE_EXTRACT_BLUE-TILE_FOREGROUND_SHIFT
 TILE_BUILDING_COLECTOR_ID       equ TILE_BUILDING_COLECTOR-TILE_FOREGROUND_SHIFT
 TILE_BUILDING_SILOS_ID          equ TILE_BUILDING_SILOS-TILE_FOREGROUND_SHIFT
 TILE_BUILDING_LAB_ID            equ TILE_BUILDING_LAB-TILE_FOREGROUND_SHIFT
@@ -290,15 +294,15 @@ TILE_DIRECTION_MASK                     equ 0x3
 SWITCH_DATA_CLIP                        equ 0xEC
 RESOURCE_TYPE_MASK                      equ 0xC
 RESOURCE_TYPE_SHIFT                     equ 0x2
-RESOURCE_TYPE_CLIP                      equ 0xF3
+RESOURCE_TYPE_CLIP                      equ 0xFF - RESOURCE_TYPE_MASK
 SWITCH_MASK                             equ 0x10
 CART_DIRECTION_MASK                     equ 0x60
 CART_DIRECTION_SHIFT                    equ 0x5
-CART_DIRECTION_CLIP                     equ 0x9F
+CART_DIRECTION_CLIP                     equ 0xFF - CART_DIRECTION_MASK
 RADAR_VISIBILITY_MASK                   equ 0x80
 RESOURCE_AMOUNT_MASK                    equ 0x70
 RESOURCE_AMOUNT_SHIFT                   equ 0x4
-RESOURCE_AMOUNT_CLIP                    equ 0xFF-0x70
+RESOURCE_AMOUNT_CLIP                    equ 0xFF - RESOURCE_AMOUNT_MASK
 
 ; MISC
 
@@ -311,15 +315,7 @@ CURSOR_ICON_POINTER             equ 0x00
 CURSOR_ICON_PLACE_RAIL          equ 0x01
 CURSOR_ICON_EDIT                equ 0x02
 CURSOR_ICON_PLACE_BUILDING      equ 0x03
-SCENE_MODE_ANY                  equ 0x00
-SCENE_MODE_MAIN_MENU            equ 0x00
-SCENE_MODE_BASE_BUILDINGS       equ 0x01
-SCENE_MODE_REMOTE_BUILDINGS     equ 0x02
-SCENE_MODE_STATION              equ 0x03
-SCENE_MODE_BRIEFING             equ 0x04
-SCENE_MODE_UPGRADE_BUILDINGS    equ 0x05
-SCENE_MODE_RADAR_VIEW           equ 0x06
-SCENE_MODE_EXTRACTOR_SETUP      equ 0x07
+
 
 UI_STATS_POS                    equ SPRITE_SIZE
 UI_STATS_TXT_POS                equ 0x04
@@ -715,7 +711,7 @@ game_logic:
   .build_action:
     mov di, [_CURSOR_Y_]                ; Calculate map position
     shl di, 7   ; Y * 128
-    add di, [_CURSOR_X_]               ; For quick random number
+    add di, [_CURSOR_X_]
 
     .decide_on_action:
       mov bl, [fs:di + FG]
@@ -767,6 +763,12 @@ game_logic:
 
       cmp bl, TILE_BUILDING_EXTRACTOR_ID
       jz .extractor_setup
+      cmp bl, TILE_EXTRACT_WHITE_ID
+      jz .extractor_info
+      cmp bl, TILE_EXTRACT_GREEN_ID
+      jz .extractor_info
+      cmp bl, TILE_EXTRACT_BLUE_ID
+      jz .extractor_info
 
       test al, INFRASTRUCTURE_MASK
       jnz .upgrade_building
@@ -797,6 +799,10 @@ game_logic:
 
       .extractor_setup:
         mov bx, SCENE_MODE_EXTRACTOR_SETUP
+        jmp .pop_window
+
+      .extractor_info:
+        mov bx, SCENE_MODE_EXTRACTOR_INFO
         jmp .pop_window
 
     .pop_window:
@@ -1070,7 +1076,7 @@ actions_logic:
     shl di, 7               ; Y * 128 (optimized shl for *128)
     add di, [_CURSOR_X_]    ; + absolute X map coordinate
 
-    mov bx, ax ; sprite
+    mov bx, ax                          ; Save sprite parameter
     mov al, [fs:di]
     or al, INFRASTRUCTURE_MASK
     mov byte [fs:di], al
@@ -1193,6 +1199,18 @@ actions_logic:
     shl si, 1
     mov [fs:si + ENTS], di
     jmp .done
+
+  .set_extractor_mode:
+    mov bx, SFX_CHANGE_MODE
+    call audio.play_sfx
+
+    mov di, [_CURSOR_Y_]                ; Calculate map position
+    shl di, 7   ; Y * 128
+    add di, [_CURSOR_X_]
+
+    and byte [fs:di + FG], FOREGROUND_SPRITE_CLIP
+    add byte [fs:di + FG], al
+    ;jmp .done
 
   .done:
     ret
@@ -1359,12 +1377,12 @@ menu_logic:
     imul ax, 0xA
     add si, ax
 
-    mov si, [si+8]
-    mov al, [_MENU_SELECTION_POS_]
-    shl al, 2
-    add si, ax
-    mov ax, [si+2]
-    call word [si]
+    mov si, [si+8]                      ; Get menu def data
+    mov al, [_MENU_SELECTION_POS_]      ; Get current selection
+    shl al, 2                           ; Aling with data
+    add si, ax                          ; Set as target function to call
+    mov ax, [si+2]                      ; Pass last argument from def.
+    call word [si]                      ; Call target function
     jmp .done
 
   .start_game:
@@ -1441,7 +1459,7 @@ init_p1x_screen:
   call draw_rle_image
 
   ;mov bx, INTRO_JINGLE
- ; call audio.play_sfx
+  ;call audio.play_sfx
 
   mov byte [_GAME_STATE_], STATE_P1X_SCREEN
 ret
@@ -1715,14 +1733,16 @@ live_window:
   imul ax, 0xA
   add si, ax
 
-  mov bx, [si]                        ; height:width
-  mov ax, [si+2]                      ; y:x
+  mov bx, [si]                          ; Get windows size height:width
+  mov ax, [si+2]                        ; Get windows position y:x
+  mov dx, ax                            ; Save windows position
+  add dh, bh                            ; Move position to bottom of the window
+  add dh, 0x2                           ; ...and line bleow...
+  add dl, 0x2                           ; ...padding left.
 
-
-  mov si, [_CURSOR_Y_]                ; Calculate map position
+  mov si, [_CURSOR_Y_]                  ; Calculate map position
   shl si, 7   ; Y * 128
-  add si, [_CURSOR_X_]               ; For quick random number
-
+  add si, [_CURSOR_X_]
 
   .get_position:
     add ah, 4
@@ -1745,7 +1765,9 @@ live_window:
     cmp byte [_SCENE_MODE_], SCENE_MODE_RADAR_VIEW
     je .widget_radar
     cmp byte [_SCENE_MODE_], SCENE_MODE_EXTRACTOR_SETUP
-    je .widget_resources
+    je .widget_extractor
+    cmp byte [_SCENE_MODE_], SCENE_MODE_EXTRACTOR_INFO
+    je .widget_extractor_info
     jmp .done
 
   .widget_rotate:
@@ -1759,7 +1781,7 @@ live_window:
     call ui.draw_radar_map
     jmp .done
 
-  .widget_resources:
+  .widget_extractor:
     mov al, TILE_RES_WHITE_MAX
     call draw_sprite
     add di, SCREEN_WIDTH*SPRITE_SIZE
@@ -1769,8 +1791,23 @@ live_window:
     mov al, TILE_RES_BLUE_MAX
     call draw_sprite
     add di, SCREEN_WIDTH*SPRITE_SIZE
+    jmp .done
 
-    ;jmp .done;
+  .widget_extractor_info:
+    mov si, ExtractedText
+    mov bx, COLOR_BLUE
+    call font.draw_string
+
+    ; todo: select proper res
+    mov al, TILE_RES_WHITE_MAX
+    call draw_sprite
+
+    add dl, 0x0D
+    mov si, 0x00 ; and proper value of res
+    mov cx, 0x10
+    call font.draw_number
+
+    jmp .done
 
   .done:
 ret
@@ -2251,19 +2288,7 @@ generate_map:
       cmp bl, TILE_ROCKS_0    ; Last traversal sprite id
       jge .skip_traversal               ; If greater, skip
       add byte [fs:di], TERRAIN_TRAVERSAL_MASK
-
-      .add_detail:
-        cmp bl, TILE_ROCKS_0
-        jge .skip_detail                ; between GRASS and FOREST
-        call get_random
-        cmp ax, 0x2                     ; If less than 6, skip
-        jg .skip_detail
-        and ax, 0x2                     ; Convert to 0-3 for TILE_DETAIL_*
-        add al, TILE_DETAIL_0-TILE_FOREGROUND_SHIFT
-        add byte [fs:di + FG], al
-      .skip_detail:
       .skip_traversal:
-
 
       .add_resource:
       call get_random
@@ -2540,19 +2565,7 @@ draw_cell:
       .skip_cart:
     .skip_rails_stuff:
 
-    jmp .skip_detail
-
   .skip_foreground:
-
-  .draw_detail:
-    mov al, [fs:si + FG]
-    and al, FOREGROUND_SPRITE_MASK
-    cmp al, 0
-    jz .skip_detail
-    dec al
-    add al, TILE_FOREGROUND_SHIFT
-    call draw_sprite
-    .skip_detail:
   ret
 
 ; =================================== RECALCULATE RAILS =====================|80
@@ -3340,7 +3353,8 @@ dw 0x030A, 0x100A, WindowStationText, WindowStationSelectionArrayText, WindowSta
 dw 0x040B, 0x0E11, WindowBriefingText, WindowBriefingSelectionArrayText, WindowBriefingLogicArray
 dw 0x050D, 0x0C08, WindowPODsText, WindowPODsSelectionArrayText, WindowPODsSelectionArray
 dw 0x0109, 0x1215, WindowRadarText, WindowRadarSelectionArrayText, WindowRadarSelectionArray
-dw 0x060C, 0x0A08, WindowExtractorText, WindowExtractorSelectionArrayText, WindowExtractorSelectionArray
+dw 0x050C, 0x0C08, WindowExtractorText, WindowExtractorSelectionArrayText, WindowExtractorSelectionArray
+dw 0x040C, 0x0E08, WindowExtractInfoText, WindowExtractInfoSelectionArrayText, WindowExtractInfoSelectionArray
 
 WindowMainMenuText          db 'MAIN MANU',0x0
 MainMenuSelectionArrayText:
@@ -3437,15 +3451,22 @@ WindowExtractorSelectionArrayText:
   db 'EXTRACT: WHITE',0x00
   db 'EXTRACT: GREEN',0x00
   db 'EXTRACT: BLUE',0x00
-  db 'TURN OFF EXTRACTION',0x00
   db 0x00
 WindowExtractorSelectionArray:
   dw menu_logic.close_window, 0x0
-  dw menu_logic.close_window, 0x0
-  dw menu_logic.close_window, 0x0
-  dw menu_logic.close_window, 0x0
-  dw menu_logic.close_window, 0x0
+  dw actions_logic.set_extractor_mode, TILE_EXTRACT_WHITE_ID
+  dw actions_logic.set_extractor_mode, TILE_EXTRACT_GREEN_ID
+  dw actions_logic.set_extractor_mode, TILE_EXTRACT_BLUE_ID
 
+
+  WindowExtractInfoText              db 'EXTRACTION PROCESS',0x0
+  WindowExtractInfoSelectionArrayText:
+    db '< CLOSE WINDOW',0x0
+    db 'STOP EXTRACTION',0x0
+    db 0x00
+  WindowExtractInfoSelectionArray:
+    dw menu_logic.close_window, 0x0
+    dw actions_logic.set_extractor_mode, TILE_BUILDING_EXTRACTOR_ID
 
 ; =========================================== TERRAIN GEN RULES =============|80
 
@@ -3489,8 +3510,8 @@ db 0, 0, 1, 4, 0, 0, 3, 9, 1, 6, 1, 10, 5, 7, 8, 2
 
 Patch9Dict:
   db TILE_WINDOW_1, TILE_WINDOW_2, TILE_WINDOW_3   ; top
-  db TILE_WINDOW_4, TILE_WINDOW_5, TILE_WINDOW_6   ; middle
-  db TILE_WINDOW_4, TILE_WINDOW_5, TILE_WINDOW_6  ; bottom
+  db TILE_WINDOW_4, TILE_UI_BG, TILE_WINDOW_5   ; middle
+  db TILE_WINDOW_4, TILE_UI_BG, TILE_WINDOW_5  ; bottom
 
 ; =========================================== INCLUDES ======================|80
 
