@@ -36,7 +36,7 @@
 
 org 0x0100
 
-BUILD_VER                               equ 0314
+BUILD_VER                               equ 0315
 
 ; =========================================== MEMORY LAYOUT =================|80
 
@@ -285,7 +285,7 @@ CURSOR_TYPE_ROL                         equ 0x02
 ; | '- cart drive direction (4)
 ; '- visible to radar
 ;
-; if resource type > 0
+; if resource/extractor type > 0
 ; 0 000 00 00
 ;   | |
 ;    '- resource amount (8)
@@ -1087,9 +1087,23 @@ actions_logic:
     mov byte [fs:di + FG], al
 
     cmp bx, TILE_BUILDING_RADAR_ID
-    jnz .done
-    call .update_radar_visibility
+    jz .update_radar
+    cmp bx, TILE_EXTRACT_WHITE
+    jz .update_extractor
+    cmp bx, TILE_EXTRACT_GREEN
+    jz .update_extractor
+    cmp bx, TILE_EXTRACT_BLUE
+    jz .update_extractor
     jmp .done
+
+    .update_radar:
+      call .update_radar_visibility
+    jmp .done
+
+    .update_extractor:
+      call .update_extractor_targets    ; DX has tileID
+    jmp .done
+
 
   .inspect_building:
     jmp .done
@@ -1113,6 +1127,12 @@ actions_logic:
       pop cx
     loop .radar_row
     ret
+
+  .update_extractor_targets:
+    ; look around for res by type
+    ; save it in your metadata?
+
+  ret
 
   .build_pods_station:
     mov di, [_CURSOR_Y_]    ; Absolute Y map coordinate
@@ -1545,7 +1565,7 @@ init_menu:
   call font.draw_string
 
   mov si, BUILD_VER
-  mov bl, COLOR_YELLOW
+  mov bl, COLOR_BLUE
   add dl, 0xF
   mov cx, 1000
   call font.draw_number
@@ -1799,11 +1819,17 @@ live_window:
     call font.draw_string
 
     ; todo: select proper res
+    mov al, [fs:di + FG]
+
     mov al, TILE_RES_WHITE_MAX
     call draw_sprite
 
-    add dl, 0x0D
-    mov si, 0x00 ; and proper value of res
+    add dl, 0x0D                        ; Move to right
+    xor ax, ax                          ; Clear AH just to be safe
+    mov al, [fs:di + META]
+    and al, RESOURCE_AMOUNT_CLIP
+    shr al, RESOURCE_AMOUNT_SHIFT
+    mov si, ax
     mov cx, 0x10
     call font.draw_number
 
@@ -2508,7 +2534,12 @@ draw_cell:
       add al, TILE_FOREGROUND_SHIFT
       call draw_sprite
 
+
+    mov dl, [fs:si]
     .draw_resource:
+      test dl, INFRASTRUCTURE_MASK
+      jnz .skip_resource
+
       mov al, [fs:si + META]
       and al, RESOURCE_TYPE_MASK
       cmp al, 0x0
@@ -2525,7 +2556,6 @@ draw_cell:
         call draw_sprite
       .skip_resource:
 
-    mov dl, [fs:si]
     .draw_rails_stuff:
       test dl, RAIL_MASK                ; DL - Background layer
       jz .skip_rails_stuff
