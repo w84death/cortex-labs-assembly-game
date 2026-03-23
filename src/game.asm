@@ -2591,10 +2591,15 @@ draw_cell:
         .draw_cart_resource:
           mov al, [fs:si + META]
           and al, RESOURCE_TYPE_MASK
-          cmp al, 0x0
           jz .skip_cart_resource
-            shr al, RESOURCE_TYPE_SHIFT
-            add al, TILE_ORE_BLUE_H-1   ; TODO: cange to H and V
+            shr al, RESOURCE_TYPE_SHIFT ; 1..3
+            dec al                      ; 0..2
+            shl al, 1                   ; 0,2,4
+            mov ah, bl                  ; ver/hor
+            and ah, 1                   ; 1 ver, 0 horizontal
+            xor ah, 1                   ; 0 ver, 1 horizontal
+            add al, ah                  ; correct sprite
+            add al, TILE_ORE_WHITE_V    ; first of ore sprite
             call draw_sprite
           .skip_cart_resource:
       .skip_cart:
