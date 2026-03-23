@@ -10,29 +10,38 @@ Real-time strategy for x86 processors made in assembly.
 
 
 ## Features
-* VGA 320x200, 16 colors, 4 colors per tiles, 3 colors + transparency for sprites
-* Arne's 16-color palette
+* VGA 320x200, 16 colors (DawnBringer palette), 256-color mode
 * 2D tile-based, top-down view
-* Full mouse support
-* 16x16 sprites/tiles in 4 colors
-* Procedural map generation
-* Big, 128x128 tiles map
-* Framebuffer with redrawing terrain parts that changed
+* Full keyboard and mouse support
+* 16x16 sprites/tiles (2-bit palette compression, 4 colors + transparency)
+* Procedural map generation (weighted adjacency rules)
+* 128x128 tile map with viewport scrolling
+* Double-buffered framebuffer with partial terrain redraw
 * RLE image compression for pre-rendered backgrounds
-* Sound effects (PC Speaker)
-* Rails system with pods transporting goods
-* Main base expansion + buildings
-* 3 type of resources to extract, transport, and refine
+* Sound effects via PC Speaker (IRQ-driven PIT playback)
+* Rail system with automatic track orientation and switch logic
+* Pod (cart) entity system: moving goods on rails, collision handling
+* Base expansion and building placement
+* 8 building types: silos, collector, extractor, refinery, lab, radar, pod factory, power
+* 3 resource types (white, blue, green): extraction, transport, refinement
+* Extractor setup with targeting and resource type selection
+* Fog of war with radar visibility expansion
+* Radar minimap (satellite view)
+* UPX-compressed COM output for DOS
+* Bootable FAT12 floppy image (bare-metal + DOS)
 * Development tools (vibe coded C):
-  * rleimg2asm - compress 320x200 images to assembly RLE db
-  * fnt2asm - compress font tileset to assemlby db
-* Dedicated art creation tool **P1Xel Tool**
+  * png2asm - convert PNG tilemap to 2-bit paletted assembly
+  * rleimg2asm - convert images to RLE-compressed assembly
+  * fnt2asm - convert font charset to 1-bit assembly
+* All game graphics were made with my own tool: **P1Xel Tool**
+  * Source code: https://github.com/w84death/p1xel-tool
+  * Binary included in this repo: `tools/p1xel_tool`
 
 ## Tileset
 ![Sprites](docs/sprites.png)
 
 ## Running
-Boot from a floppy or run from MS-DOS (FreeDOS). Floppy image has game file (game.com), instruction, and bootloder for bare-metal run.
+Boot from a floppy or run from MS-DOS (FreeDOS). Floppy image has game file (game.com), instruction, and bootloader for bare-metal run.
 
 ![Menu screen](docs/screenshot-2.png)
 ![Menu screen](docs/screenshot-3.png)
@@ -40,17 +49,47 @@ Boot from a floppy or run from MS-DOS (FreeDOS). Floppy image has game file (gam
 ![Menu screen](docs/screenshot-5.png)
 
 ## Building
-Create floppy and binary:
-```make```
+Uses Zig build system (`build.zig`) with FASM assembler.
 
-Make just binary:
-```make com```
+Build bootable floppy image (default):
+```
+zig build
+```
 
-Check statistics:
-```make stats```
+Build compressed COM file with UPX:
+```
+zig build com
+```
 
-For more targets check help.
-```make help```
+Build uncompressed COM file:
+```
+zig build com-raw
+```
+
+Run in QEMU:
+```
+zig build qemu
+```
+
+Run in Bochs:
+```
+zig build bochs
+```
+
+Build jsdos archive:
+```
+zig build jsdos
+```
+
+Display project statistics:
+```
+zig build stats
+```
+
+Show all available targets:
+```
+zig build help
+```
 
 ## Tools
 
