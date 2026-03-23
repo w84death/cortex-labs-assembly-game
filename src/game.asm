@@ -2581,8 +2581,8 @@ draw_cell:
         and bl, CART_DIRECTION_MASK
         shr bl, CART_DIRECTION_SHIFT
         mov al, TILE_CART_HORIZONTAL
-        cmp bl, CART_DOWN
-        jg .skip_vertical
+        test bl, 1
+        jz .skip_vertical
         mov al, TILE_CART_VERTICAL
         .skip_vertical:
 
