@@ -36,7 +36,7 @@
 
 org 0x0100
 
-BUILD_VER                               equ 0315
+BUILD_VER                               equ 0323
 
 ; =========================================== MEMORY LAYOUT =================|80
 
@@ -292,15 +292,12 @@ TILE_DIRECTION_MASK                     equ 0x3
 SWITCH_DATA_CLIP                        equ 0xEC
 RESOURCE_TYPE_MASK                      equ 0xC
 RESOURCE_TYPE_SHIFT                     equ 0x2
-RESOURCE_TYPE_CLIP                      equ 0xFF - RESOURCE_TYPE_MASK
 SWITCH_MASK                             equ 0x10
 CART_DIRECTION_MASK                     equ 0x60
 CART_DIRECTION_SHIFT                    equ 0x5
-CART_DIRECTION_CLIP                     equ 0xFF - CART_DIRECTION_MASK
 RADAR_VISIBILITY_MASK                   equ 0x80
 RESOURCE_AMOUNT_MASK                    equ 0x70
 RESOURCE_AMOUNT_SHIFT                   equ 0x4
-RESOURCE_AMOUNT_CLIP                    equ 0xFF - RESOURCE_AMOUNT_MASK
 
 ; MISC
 
@@ -378,6 +375,7 @@ init:
   xor ax, ax
   mov es, ax
   xor ax, ax                 ; AH=00h - Reset/Status
+  ; todo: check for ps2/com
   int 0x33                   ; Call mouse driver
   cmp ax, 0xFFFF             ; Returns FFFFh if driver installed
   jz .already_installed
@@ -444,7 +442,7 @@ check_keyboard:
   ; ========================================= STATE TRANSITIONS ============|80
   ; Main state game changer. Changes states like intro, menu, game.
   mov si, StateTransitionTable
-  mov cx, StateTransitionTableEnd-StateTransitionTable
+  mov cx, (StateTransitionTableEnd-StateTransitionTable)/3
   .check_transitions:
     mov bl, [_GAME_STATE_]
     cmp bl, [si]                        ; Check current state
@@ -466,7 +464,7 @@ check_keyboard:
 ; ========================================= GAME LOGIC INPUT =============|80
 
   mov si, InputTable
-  mov cx, InputTableEnd-InputTable
+  mov cx, (InputTableEnd-InputTable)/5
   .check_input:
     mov bl, [_GAME_STATE_]
     cmp bl, [si]                        ; Check current state
@@ -879,7 +877,7 @@ game_logic:
         mov al, cl                      ; restore initial direction
         xor ax, 0x2                     ; mirror direction
         shl al, CART_DIRECTION_SHIFT    ; move to right place
-        and byte [fs:bx + META], CART_DIRECTION_CLIP  ; clear old direction
+        and byte [fs:bx + META], 0xFF - CART_DIRECTION_MASK  ; clear old direction
         add byte [fs:bx + META], al     ; save the reverted direction
       jmp .next_pod
 
@@ -888,14 +886,14 @@ game_logic:
         and byte [fs:bx + FG], CART_DRAW_CLIP  ; remove cart from old pos
         add byte [fs:di + FG], CART_DRAW_MASK  ; draw cart on new pos
 
-        and byte [fs:di + META], CART_DIRECTION_CLIP  ; clear new cart direction
-        and byte [fs:di + META], RESOURCE_TYPE_CLIP ; clear new resources
+        and byte [fs:di + META], 0xFF - CART_DIRECTION_MASK  ; clear new cart direction
+        and byte [fs:di + META], 0xFF - RESOURCE_TYPE_MASK ; clear new resources
         shl al, CART_DIRECTION_SHIFT    ; shift new direction to right place
         mov cl, [fs:bx + META]          ; get old metadata
         and cl, RESOURCE_TYPE_MASK      ; keep only resouces data
         add al, cl                      ; merge resources and direction
         add byte [fs:di + META], al     ; save in new position
-        and byte [fs:bx + META], RESOURCE_TYPE_CLIP ; clear old resources
+        and byte [fs:bx + META], 0xFF - RESOURCE_TYPE_MASK ; clear old resources
 
       .redraw_tiles:
         push si
@@ -1114,7 +1112,7 @@ actions_logic:
     ret
 
   .update_extractor_targets:
-    ; look around for res by type
+    ; todo: look around for res by type
     ; save it in your metadata?
 
   ret
@@ -1195,8 +1193,9 @@ actions_logic:
       ; TODO: temporary for debug
       call get_random
       and ax, 0x3
-      shl ax, RESOURCE_TYPE_SHIFT
-      or byte [fs:di + META], al
+      shl al, RESOURCE_TYPE_SHIFT
+      and byte [fs:di + META], 0xFF - RESOURCE_TYPE_MASK
+      add byte [fs:di + META], al
       ; END TODO
 
     mov si, [_LAST_ENT_POD_ID_]
@@ -1213,11 +1212,14 @@ actions_logic:
     shl di, 7   ; Y * 128
     add di, [_CURSOR_X_]
 
+    xchg bx, bx
     and byte [fs:di + FG], 0xFF - FOREGROUND_SPRITE_MASK
     add byte [fs:di + FG], al
 
+    cmp al, TILE_BUILDING_EXTRACTOR_ID
+    je .reset_extractor
+
     .update_extractor:
-;     xchg bx, bx
       sub al, TILE_EXTRACT_WHITE_ID     ; Get the nth value (white->green->blue)
       mov bl, al                        ; Save for targets
       inc al                            ; Convert to 1-3 for resource type
@@ -1226,8 +1228,14 @@ actions_logic:
       add byte [fs:di + META], al
 
       call .update_extractor_targets    ; BX has tileID
-    jmp .done
+      jmp .done
 
+    .reset_extractor:
+      and byte [fs:di + META], 0xFF - RESOURCE_TYPE_MASK
+
+      ; set dx to 0 for reset
+      call .update_extractor_targets
+    jmp .done
 
   .done:
     ret
@@ -2674,7 +2682,7 @@ recalculate_rails:
     jmp .done
 
   .update_cursor:
-    mov byte al, [fs:di]
+    mov al, [fs:di]
     test al, TERRAIN_TRAVERSAL_MASK
     jz .done
     mov bl, al
@@ -3101,7 +3109,6 @@ ui:
       mov cx, MAP_SIZE                  ; Rows
       .draw_row:
         mov al, [fs:si]                 ; Load map cell
-        inc si
 
         and al, BACKGROUND_SPRITE_MASK
         mov bl, al
@@ -3115,6 +3122,8 @@ ui:
           .skip_rail_color:
         .radar_invisible:
           mov [es:di], al               ; Draw 1 pixels
+
+          inc si
         .next_column:
           add di, 1
       loop .draw_row
