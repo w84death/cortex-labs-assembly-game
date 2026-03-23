@@ -1202,6 +1202,7 @@ actions_logic:
     inc word [_LAST_ENT_POD_ID_]
     shl si, 1
     mov [fs:si + ENTS], di
+    mov word [fs:si + ENTS + 2], 0      ; Terminator
     jmp .done
 
   .set_extractor_mode:
@@ -1469,7 +1470,12 @@ reset_to_default_values:
   mov word [_CURSOR_Y_OLD_], MAP_SIZE/2
 
   mov word [_SFX_POINTER_], SFX_NULL
+
   mov word [_LAST_ENT_POD_ID_], 0
+  xor ax, ax
+  mov di, ENTS            ; 0xC000
+  mov cx, (0x10000 - ENTS) / 2   ; words to clear = 0x2000
+  rep stosw
 
   mov word [_ECONOMY_BLUE_RES_], 0xF
   mov word [_ECONOMY_WHITE_RES_], 0xF
@@ -2307,6 +2313,7 @@ generate_map:
     mov cx, MAP_SIZE*MAP_SIZE
     .background_cell:
       mov byte [fs:di + FG], 0x0        ; Clear foreground data
+      mov byte [fs:di + META], 0x0      ; Clears metadata
       mov bl, byte [fs:di]
 
       cmp bl, TILE_ROCKS_0    ; Last traversal sprite id
