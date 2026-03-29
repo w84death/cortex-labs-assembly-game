@@ -245,11 +245,9 @@ TILE_BUILDING_POWER_ID          equ TILE_BUILDING_POWER-TILE_FOREGROUND_SHIFT
 ; '- infrastructure building, station (1)
 ;
 BACKGROUND_SPRITE_MASK                  equ 0xF
-BACKGROUND_SPRITE_CLIP                  equ 0xF0
 TERRAIN_TRAVERSAL_MASK                  equ 0x10
 TERRAIN_TRAVERSAL_SHIFT                 equ 0x4
-TERRAIN_TRAVERSAL_CLIP                  equ 0xEF
-TERRAIN_SECOND_LAYER_DRAW_CLIP          equ 0xE0
+TERRAIN_SECOND_LAYER_DRAW_MASK          equ 0xE0
 RAIL_MASK                               equ 0x20
 RAIL_SHIFT                              equ 0x5
 RESOURCE_MASK                           equ 0x40
@@ -265,11 +263,8 @@ INFRASTRUCTURE_SHIFT                    equ 0x7
 ; '- cursor type (4)
 ;
 FOREGROUND_SPRITE_MASK                  equ 0x1F
-FOREGROUND_SPRITE_CLIP                  equ 0xE0
 CART_DRAW_MASK                          equ 0x20
-CART_DRAW_CLIP                          equ 0xDF
 CURSOR_TYPE_MASK                        equ 0xC0
-CURSOR_TYPE_CLIP                        equ 0x3F
 CURSOR_TYPE_SHIFT                       equ 0x06
 CURSOR_TYPE_ROL                         equ 0x02
 
@@ -289,7 +284,7 @@ CURSOR_TYPE_ROL                         equ 0x02
 ;    '- resource amount (8)
 
 TILE_DIRECTION_MASK                     equ 0x3
-SWITCH_DATA_CLIP                        equ 0xEC
+SWITCH_DATA_MASK                        equ 0x13
 RESOURCE_TYPE_MASK                      equ 0xC
 RESOURCE_TYPE_SHIFT                     equ 0x2
 SWITCH_MASK                             equ 0x10
@@ -683,7 +678,7 @@ game_logic:
       and al, TILE_DIRECTION_MASK
       xor al, 0x2                       ; invert swich top-down or left-right
       add al, SWITCH_MASK
-      and byte [fs:di + META], SWITCH_DATA_CLIP
+      and byte [fs:di + META], 0xFF - SWITCH_DATA_MASK
       add byte [fs:di + META], al
     jmp .change_action_done
 
@@ -694,8 +689,8 @@ game_logic:
       mov al, [fs:di + META]
       and al, TILE_DIRECTION_MASK
       inc al
-      and al, 0x3                       ; Clip to 0-3
-      and byte [fs:di + META], SWITCH_DATA_CLIP
+      and al, 0x3                       ; 0..3
+      and byte [fs:di + META], 0xFF - SWITCH_DATA_MASK
       add byte [fs:di + META], al
       mov al,  [fs:di + META]
 
@@ -883,7 +878,7 @@ game_logic:
 
       .save_pod_move:
         mov word [fs:si + ENTS], di            ; update ent pointer to new pos
-        and byte [fs:bx + FG], CART_DRAW_CLIP  ; remove cart from old pos
+        and byte [fs:bx + FG], 0xFF - CART_DRAW_MASK  ; remove cart from old pos
         add byte [fs:di + FG], CART_DRAW_MASK  ; draw cart on new pos
 
         and byte [fs:di + META], 0xFF - CART_DIRECTION_MASK  ; clear new cart direction
@@ -1028,11 +1023,11 @@ actions_logic:
     add di, [_CURSOR_X_]    ; + absolute X map coordinate
 
     mov al, [fs:di]
-    and al, BACKGROUND_SPRITE_CLIP
+    and al, 0xFF - BACKGROUND_SPRITE_MASK
     add al, TILE_STATION
     or al, RAIL_MASK
     mov byte [fs:di], al
-    and byte [fs:di + FG], CURSOR_TYPE_CLIP
+    and byte [fs:di + FG], 0xFf - CURSOR_TYPE_MASK
 
     mov bl, TILE_STATION_EXTEND
     mov cx, CURSOR_ICON_PLACE_BUILDING
@@ -2530,7 +2525,7 @@ draw_cell:
   mov bl, al
   and al, BACKGROUND_SPRITE_MASK
   call draw_tile
-  and bl, TERRAIN_SECOND_LAYER_DRAW_CLIP
+  and bl, TERRAIN_SECOND_LAYER_DRAW_MASK
   cmp bl, 0x0
   jz .skip_foreground
   .draw_forground:
@@ -2647,7 +2642,7 @@ recalculate_rails:
     sub al, TILE_FOREGROUND_SHIFT
 
   .save_rail_sprite:
-    and byte [fs:di + FG], FOREGROUND_SPRITE_CLIP
+    and byte [fs:di + FG], 0xFF - FOREGROUND_SPRITE_MASK
     add byte [fs:di + FG], al
 
   .calculate_correct_switch:
@@ -2688,9 +2683,9 @@ recalculate_rails:
     mov ax, CURSOR_ICON_POINTER
 
   .save_switch:
-    and byte [fs:di + META], SWITCH_DATA_CLIP
+    and byte [fs:di + META], 0xFF - SWITCH_DATA_MASK
     add byte [fs:di + META], dl
-    and byte [fs:di + FG], CURSOR_TYPE_CLIP  ; clear cursor
+    and byte [fs:di + FG], 0xFF - CURSOR_TYPE_MASK  ; clear cursor
     ror al, CURSOR_TYPE_ROL
     add byte [fs:di + FG], al
     jmp .done
@@ -2700,7 +2695,7 @@ recalculate_rails:
     test al, TERRAIN_TRAVERSAL_MASK
     jz .done
     mov bl, al
-    and bl, TERRAIN_SECOND_LAYER_DRAW_CLIP
+    and bl, TERRAIN_SECOND_LAYER_DRAW_MASK
     cmp bl, 0x0
     jnz .done
 
