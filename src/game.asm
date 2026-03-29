@@ -1822,16 +1822,18 @@ live_window:
 
     .draw_resource_sprite:
       mov al, [fs:si + META]
-      and al, 0xFF - RESOURCE_TYPE_MASK
-      shr al, RESOURCE_TYPE_SHIFT - 1   ; Shift + 2x multply (one less shif)
-      add al, TILE_RES_WHITE_MAX
+      and al, RESOURCE_TYPE_MASK
+      shr al, RESOURCE_TYPE_SHIFT       ; 1..3
+      dec al                            ; 0..2
+      shl al, 1                         ; 0,2,4
+      add al, TILE_RES_WHITE_MAX        ; white/green/blue
       call draw_sprite
 
     .draw_amount:
       add dl, 0x0D                        ; Move to right
       xor ax, ax                          ; Clear AH just to be safe
       mov al, [fs:si + META]
-      and al, 0xFF - RESOURCE_AMOUNT_MASK
+      and al, RESOURCE_AMOUNT_MASK
       shr al, RESOURCE_AMOUNT_SHIFT
       mov si, ax
       mov cx, 0x10
