@@ -26,7 +26,7 @@ COM_DLM          equ COM_BASE+1   ; Divisor Latch High (when DLAB=1)
 ; ============================================================================
 ; Install Mouse Driver - Initialize COM mouse and hook INT 33h
 ; ============================================================================
-install_mouse_driver:
+install_com_mouse_driver:
     ; Hook INT 33h
     xor ax, ax
     mov es, ax

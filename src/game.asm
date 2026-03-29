@@ -369,13 +369,18 @@ MOUSE_RIGHT_BUTTON equ 0xFE
 init:
   xor ax, ax
   mov es, ax
-  xor ax, ax                 ; AH=00h - Reset/Status
-  ; todo: check for ps2/com
-  int 0x33                   ; Call mouse driver
-  cmp ax, 0xFFFF             ; Returns FFFFh if driver installed
-  jz .already_installed
-    call install_mouse_driver
-  .already_installed:
+
+  .detect_mouse:
+    xor ax, ax                 ; AH=00h - Reset/Status
+    int 0x33                   ; Call mouse driver
+    cmp ax, 0xFFFF             ; Returns FFFFh if driver installed
+    jz .skip_mouse_driver
+
+    call install_ps2_mouse_driver
+    ; TODO: check for ps2 fail
+    ; call install_com_mouse_driver
+
+  .skip_mouse_driver:
 
   mov ax, 0x13                          ; Init 320x200, 256 colors mode
   int 0x10                              ; Video BIOS interrupt

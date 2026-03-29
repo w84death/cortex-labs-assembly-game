@@ -21,7 +21,7 @@ MOUSE_CMD        equ 0x64
 ; ============================================================================
 ; Install Mouse Driver - Initialize PS/2 mouse and hook INT 33h
 ; ============================================================================
-install_mouse_driver:
+install_ps2_mouse_driver:
     ; Hook INT 33h
     xor ax, ax
     mov es, ax
