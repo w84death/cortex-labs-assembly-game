@@ -139,6 +139,47 @@ pub fn build(b: *std.Build) void {
     const check_upx_step = b.step("check-upx", "Check if COM file is UPX compressed");
     check_upx_step.dependOn(&check_upx.step);
 
+    // Opcode usage stats (from ASM sources)
+    const opcodes_cmd =
+        "echo '================================================' && " ++
+        "echo ' OPCODE USAGE (MOST -> LEAST)' && " ++
+        "echo '================================================' && " ++
+        "awk '\n" ++
+        "BEGIN {\n" ++
+        "  split(\"aaa aad aam aas adc add and call cbw cdq clc cld cli cmc cmp cmpsb cmpsw cwd daa das dec div hlt idiv imul in inc int into iret ja jae jb jbe jc je jg jge jl jle jmp jna jnae jnb jnbe jnc jne jng jnge jnl jnle jno jnp jns jnz jo jp jpe jpo js jz lahf lds lea les lodsb lodsw loop loopz loopnz loope loopne mov movsb movsw movsd movsx movzx mul neg nop not or out pop popa popf push pusha pushf rcl rcr ret rol ror sahf sal sar sbb scasb scasw shl shr stc std sti sub test xchg xlat xlatb xor rep repe repne repnz repz\", m, \" \")\n" ++
+        "  for (i in m) op[m[i]] = 1\n" ++
+        "}\n" ++
+        "{\n" ++
+        "  line=$0\n" ++
+        "  sub(/;.*/, \"\", line)\n" ++
+        "  gsub(/^[ \\t]+|[ \\t]+$/, \"\", line)\n" ++
+        "  if (line == \"\") next\n" ++
+        "  while (match(line, /^[A-Za-z_.$?][A-Za-z0-9_.$?]*:[ \\t]*/)) {\n" ++
+        "    line = substr(line, RSTART + RLENGTH)\n" ++
+        "  }\n" ++
+        "  gsub(/^[ \\t]+/, \"\", line)\n" ++
+        "  if (line == \"\") next\n" ++
+        "  split(line, a, /[ \\t]+/)\n" ++
+        "  tok = tolower(a[1])\n" ++
+        "  if (!(tok in op)) next\n" ++
+        "  count[tok]++\n" ++
+        "  total++\n" ++
+        "}\n" ++
+        "END {\n" ++
+        "  uniq = 0\n" ++
+        "  for (k in count) uniq++\n" ++
+        "  for (k in count) printf \"%7d  %s\\n\", count[k], k | \"sort -nr\"\n" ++
+        "  close(\"sort -nr\")\n" ++
+        "  print \"\"\n" ++
+        "  printf \"TOTAL OPCODE INSTANCES: %d\\n\", total\n" ++
+        "  printf \"UNIQUE OPCODES: %d\\n\", uniq\n" ++
+        "  print \"================================================\"\n" ++
+        "}\n" ++
+        "' src/*.asm";
+    const show_opcodes = b.addSystemCommand(&.{ "sh", "-c", opcodes_cmd });
+    const opcodes_step = b.step("opcodes", "List opcode usage frequency");
+    opcodes_step.dependOn(&show_opcodes.step);
+
     // Clean build artifacts
     const clean = b.addSystemCommand(&.{ "rm", "-rf", build_dir });
     const clean_step = b.step("clean", "Remove build artifacts");
@@ -156,8 +197,8 @@ pub fn build(b: *std.Build) void {
     // Help - show available steps
     const help_step = b.step("help", "Show help message");
     const show_help = b.addSystemCommand(&.{
-        "sh",                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              "-c",
-        "echo 'GAME-12 Build Targets:' && echo '  all          - Build FAT12 bootable floppy image (default)' && echo '  com          - Build compressed COM file with UPX' && echo '  com-raw      - Build uncompressed COM file' && echo '  bochs        - Run in Bochs debugger' && echo '  qemu         - Run in QEMU emulator' && echo '  jsdos        - Build jsdos archive' && echo '  burn         - Burn to physical floppy' && echo '  stats        - Display project statistics' && echo '  tools        - Build all development tools' && echo '  clean        - Remove build artifacts' && echo '  clean-tools  - Clean development tools' && echo '' && echo 'UPX Compression Targets:' && echo '  decompress   - Decompress COM file for debugging' && echo '  test-upx     - Test different UPX compression levels' && echo '  check-upx    - Check if COM file is UPX compressed' && echo '' && echo 'Development Tools:' && echo '  fnt2asm      - Convert PNG fonts to assembly data' && echo '  png2asm      - Convert PNG images to assembly data' && echo '  rleimg2asm   - Convert images to RLE-compressed assembly' && echo '' && echo 'The floppy image is DOS-compatible and contains:' && echo '  GAME.COM     - The game executable' && echo '  MANUAL.TXT   - Game manual'",
+        "sh",                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     "-c",
+        "echo 'GAME-12 Build Targets:' && echo '  all          - Build FAT12 bootable floppy image (default)' && echo '  com          - Build compressed COM file with UPX' && echo '  com-raw      - Build uncompressed COM file' && echo '  bochs        - Run in Bochs debugger' && echo '  qemu         - Run in QEMU emulator' && echo '  jsdos        - Build jsdos archive' && echo '  burn         - Burn to physical floppy' && echo '  stats        - Display project statistics' && echo '  opcodes      - List opcode usage frequency' && echo '  tools        - Build all development tools' && echo '  clean        - Remove build artifacts' && echo '  clean-tools  - Clean development tools' && echo '' && echo 'UPX Compression Targets:' && echo '  decompress   - Decompress COM file for debugging' && echo '  test-upx     - Test different UPX compression levels' && echo '  check-upx    - Check if COM file is UPX compressed' && echo '' && echo 'Development Tools:' && echo '  fnt2asm      - Convert PNG fonts to assembly data' && echo '  png2asm      - Convert PNG images to assembly data' && echo '  rleimg2asm   - Convert images to RLE-compressed assembly' && echo '' && echo 'The floppy image is DOS-compatible and contains:' && echo '  GAME.COM     - The game executable' && echo '  MANUAL.TXT   - Game manual'",
     });
     help_step.dependOn(&show_help.step);
 }

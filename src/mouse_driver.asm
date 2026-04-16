@@ -3,53 +3,52 @@
 ; Provides: X, Y position and button state via PS/2 mouse
 ; ============================================================================
 
-; --- Mouse State Variables ---
-mouse_x          dw 160
-mouse_y          dw 100
-mouse_buttons    db 0
+MOUSE_PORT                              equ 0x60
+MOUSE_STATUS                            equ 0x64
+MOUSE_CMD                               equ 0x64
+MOUSE_MAX_X                             equ SCREEN_WIDTH-1
+MOUSE_MAX_Y                             equ SCREEN_HEIGHT-1
+MOUSE_IRQ33                             equ 0x33
+MOUSE_IRQ12                             equ 0x74
 
-; --- Internal State ---
-mouse_packet     db 0, 0, 0
-packet_idx       db 0
-mouse_cycle      db 0
 
-; --- PS/2 Mouse Constants ---
-MOUSE_PORT       equ 0x60
-MOUSE_STATUS     equ 0x64
-MOUSE_CMD        equ 0x64
+mouse_x                                 dw SCREEN_WIDTH/2
+mouse_y                                 dw SCREEN_HEIGHT/2
+mouse_buttons                           db 0
+mouse_packet                            db 0, 0, 0
+packet_idx                              db 0
+mouse_cycle                             db 0
 
-; ============================================================================
-; Install Mouse Driver - Initialize PS/2 mouse and hook INT 33h
-; ============================================================================
-install_ps2_mouse_driver:
-    ; Hook INT 33h
-    xor ax, ax
-    mov es, ax
-    mov word [es:0x33*4], int33_handler
-    mov [es:0x33*4+2], cs
+; ===================================== INSTALL DRIVER ======================|80
+install_mouse_driver:
 
-    ; Hook IRQ12 (INT 0x74 - cascaded through IRQ2)
-    mov word [es:0x74*4], irq12_handler
-    mov [es:0x74*4+2], cs
+  .hook_irq33:
+  xor ax, ax
+  mov es, ax
+  mov word [es:MOUSE_IRQ33*4], int33_handler
+  mov word [es:MOUSE_IRQ33*4+2], cs
 
-    ; Initialize PS/2 mouse
-    call mouse_init_ps2
+  .hook_irq12:
+  mov word [es:MOUSE_IRQ12*4], irq12_handler
+  mov word [es:MOUSE_IRQ12*4+2], cs
 
-    ; Unmask IRQ12 in the slave PIC (0xA1)
-    in al, 0xA1
-    and al, 0xEF          ; Clear bit 4 (IRQ12)
-    out 0xA1, al
+  call mouse_init
 
-    ; Ensure IRQ2 is unmasked in master PIC (cascade)
-    in al, 0x21
-    and al, 0xFB          ; Clear bit 2 (IRQ2)
-    out 0x21, al
-    ret
+  ; Unmask IRQ12 in the slave PIC (0xA1)
+  in al, 0xA1
+  and al, 0xEF          ; Clear bit 4 (IRQ12)
+  out 0xA1, al
+
+  ; Ensure IRQ2 is unmasked in master PIC (cascade)
+  in al, 0x21
+  and al, 0xFB          ; Clear bit 2 (IRQ2)
+  out 0x21, al
+  ret
 
 ; ============================================================================
 ; Initialize PS/2 Mouse
 ; ============================================================================
-mouse_init_ps2:
+mouse_init:
     ; Enable auxiliary device (mouse)
     call mouse_wait_write
     mov al, 0xA8
@@ -204,9 +203,9 @@ mouse_process_packet:
     jge .x_ok1
     xor cx, cx
 .x_ok1:
-    cmp cx, 639
+    cmp cx, MOUSE_MAX_X
     jle .x_ok2
-    mov cx, 639
+    mov cx, MOUSE_MAX_X
 .x_ok2:
     mov [cs:mouse_x], cx
 
@@ -227,9 +226,9 @@ mouse_process_packet:
     jge .y_ok1
     xor cx, cx
 .y_ok1:
-    cmp cx, 479
+    cmp cx, MOUSE_MAX_Y
     jle .y_ok2
-    mov cx, 479
+    mov cx, MOUSE_MAX_Y
 .y_ok2:
     mov [cs:mouse_y], cx
     ret
@@ -238,48 +237,46 @@ mouse_process_packet:
 ; INT 33h Handler - DOS Mouse API
 ; ============================================================================
 int33_handler:
-    cmp al, 0x00
-    je .func00
-    cmp al, 0x03
-    je .func03
-    jmp .unhandled
+  cmp al, 0x00
+  je .func00
+  cmp al, 0x03
+  je .func03
+  jmp .unhandled
 
-; Function 00h - Reset Mouse
-.func00:
+  ; Function 00h - Reset Mouse
+  .func00:
     mov ax, 0xFFFF
     mov bx, 3
     xor cx, cx
     xor dx, dx
     iret
 
-; Function 03h - Get Position and Button Status
-.func03:
-; No need to call mouse_poll here - IRQ12 handler updates state
-mov cx, [cs:mouse_x]
-mov dx, [cs:mouse_y]
-xor bx, bx
-mov bl, [cs:mouse_buttons]
-iret
+  ; Function 03h - Get Position and Button Status
+  .func03:
+    mov cx, [cs:mouse_x]
+    mov dx, [cs:mouse_y]
+    xor bx, bx
+    mov bl, [cs:mouse_buttons]
+    iret
 
-.unhandled:
-xor ax, ax
-iret
+  .unhandled:  ; todo: do we need that?
+    xor ax, ax
+    iret
 
 ; ============================================================================
 ; IRQ12 Handler - PS/2 Mouse Interrupt
 ; ============================================================================
 irq12_handler:
-push ax
+  push ax
 
-; Process mouse data
-call mouse_poll
+  call mouse_poll
 
-; Send EOI to slave PIC
-mov al, 0x20
-out 0xA0, al
+  ; Send EOI to slave PIC
+  mov al, 0x20
+  out 0xA0, al
 
-; Send EOI to master PIC
-out 0x20, al
+  ; Send EOI to master PIC
+  out 0x20, al
 
-pop ax
-iret
+  pop ax
+  iret

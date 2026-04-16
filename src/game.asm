@@ -19,6 +19,7 @@
 ; * CPU: 486 DX4, 100Mhz
 ; * Graphics: VGA
 ; * RAM: 24MB
+; * Input: PS/2 Mouse
 ;
 ; Theoretical minimum requirements:
 ; * CPU: 386 SX, 16Mhz
@@ -28,15 +29,14 @@
 ; Programs used for production:
 ;   - Zed IDE
 ;   - Propiretary P1Xel Tool
-;   - bochs / qemu /dosemu
-;   - custom tool for tileset conversion
+;   - bochs / qemu / dosemu
 ;   - custom tool for RLE image compression
 ;
 ; ===========================================================================|80
 
 org 0x0100
 
-BUILD_VER                               equ 0329
+BUILD_VER                               equ 0402
 
 ; =========================================== MEMORY LAYOUT =================|80
 
@@ -98,7 +98,7 @@ SPRITE_SIZE                             equ 16      ; In pixels
 FONT_SIZE                               equ 8       ; In pixels
 GAME_TURN_LENGTH                        equ 4       ; in game loops
 RADAR_VISIBILITY_RANGE                  equ 32      ; In tiles
-TILES_COUNT                             equ 0x54
+TILES_COUNT                             equ 0x52
 
 ; =========================================== GAME STATES ===================|80
 
@@ -281,7 +281,7 @@ CURSOR_TYPE_ROL                         equ 0x02
 ; if resource/extractor type > 0
 ; 0 000 00 00
 ;   | |
-;    '- resource amount (8)
+;    '- resource/capacity amount (8)
 
 TILE_DIRECTION_MASK                     equ 0x3
 SWITCH_DATA_MASK                        equ 0x13
@@ -306,7 +306,6 @@ CURSOR_ICON_PLACE_RAIL          equ 0x01
 CURSOR_ICON_EDIT                equ 0x02
 CURSOR_ICON_PLACE_BUILDING      equ 0x03
 
-
 UI_STATS_POS                    equ SPRITE_SIZE
 UI_STATS_TXT_POS                equ 0x04
 UI_BOTTOM_FRAME                 equ SCREEN_WIDTH*192
@@ -330,7 +329,7 @@ COLOR_CYAN          equ 0x0D
 COLOR_YELLOW        equ 0x0E
 COLOR_WHITE         equ 0x0F
 
-; =========================================== KEYBOARD CODES ================|80
+; =========================================== KEYBOARD/MOUSE CODES ==========|80
 
 KB_ESC      equ 0x01
 KB_UP       equ 0x48
@@ -361,25 +360,19 @@ KB_7        equ 0x08
 KB_8        equ 0x09
 KB_9        equ 0x0A
 KB_0        equ 0x0B
-MOUSE_LEFT_BUTTON equ 0xFF
-MOUSE_RIGHT_BUTTON equ 0xFE
+MOUSE_LEFT_BUTTON               equ 0xFF
+MOUSE_RIGHT_BUTTON              equ 0xFE
 
 ; =========================================== INITIALIZATION ================|80
 
 init:
-  xor ax, ax
-  mov es, ax
 
   .detect_mouse:
-    xor ax, ax                 ; AH=00h - Reset/Status
-    int 0x33                   ; Call mouse driver
-    cmp ax, 0xFFFF             ; Returns FFFFh if driver installed
+    xor ax, ax
+    int 0x33                            ; Call MS-DOS mouse driver
+    cmp ax, 0xFFFF                      ; Check if driver installed
     jz .skip_mouse_driver
-
-    call install_ps2_mouse_driver
-    ; TODO: check for ps2 fail
-    ; call install_com_mouse_driver
-
+    call install_mouse_driver
   .skip_mouse_driver:
 
   mov ax, 0x13                          ; Init 320x200, 256 colors mode
@@ -402,7 +395,6 @@ init:
   mov word [_MOUSE_BUTTONS_], 0         ; clears both buttons and lock
 
 ; =========================================== GAME LOOP =====================|80
-
 main_loop:
 
 ; =========================================== GAME STATES ===================|80
