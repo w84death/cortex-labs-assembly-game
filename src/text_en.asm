@@ -5,6 +5,7 @@ MainMenuCopyText db '(MIT) 2026 P1X',0x0
 QuitText db 'Thanks for playing!',0x0D,0x0A,'Visit http://smol.p1x.in/assembly for more...', 0x0D, 0x0A, 0x0
 VerText db 'BUILD VERSION: ',0x0
 ExtractedText db 'EXTRACTED: ',0x0
+ResourceAmountText db 'AMOUNT: ',0x0
 
 
 Fontset1Text db ' !',34,'#$%&',39,'()*+,-./:;<=>?',0x0

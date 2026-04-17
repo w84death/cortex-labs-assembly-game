@@ -36,7 +36,7 @@
 
 org 0x0100
 
-BUILD_VER                               equ 0402
+BUILD_VER                               equ 0416
 
 ; =========================================== MEMORY LAYOUT =================|80
 
@@ -48,7 +48,8 @@ SEGMENT_MAP                             equ 0x8000
 BG                                      equ 0x0000
 FG                                      equ 0x4000
 META                                    equ 0x8000
-ENTS                                    equ 0xC000
+PODS                                    equ 0xC000
+RESOURCE                                equ 0xE000
 
 ; =========================================== MEMORY ALLOCATION =============|80
 
@@ -82,6 +83,7 @@ _MOUSE_BUTTONS_           equ _BASE_ + 0x2B   ; 1 byte
 _MOUSE_LOCK_              equ _BASE_ + 0x2C   ; 1 byte
 _MOUSE_TILE_POS_X_        equ _BASE_ + 0x2D   ; 2 bytes
 _MOUSE_TILE_POS_Y_        equ _BASE_ + 0x2F   ; 2 bytes
+_PODS_SPAWN_              equ _BASE_ + 0x31   ; 2 byte
 
 ; =========================================== ENGINE SETTINGS ===============|80
 ;
@@ -99,6 +101,7 @@ FONT_SIZE                               equ 8       ; In pixels
 GAME_TURN_LENGTH                        equ 4       ; in game loops
 RADAR_VISIBILITY_RANGE                  equ 32      ; In tiles
 TILES_COUNT                             equ 0x52
+MAX_PODS                                equ 500
 
 ; =========================================== GAME STATES ===================|80
 
@@ -132,6 +135,7 @@ SCENE_MODE_UPGRADE_BUILDINGS            equ 0x05
 SCENE_MODE_RADAR_VIEW                   equ 0x06
 SCENE_MODE_EXTRACTOR_SETUP              equ 0x07
 SCENE_MODE_EXTRACTOR_INFO               equ 0x08
+SCENE_MODE_RESOURCE_INFO                     equ 0x09
 
 ; =========================================== TILES NAMES ===================|80
 
@@ -702,6 +706,9 @@ game_logic:
     add di, [_CURSOR_X_]
 
     .decide_on_action:
+      test byte [fs:di], RESOURCE_MASK
+      jnz .examine_resource
+
       mov bl, [fs:di + FG]
       and bl, CURSOR_TYPE_MASK
       rol bl, CURSOR_TYPE_ROL
@@ -710,7 +717,7 @@ game_logic:
       jz .place_building
       cmp bl, CURSOR_ICON_PLACE_RAIL
       jz .place_rail
-    jmp .build_action_done
+         jmp .build_action_done
 
     .place_rail:
       mov bx, SFX_BUILD_RAIL
@@ -793,6 +800,10 @@ game_logic:
         mov bx, SCENE_MODE_EXTRACTOR_INFO
         jmp .pop_window
 
+    .examine_resource:
+      mov bx, SCENE_MODE_RESOURCE_INFO
+      jmp .pop_window
+
     .pop_window:
       mov byte [_GAME_STATE_], STATE_WINDOW_INIT
       mov byte [_SCENE_MODE_], bl
@@ -805,7 +816,7 @@ game_logic:
   .calculate_pods:
     xor si, si
     .ent_loop:
-      mov di, [fs:si + ENTS]
+      mov di, [fs:si + PODS]
       cmp di, 0x0
       jz .done_ent_loop
 
@@ -874,7 +885,7 @@ game_logic:
       jmp .next_pod
 
       .save_pod_move:
-        mov word [fs:si + ENTS], di            ; update ent pointer to new pos
+        mov word [fs:si + PODS], di            ; update ent pointer to new pos
         and byte [fs:bx + FG], 0xFF - CART_DRAW_MASK  ; remove cart from old pos
         add byte [fs:di + FG], CART_DRAW_MASK  ; draw cart on new pos
 
@@ -1162,6 +1173,11 @@ actions_logic:
           jmp .done
 
   .build_pod:
+    mov ax, [_LAST_ENT_POD_ID_]         ; How many pods already spawned
+    cmp ax, MAX_PODS                    ; If max pods reached, skip
+    jge .done
+
+
     mov di, [_CURSOR_Y_]    ; Absolute Y map coordinate
     shl di, 7               ; Y * 128 (optimized shl for *128)
     add di, [_CURSOR_X_]    ; + absolute X map coordinate
@@ -1193,8 +1209,8 @@ actions_logic:
     mov si, [_LAST_ENT_POD_ID_]
     inc word [_LAST_ENT_POD_ID_]
     shl si, 1
-    mov [fs:si + ENTS], di
-    mov word [fs:si + ENTS + 2], 0      ; Terminator
+    mov [fs:si + PODS], di
+    mov word [fs:si + PODS + 2], 0      ; Terminator
     jmp .done
 
   .set_extractor_mode:
@@ -1465,8 +1481,8 @@ reset_to_default_values:
 
   mov word [_LAST_ENT_POD_ID_], 0
   xor ax, ax
-  mov di, ENTS            ; 0xC000
-  mov cx, (0x10000 - ENTS) / 2   ; words to clear = 0x2000
+  mov di, PODS            ; 0xC000
+  mov cx, (0x10000 - PODS) / 2   ; words to clear = 0x2000
   rep stosw
 
   mov word [_ECONOMY_BLUE_RES_], 0xF
@@ -1780,6 +1796,8 @@ live_window:
     je .widget_extractor
     cmp byte [_SCENE_MODE_], SCENE_MODE_EXTRACTOR_INFO
     je .widget_extractor_info
+    cmp byte [_SCENE_MODE_], SCENE_MODE_RESOURCE_INFO
+    je .widget_resource_info
     jmp .done
 
   .widget_rotate:
@@ -1804,6 +1822,17 @@ live_window:
     call draw_sprite
     add di, SCREEN_WIDTH*SPRITE_SIZE
     jmp .done
+
+
+  .widget_resource_info:
+
+  push si
+    mov si, ResourceAmountText
+    mov bx, COLOR_WHITE
+    call font.draw_string
+    pop si
+
+     jmp .draw_resource_sprite
 
   .widget_extractor_info:
     push si
@@ -1832,8 +1861,7 @@ live_window:
       call font.draw_number
 
     jmp .done
-
-  .done:
+     .done:
 ret
 
 
@@ -2317,17 +2345,17 @@ generate_map:
 
       .add_resource:
       call get_random
-      and ax, 0x3f
-      cmp ax, 0x1
+      and ax, 0x3f                      ; 0..63
+      cmp ax, 0x1                       ; if random is 1 to 63, skip resource
       jge .skip_resource
 
-      cmp bl, TILE_SOIL_2
+      cmp bl, TILE_SOIL_2               ; Check the soil to decide on resouce
       jl .spawn_res1
       cmp bl, TILE_SOIL_4
       jl .spawn_res2
       cmp bl, TILE_ROCKS_1
       jl .spawn_res3
-      jmp .skip_resource
+      jmp .skip_resource                ; skip if not suitable
 
       .spawn_res1:
         mov al, 0x1
@@ -2347,19 +2375,22 @@ generate_map:
         add al, RESOURCE_AMOUNT_MASK      ; Nax amount
         mov bl, al
 
-        sub di, MAP_SIZE*2-2
-        mov cx, 4
+        sub di, MAP_SIZE*2-2            ; set pointer to 2 tiles left and up
+        mov cx, 4                       ; 4 rows
         .spray_row:
           push cx
-          mov cx, 4
+          mov cx, 4                     ; by 4 columns
           .spray_col:
               call get_random
-              and ax, 0xf
-              cmp ax, 0x4
+              and ax, 0xf               ; 0..15
+              cmp ax, 0x4               ; if >= 4, skip spray
               jge .skip_spray
-                or byte [fs:di], RESOURCE_MASK
-                mov byte [fs:di + META], bl
-            .skip_spray:
+                or byte [fs:di], RESOURCE_MASK    ; set resource mask
+                mov byte [fs:di + META], bl       ; set resource amount
+                mov ax, CURSOR_ICON_PLACE_BUILDING
+                ror al, CURSOR_TYPE_ROL
+                mov byte [fs:di + FG], al         ; set cursor icon
+              .skip_spray:
             inc di
           loop .spray_col
           add di, MAP_SIZE-4
@@ -3388,6 +3419,7 @@ dw 0x050D, 0x0C08, WindowPODsText, WindowPODsSelectionArrayText, WindowPODsSelec
 dw 0x0109, 0x1215, WindowRadarText, WindowRadarSelectionArrayText, WindowRadarSelectionArray
 dw 0x050C, 0x0C08, WindowExtractorText, WindowExtractorSelectionArrayText, WindowExtractorSelectionArray
 dw 0x030C, 0x1008, WindowExtractInfoText, WindowExtractInfoSelectionArrayText, WindowExtractInfoSelectionArray
+dw 0x030C, 0x1008, WindowResourceInfoText, WindowResourceInfoSelectionArrayText, WindowResourceInfoSelectionArray
 
 WindowMainMenuText          db 'MAIN MANU',0x0
 MainMenuSelectionArrayText:
@@ -3500,6 +3532,14 @@ WindowExtractorSelectionArray:
   WindowExtractInfoSelectionArray:
     dw menu_logic.close_window, 0x0
     dw actions_logic.set_extractor_mode, TILE_BUILDING_EXTRACTOR_ID
+
+
+  WindowResourceInfoText              db 'RESOURCE INFORMATION',0x0
+  WindowResourceInfoSelectionArrayText:
+    db '< CLOSE WINDOW',0x0
+    db 0x00
+  WindowResourceInfoSelectionArray:
+    dw menu_logic.close_window, 0x0
 
 ; =========================================== TERRAIN GEN RULES =============|80
 
