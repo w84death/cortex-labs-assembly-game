@@ -1,8 +1,9 @@
 # TODO
 - add resource screen with desc + amount
+- make ui.draw_multiline_text
+- use in resource details
 - fix fake resouce
 - change radar to antenna
-- add pmkc screen
 - fix rigt edge mouse out of screen
 - add res requrements to menus to disable buing
 - each pod building starts with capacity
@@ -24,3 +25,5 @@
 # DONE
 
 - fix extractor screen and reset
+- add pmkc screen
+- move all text to text_en file

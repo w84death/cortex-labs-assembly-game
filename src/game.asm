@@ -65,7 +65,7 @@ _CURSOR_X_OLD_            equ _BASE_ + 0x0F   ; 2 bytes
 _CURSOR_Y_OLD_            equ _BASE_ + 0x11   ; 2 bytes
 _SCENE_MODE_              equ _BASE_ + 0x13   ; 1 byte
 _GAME_TURN_               equ _BASE_ + 0x14   ; 1 bytes
-_FREE_SLOT_               equ _BASE_ + 0x15   ; 1 bytes
+_GAME_STARTED_            equ _BASE_ + 0x15   ; 1 bytes
 _ECONOMY_BLUE_RES_        equ _BASE_ + 0x16   ; 2 bytes
 _ECONOMY_WHITE_RES_       equ _BASE_ + 0x18   ; 2 bytes
 _ECONOMY_GREEN_RES_       equ _BASE_ + 0x1A   ; 2 bytes
@@ -84,6 +84,9 @@ _MOUSE_LOCK_              equ _BASE_ + 0x2C   ; 1 byte
 _MOUSE_TILE_POS_X_        equ _BASE_ + 0x2D   ; 2 bytes
 _MOUSE_TILE_POS_Y_        equ _BASE_ + 0x2F   ; 2 bytes
 _PODS_SPAWN_              equ _BASE_ + 0x31   ; 2 byte
+_ROCKET_X_                equ _BASE_ + 0x33   ; 2 bytes
+_ROCKET_Y_                equ _BASE_ + 0x35   ; 2 bytes
+_LANDING_TIMER_           equ _BASE_ + 0x37   ; 2 bytes
 
 ; =========================================== ENGINE SETTINGS ===============|80
 ;
@@ -102,6 +105,7 @@ GAME_TURN_LENGTH                        equ 4       ; in game loops
 RADAR_VISIBILITY_RANGE                  equ 32      ; In tiles
 TILES_COUNT                             equ 0x52
 MAX_PODS                                equ 500
+LANDING_TIMER                           equ 64
 
 ; =========================================== GAME STATES ===================|80
 
@@ -116,17 +120,19 @@ STATE_TITLE_SCREEN_INIT                 equ 6
 STATE_TITLE_SCREEN                      equ 7
 STATE_MENU_INIT                         equ 8
 STATE_MENU                              equ 9
-STATE_GAME_NEW                          equ 10
-STATE_GAME_INIT                         equ 11
-STATE_GAME                              equ 12
-STATE_DEBUG_VIEW_INIT                   equ 13
-STATE_DEBUG_VIEW                        equ 14
-STATE_HELP_INIT                         equ 15
-STATE_HELP                              equ 16
-STATE_WINDOW_INIT                       equ 17
-STATE_WINDOW                            equ 18
-STATE_BRIEFING_INIT                     equ 19
-STATE_BRIEFING                          equ 20
+STATE_LANDING_INIT                      equ 10
+STATE_LANDING                           equ 11
+STATE_GAME_NEW                          equ 12
+STATE_GAME_INIT                         equ 13
+STATE_GAME                              equ 14
+STATE_DEBUG_VIEW_INIT                   equ 15
+STATE_DEBUG_VIEW                        equ 16
+STATE_HELP_INIT                         equ 17
+STATE_HELP                              equ 18
+STATE_WINDOW_INIT                       equ 19
+STATE_WINDOW                            equ 20
+STATE_BRIEFING_INIT                     equ 21
+STATE_BRIEFING                          equ 22
 
 SCENE_MODE_ANY                          equ 0x00
 SCENE_MODE_MAIN_MENU                    equ 0x00
@@ -968,7 +974,10 @@ game_logic:
 
 game_render:
   .draw_front_elements:
-    ; draw rocket
+    ; todo: calculate proper center map position and clamp
+      mov di, SCREEN_WIDTH*(LANDING_TIMER+16) + SCREEN_WIDTH/2
+      mov ax, TILE_ROCKET_TOP
+      call draw_sprite
   ret
 
 game_cinematic:
@@ -1427,7 +1436,7 @@ menu_logic:
     jmp .done
 
   .start_game:
-    mov byte [_GAME_STATE_], STATE_GAME_INIT
+    mov byte [_GAME_STATE_], STATE_LANDING_INIT
     jmp .done
 
   .generate_new_map:
@@ -1468,13 +1477,13 @@ init_engine:
   call audio.init
   call decompress_all_tiles
   call generate_map
-  call build_initial_base
   mov byte [_GAME_STATE_], STATE_P1X_SCREEN_INIT
 ret
 
 reset_to_default_values:
   mov dword [_GAME_TICK_], 0x0
   mov byte [_GAME_TURN_], 0x0
+  mov byte [_GAME_STARTED_], 0x0
   mov word [_RNG_], 0x42
 
   mov word [_VIEWPORT_X_], MAP_SIZE/2-VIEWPORT_WIDTH/2
@@ -1495,6 +1504,10 @@ reset_to_default_values:
   mov word [_ECONOMY_BLUE_RES_], 0xF
   mov word [_ECONOMY_WHITE_RES_], 0xF
   mov word [_ECONOMY_GREEN_RES_], 0xF
+
+  mov word [_ROCKET_X_], 0
+  mov word [_ROCKET_Y_], 0
+  mov word [_LANDING_TIMER_], 0
 ret
 
 init_p1x_screen:
@@ -1599,6 +1612,14 @@ init_menu:
   ;call audio.play_sfx
 ret
 
+init_landing:
+  mov di, MAP_SIZE * (MAP_SIZE/2) + (MAP_SIZE/2)
+  call actions_logic.update_radar_visibility
+  mov word [_LANDING_TIMER_], LANDING_TIMER
+  mov byte [_GAME_STATE_], STATE_LANDING
+  mov byte [_SCENE_MODE_], SCENE_MODE_ANY
+ret
+
 live_briefing:
   call menu_logic.check_cursor_over
 ret
@@ -1618,6 +1639,43 @@ ret
 
 live_menu:
   call menu_logic.check_cursor_over
+ret
+
+live_help:
+ret
+
+live_landing:
+  call draw_terrain
+  cmp word [_LANDING_TIMER_], 0
+  je .landed
+  dec word [_LANDING_TIMER_]
+  ;call draw_rocket
+
+  mov di, SCREEN_WIDTH*(LANDING_TIMER) + SCREEN_WIDTH/2
+  mov bx, [_LANDING_TIMER_]
+  imul bx, SCREEN_WIDTH
+  sub di, bx
+  mov ax, TILE_ROCKET_TOP
+  call draw_sprite
+  add di, SCREEN_WIDTH*SPRITE_SIZE
+  mov ax, TILE_ROCKET_GEAR
+  call draw_sprite
+  add di, SCREEN_WIDTH*SPRITE_SIZE
+  mov ax, TILE_ROCKET_SMOKE
+  call draw_sprite
+
+  call ui.draw_frame
+ret
+  .landed:
+    call build_initial_base
+    mov byte [_GAME_STATE_], STATE_GAME_INIT
+    mov byte [_SCENE_MODE_], SCENE_MODE_ANY
+ret
+
+live_game:
+  call ui.draw_frame
+  call ui.draw_footer
+  call ui.draw_stats
 ret
 
 draw_help_page:
@@ -1663,12 +1721,8 @@ ror_help_page:
   call draw_help_page
 ret
 
-live_help:
-ret
-
 new_game:
   call generate_map
-  call build_initial_base
   call reset_to_default_values
 
   mov byte [_GAME_STATE_], STATE_BRIEFING_INIT
@@ -1685,83 +1739,6 @@ init_game:
   ;mov bx, GAME_JINGLE
   ;call audio.play_sfx
 ret
-
-live_game:
-  call ui.draw_frame
-  call ui.draw_footer
-  call ui.draw_stats
-  nop
-ret
-
-
-init_debug_view:
-  mov al, COLOR_BLACK
-  call clear_screen
-  call ui.draw_frame
-
-  .draw_loaded_sprites:
-  mov di, 320*16+16                     ; Position on screen
-  xor ax, ax                            ; Sprite ID 0
-  mov cx, TILES_COUNT
-  .spr:
-    call draw_sprite
-    inc ax                              ; Next prite ID
-
-    .test_new_line:
-    mov bx, ax
-    and bx, 0xF
-    cmp bx, 0
-    jne .skip_new_line
-      add di, SCREEN_WIDTH*SPRITE_SIZE-SPRITE_SIZE*18 + 320*2 ; New line + 2px
-    .skip_new_line:
-
-    add di, 18                          ; Move to next slot + 2px
-  loop .spr
-
-
-  mov si, Fontset1Text
-  mov bl, COLOR_WHITE
-  mov dx, 0x1002
-  call font.draw_string
-
-  mov si, Fontset2Text
-  mov bl, COLOR_RED
-  mov dx, 0x1102
-  call font.draw_string
-
-  mov si, Fontset3Text
-  mov bl, COLOR_BLUE
-  mov dx, 0x1202
-  call font.draw_string
-
-  .draw_color_palette:
-  mov di, SCREEN_WIDTH*160+32           ; Position on screen
-  mov cx, 16                            ; 16 lines
-  .colors_loop:
-    push cx
-    xor ax, ax
-
-    mov cx, 16                          ; 16 colors
-    .line_loop:
-      push cx
-      mov cx, 8
-      rep stosw
-      inc al
-      inc ah
-      pop cx
-    loop .line_loop
-
-    add di, SCREEN_WIDTH-(SPRITE_SIZE*SPRITE_SIZE)  ; wrap to next line
-    pop cx
-  loop .colors_loop
-
-  mov byte [_GAME_STATE_], STATE_DEBUG_VIEW
-ret
-
-live_debug_view:
-  nop
-ret
-
 
 init_window:
   call window_logic.create_window
@@ -1872,6 +1849,74 @@ live_window:
 
     jmp .done
      .done:
+ret
+
+init_debug_view:
+  mov al, COLOR_BLACK
+  call clear_screen
+  call ui.draw_frame
+
+  .draw_loaded_sprites:
+  mov di, 320*16+16                     ; Position on screen
+  xor ax, ax                            ; Sprite ID 0
+  mov cx, TILES_COUNT
+  .spr:
+    call draw_sprite
+    inc ax                              ; Next prite ID
+
+    .test_new_line:
+    mov bx, ax
+    and bx, 0xF
+    cmp bx, 0
+    jne .skip_new_line
+      add di, SCREEN_WIDTH*SPRITE_SIZE-SPRITE_SIZE*18 + 320*2 ; New line + 2px
+    .skip_new_line:
+
+    add di, 18                          ; Move to next slot + 2px
+  loop .spr
+
+
+  mov si, Fontset1Text
+  mov bl, COLOR_WHITE
+  mov dx, 0x1002
+  call font.draw_string
+
+  mov si, Fontset2Text
+  mov bl, COLOR_RED
+  mov dx, 0x1102
+  call font.draw_string
+
+  mov si, Fontset3Text
+  mov bl, COLOR_BLUE
+  mov dx, 0x1202
+  call font.draw_string
+
+  .draw_color_palette:
+  mov di, SCREEN_WIDTH*160+32           ; Position on screen
+  mov cx, 16                            ; 16 lines
+  .colors_loop:
+    push cx
+    xor ax, ax
+
+    mov cx, 16                          ; 16 colors
+    .line_loop:
+      push cx
+      mov cx, 8
+      rep stosw
+      inc al
+      inc ah
+      pop cx
+    loop .line_loop
+
+    add di, SCREEN_WIDTH-(SPRITE_SIZE*SPRITE_SIZE)  ; wrap to next line
+    pop cx
+  loop .colors_loop
+
+  mov byte [_GAME_STATE_], STATE_DEBUG_VIEW
+ret
+
+live_debug_view:
+  nop
 ret
 
 
@@ -2386,9 +2431,11 @@ generate_map:
         mov bl, RESOURCE_RES3_MASK
 
       .spawn_res:
+      jmp .skip_resource
       ; todo: clipping
         push cx
         push di
+
 
         mov al, 0x7
         shl al, RESOURCE_AMOUNT_SHIFT
@@ -2417,7 +2464,6 @@ generate_map:
         loop .spray_row
         pop di
         pop cx
-        jmp .skip_resource
 
 
       .skip_resource:
@@ -2444,13 +2490,13 @@ build_initial_base:
 
   add ax, INFRASTRUCTURE_MASK
   mov byte [fs:di], al
-  mov byte [fs:di-MAP_SIZE], al
 
   mov ax, CURSOR_ICON_PLACE_BUILDING
   ror al, CURSOR_TYPE_ROL
   mov byte [fs:di+1 + FG], al
   mov byte [fs:di-1 + FG], al
   mov byte [fs:di+MAP_SIZE + FG], al
+  mov byte [fs:di-MAP_SIZE + FG], al
 
   .place_rocket:
   mov ax, CURSOR_ICON_POINTER
@@ -2458,8 +2504,6 @@ build_initial_base:
   mov bx, ax
   add ax, TILE_ROCKET_BOTTOM_ID
   mov byte [fs:di + FG], al
-  add bx, TILE_ROCKET_TOP_ID
-  mov byte [fs:di-MAP_SIZE + FG], bl
 
   call actions_logic.update_radar_visibility
 
@@ -3330,6 +3374,8 @@ StateJumpTable:
   dw live_title_screen
   dw init_menu
   dw live_menu
+  dw init_landing
+  dw live_landing
   dw new_game
   dw init_game
   dw live_game
@@ -3366,6 +3412,8 @@ StateTransitionTableEnd:
 
 ; In state keyboard handling
 InputTable:
+  db STATE_LANDING,                     SCENE_MODE_ANY, KB_ESC
+  dw init_briefing
   db STATE_GAME,                        SCENE_MODE_ANY, KB_UP
   dw game_logic.move_viewport_up
   db STATE_GAME,                        SCENE_MODE_ANY, KB_DOWN
@@ -3430,130 +3478,63 @@ dw 0x050C, 0x0C08, WindowRemoteBuildingsText, WindowRemoteSelectionArrayText, Wi
 dw 0x030A, 0x100A, WindowStationText, WindowStationSelectionArrayText, WindowStationLogicArray
 dw 0x040B, 0x0E11, WindowBriefingText, WindowBriefingSelectionArrayText, WindowBriefingLogicArray
 dw 0x050D, 0x0C08, WindowPODsText, WindowPODsSelectionArrayText, WindowPODsSelectionArray
-dw 0x0109, 0x1215, WindowRadarText, WindowRadarSelectionArrayText, WindowRadarSelectionArray
+dw 0x0109, 0x1215, WindowAntennaText, WindowAntennaSelectionArrayText, WindowAntennaSelectionArray
 dw 0x050C, 0x0C08, WindowExtractorText, WindowExtractorSelectionArrayText, WindowExtractorSelectionArray
 dw 0x030C, 0x1008, WindowExtractInfoText, WindowExtractInfoSelectionArrayText, WindowExtractInfoSelectionArray
 dw 0x030C, 0x1008, WindowResourceInfoText, WindowResourceInfoSelectionArrayText, WindowResourceInfoSelectionArray
 
-WindowMainMenuText          db 'MAIN MANU',0x0
-MainMenuSelectionArrayText:
-  db '> NEW GAME',0x0
-  db '# PREVIEW TILESETS',0x0
-  db '? QUICK HELP',0x0
-  db '< QUIT',0x0
-  db 0x00
-
 MainMenuLogicArray:
-  dw menu_logic.show_brief, 0x0
-  dw menu_logic.tailset_preview, 0x0
-  dw menu_logic.help, 0x0
-  dw menu_logic.quit, 0x0
+dw menu_logic.show_brief, 0x0
+dw menu_logic.tailset_preview, 0x0
+dw menu_logic.help, 0x0
+dw menu_logic.quit, 0x0
 
-WindowBaseBuildingsText     db 'BASE BUILDING',0x0
-WindowBaseSelectionArrayText:
-  db '< CLOSE WINDOW',0x0
-  db 'EXPAND BASE',0x0
-  db 'BUILD COLECTOR',0x0
-  db 'BUILD POD FACTORY',0x0
-  db 'BUILD SILOS',0x0
-  db 'BUILD RAFINERY',0x0
-  db 'BUIILD LABORATORY',0x0
-  db 'BUIILD RADAR',0x0
-  db 0x00
-  WindowBaseLogicArray:
-    dw menu_logic.close_window, 0x0
-    dw actions_logic.expand_foundation, 0x0
-    dw actions_logic.place_building, TILE_BUILDING_COLECTOR_ID
-    dw actions_logic.place_building, TILE_BUILDING_PODS_ID
-    dw actions_logic.place_building, TILE_BUILDING_SILOS_ID
-    dw actions_logic.place_building, TILE_BUILDING_RAFINERY_ID
-    dw actions_logic.place_building, TILE_BUILDING_LAB_ID
-    dw actions_logic.place_building, TILE_BUILDING_RADAR_ID
+WindowBaseLogicArray:
+dw menu_logic.close_window, 0x0
+dw actions_logic.expand_foundation, 0x0
+dw actions_logic.place_building, TILE_BUILDING_COLECTOR_ID
+dw actions_logic.place_building, TILE_BUILDING_PODS_ID
+dw actions_logic.place_building, TILE_BUILDING_SILOS_ID
+dw actions_logic.place_building, TILE_BUILDING_RAFINERY_ID
+dw actions_logic.place_building, TILE_BUILDING_LAB_ID
+dw actions_logic.place_building, TILE_BUILDING_RADAR_ID
 
-WindowRemoteBuildingsText   db 'REMOTE BUILDINGS',0x0
-WindowRemoteSelectionArrayText:
-  db '< CLOSE WINDOW',0x0
-  db 'ROTATE EXIT TARGET:',0x0
-  db 'BUILD EXTRACTOR',0x0
-  db 'BUILD RADAR',0x0
-  db 0x00
 WindowRemoteLogicArray:
-  dw menu_logic.close_window, 0x0
-  dw game_logic.change_action, 0x0
-  dw actions_logic.place_building, TILE_BUILDING_EXTRACTOR_ID
-  dw actions_logic.place_building, TILE_BUILDING_RADAR_ID
+dw menu_logic.close_window, 0x0
+dw game_logic.change_action, 0x0
+dw actions_logic.place_building, TILE_BUILDING_EXTRACTOR_ID
+dw actions_logic.place_building, TILE_BUILDING_RADAR_ID
 
-WindowStationText           db 'STATION',0x0
-WindowStationSelectionArrayText:
-  db '< CLOSE WINDOW',0x0
-  db 'BUILD STATION',0x0
-  db 0x00
 WindowStationLogicArray:
-  dw menu_logic.close_window, 0x0
-  dw actions_logic.place_station, 0x0
+dw menu_logic.close_window, 0x0
+dw actions_logic.place_station, 0x0
 
-WindowMinimapText           db 'SATELITE IMAGE',0x0
-WindowBriefingText           db 'BRIEFING',0x0
-WindowBriefingSelectionArrayText:
-  db 'START MISSION >',0x0
-  db 'RANDOMIZE TERRAIN',0x0
-  db '< REJECT',0x0
-  db 0x00
 WindowBriefingLogicArray:
-  dw menu_logic.start_game, 0x0
-  dw new_game, 0x0
-  dw menu_logic.back_to_menu, 0x0
+dw menu_logic.start_game, 0x0
+dw new_game, 0x0
+dw menu_logic.back_to_menu, 0x0
 
-WindowPODsText              db 'PODS MANUFACTURE',0x0
-WindowPODsSelectionArrayText:
-  db '< CLOSE WINDOW',0x0
-  db 'ROTATE EXIT TARGET:',0x0
-  db 'BUILD STATION',0x0
-  db 'DEPLOY NEW POD',0x0
-  db 0x00
 WindowPODsSelectionArray:
-  dw menu_logic.close_window, 0x0
-  dw game_logic.change_action, 0x0
-  dw actions_logic.build_pods_station, 0x0
-  dw actions_logic.build_pod, 0x0
+dw menu_logic.close_window, 0x0
+dw game_logic.change_action, 0x0
+dw actions_logic.build_pods_station, 0x0
+dw actions_logic.build_pod, 0x0
 
-WindowRadarText              db 'MAP VIEW',0x0
-WindowRadarSelectionArrayText:
-  db '< CLOSE WINDOW',0x0
-  db 0x00
-WindowRadarSelectionArray:
-  dw menu_logic.close_window, 0x0
+WindowAntennaSelectionArray:
+dw menu_logic.close_window, 0x0
 
-WindowExtractorText              db 'EXTRACTOR SETUP',0x0
-WindowExtractorSelectionArrayText:
-  db '< CLOSE WINDOW',0x0
-  db 'EXTRACT: WHITE',0x00
-  db 'EXTRACT: GREEN',0x00
-  db 'EXTRACT: BLUE',0x00
-  db 0x00
 WindowExtractorSelectionArray:
-  dw menu_logic.close_window, 0x0
-  dw actions_logic.set_extractor_mode, TILE_EXTRACT_WHITE_ID
-  dw actions_logic.set_extractor_mode, TILE_EXTRACT_GREEN_ID
-  dw actions_logic.set_extractor_mode, TILE_EXTRACT_BLUE_ID
+dw menu_logic.close_window, 0x0
+dw actions_logic.set_extractor_mode, TILE_EXTRACT_WHITE_ID
+dw actions_logic.set_extractor_mode, TILE_EXTRACT_GREEN_ID
+dw actions_logic.set_extractor_mode, TILE_EXTRACT_BLUE_ID
 
+WindowExtractInfoSelectionArray:
+dw menu_logic.close_window, 0x0
+dw actions_logic.set_extractor_mode, TILE_BUILDING_EXTRACTOR_ID
 
-  WindowExtractInfoText              db 'EXTRACTION PROCESS',0x0
-  WindowExtractInfoSelectionArrayText:
-    db '< CLOSE WINDOW',0x0
-    db 'STOP EXTRACTION',0x0
-    db 0x00
-  WindowExtractInfoSelectionArray:
-    dw menu_logic.close_window, 0x0
-    dw actions_logic.set_extractor_mode, TILE_BUILDING_EXTRACTOR_ID
-
-
-  WindowResourceInfoText              db 'RESOURCE INFORMATION',0x0
-  WindowResourceInfoSelectionArrayText:
-    db '< CLOSE WINDOW',0x0
-    db 0x00
-  WindowResourceInfoSelectionArray:
-    dw menu_logic.close_window, 0x0
+WindowResourceInfoSelectionArray:
+dw menu_logic.close_window, 0x0
 
 ; =========================================== TERRAIN GEN RULES =============|80
 
