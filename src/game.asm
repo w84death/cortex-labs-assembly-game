@@ -1568,11 +1568,10 @@ init_briefing:
   mov al, COLOR_BLACK
   call clear_screen
 
-  mov si, landing_image
+  mov si, briefing_image
   call draw_rle_image
   call ui.draw_frame
 
-  call ui.draw_radar_map
   mov byte [_GAME_STATE_], STATE_BRIEFING
   mov byte [_SCENE_MODE_], SCENE_MODE_BRIEFING
   call window_logic.create_window
@@ -3476,7 +3475,7 @@ dw 0x050C, 0x0C09, WindowMainMenuText, MainMenuSelectionArrayText, MainMenuLogic
 dw 0x090C, 0x0408, WindowBaseBuildingsText, WindowBaseSelectionArrayText, WindowBaseLogicArray
 dw 0x050C, 0x0C08, WindowRemoteBuildingsText, WindowRemoteSelectionArrayText, WindowRemoteLogicArray
 dw 0x030A, 0x100A, WindowStationText, WindowStationSelectionArrayText, WindowStationLogicArray
-dw 0x040B, 0x0E11, WindowBriefingText, WindowBriefingSelectionArrayText, WindowBriefingLogicArray
+dw 0x040B, 0x0E08, WindowBriefingText, WindowBriefingSelectionArrayText, WindowBriefingLogicArray
 dw 0x050D, 0x0C08, WindowPODsText, WindowPODsSelectionArrayText, WindowPODsSelectionArray
 dw 0x0109, 0x1215, WindowAntennaText, WindowAntennaSelectionArrayText, WindowAntennaSelectionArray
 dw 0x050C, 0x0C08, WindowExtractorText, WindowExtractorSelectionArrayText, WindowExtractorSelectionArray
@@ -3592,7 +3591,7 @@ include 'img_p1x.asm'
 include 'img_menu.asm'
 include 'img_help.asm'
 include 'img_title.asm'
-include 'img_landing.asm'
+include 'img_briefing.asm'
 include 'img_pmkc.asm'
 
 ; =========================================== THE END =======================|80
