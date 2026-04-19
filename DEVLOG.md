@@ -1,5 +1,8 @@
 # TODO
+- add resource screen with desc + amount
+- fix fake resouce
 - change radar to antenna
+- add pmkc screen
 - fix rigt edge mouse out of screen
 - add res requrements to menus to disable buing
 - each pod building starts with capacity

@@ -1,10 +1,13 @@
 CreatedByText db 'HUMAN CODED ASSEMBLY BY',0x0
 KKJText db 'KRZYSZTOF KRYSTIAN JANKOWSKI',0x0
+PMKCText db 'POZNANSKIE MUZEUM KULTURY CYFROWEJ', 0x0
 PressEnterText db 'PRESS ENTER', 0x0
 MainMenuCopyText db '(MIT) 2026 P1X',0x0
 QuitText db 'Thanks for playing!',0x0D,0x0A,'Visit http://smol.p1x.in/assembly for more...', 0x0D, 0x0A, 0x0
 VerText db 'BUILD VERSION: ',0x0
 ExtractedText db 'EXTRACTED: ',0x0
+ResourceTitle db 'RESOURCE DETAILS',0x0
+ResourceInfoLine1 db 'THIS IS A RESOURCE',0x0
 ResourceAmountText db 'AMOUNT: ',0x0
 
 

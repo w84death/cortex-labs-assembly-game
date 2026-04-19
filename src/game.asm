@@ -36,7 +36,7 @@
 
 org 0x0100
 
-BUILD_VER                               equ 0416
+BUILD_VER                               equ 0419
 
 ; =========================================== MEMORY LAYOUT =================|80
 
@@ -110,21 +110,24 @@ STATE_INIT_ENGINE                       equ 0
 STATE_QUIT                              equ 1
 STATE_P1X_SCREEN_INIT                   equ 2
 STATE_P1X_SCREEN                        equ 3
-STATE_TITLE_SCREEN_INIT                 equ 4
-STATE_TITLE_SCREEN                      equ 5
-STATE_MENU_INIT                         equ 6
-STATE_MENU                              equ 7
-STATE_GAME_NEW                          equ 8
-STATE_GAME_INIT                         equ 9
-STATE_GAME                              equ 10
-STATE_DEBUG_VIEW_INIT                   equ 11
-STATE_DEBUG_VIEW                        equ 12
-STATE_HELP_INIT                         equ 13
-STATE_HELP                              equ 14
-STATE_WINDOW_INIT                       equ 15
-STATE_WINDOW                            equ 16
-STATE_BRIEFING_INIT                     equ 17
-STATE_BRIEFING                          equ 18
+STATE_PMKC_SCREEN_INIT                  equ 4
+STATE_PMKC_SCREEN                       equ 5
+STATE_TITLE_SCREEN_INIT                 equ 6
+STATE_TITLE_SCREEN                      equ 7
+STATE_MENU_INIT                         equ 8
+STATE_MENU                              equ 9
+STATE_GAME_NEW                          equ 10
+STATE_GAME_INIT                         equ 11
+STATE_GAME                              equ 12
+STATE_DEBUG_VIEW_INIT                   equ 13
+STATE_DEBUG_VIEW                        equ 14
+STATE_HELP_INIT                         equ 15
+STATE_HELP                              equ 16
+STATE_WINDOW_INIT                       equ 17
+STATE_WINDOW                            equ 18
+STATE_BRIEFING_INIT                     equ 19
+STATE_BRIEFING                          equ 20
+
 SCENE_MODE_ANY                          equ 0x00
 SCENE_MODE_MAIN_MENU                    equ 0x00
 SCENE_MODE_BASE_BUILDINGS               equ 0x01
@@ -135,7 +138,7 @@ SCENE_MODE_UPGRADE_BUILDINGS            equ 0x05
 SCENE_MODE_RADAR_VIEW                   equ 0x06
 SCENE_MODE_EXTRACTOR_SETUP              equ 0x07
 SCENE_MODE_EXTRACTOR_INFO               equ 0x08
-SCENE_MODE_RESOURCE_INFO                     equ 0x09
+SCENE_MODE_RESOURCE_INFO                equ 0x09
 
 ; =========================================== TILES NAMES ===================|80
 
@@ -297,6 +300,10 @@ CART_DIRECTION_SHIFT                    equ 0x5
 RADAR_VISIBILITY_MASK                   equ 0x80
 RESOURCE_AMOUNT_MASK                    equ 0x70
 RESOURCE_AMOUNT_SHIFT                   equ 0x4
+RESOURCE_RES1_MASK                      equ 0x4
+RESOURCE_RES2_MASK                      equ 0x8
+RESOURCE_RES3_MASK                      equ 0xC
+
 
 ; MISC
 
@@ -1503,15 +1510,22 @@ init_p1x_screen:
   mov byte [_GAME_STATE_], STATE_P1X_SCREEN
 ret
 
-live_p1x_screen:
-  mov si, PressEnterText
-  mov dx, 0x170F
+init_pmkc_screen:
+  mov al, COLOR_BLACK
+  call clear_screen
+
+  mov si, pmkc_image
+  call draw_rle_image
+
+  mov si, PMKCText
+  mov dx, 0x1203
   mov bl, COLOR_WHITE
-  test word [_GAME_TICK_], 0x4
-  je .blink
-    mov bl, COLOR_BLACK
-  .blink:
   call font.draw_string
+
+  ;mov bx, INTRO_JINGLE
+  ;call audio.play_sfx
+
+  mov byte [_GAME_STATE_], STATE_PMKC_SCREEN
 ret
 
 init_title_screen:
@@ -1522,12 +1536,12 @@ init_title_screen:
   call draw_rle_image
 
   mov si, CreatedByText
-  mov dx, 0x1508
+  mov dx, 0x1408
   mov bl, COLOR_WHITE
   call font.draw_string
 
   mov si, KKJText
-  mov dx, 0x1606
+  mov dx, 0x1506
   mov bl, COLOR_WHITE
   call font.draw_string
 
@@ -1551,19 +1565,11 @@ init_briefing:
   call window_logic.create_window
 ret
 
-live_briefing:
-  call menu_logic.check_cursor_over
-ret
-
-live_title_screen:
-  mov si, PressEnterText
-  mov dx, 0x170F
-  mov bl, COLOR_WHITE
-  test word [_GAME_TICK_], 0x4
-  je .blink
-    mov bl, COLOR_BLACK
-  .blink:
-  call font.draw_string
+init_help:
+  call ui.draw_frame
+  mov byte [_SCENE_MODE_], 0x0
+  call draw_help_page
+  mov byte [_GAME_STATE_], STATE_HELP
 ret
 
 init_menu:
@@ -1593,15 +1599,25 @@ init_menu:
   ;call audio.play_sfx
 ret
 
-live_menu:
+live_briefing:
   call menu_logic.check_cursor_over
 ret
 
-init_help:
-  call ui.draw_frame
-  mov byte [_SCENE_MODE_], 0x0
-  call draw_help_page
-  mov byte [_GAME_STATE_], STATE_HELP
+live_p1x_screen:
+live_title_screen:
+live_pmkc_screen:
+  mov si, PressEnterText
+  mov dx, 0x170F
+  mov bl, COLOR_WHITE
+  test word [_GAME_TICK_], 0x4
+  je .blink
+    mov bl, COLOR_BLACK
+  .blink:
+  call font.draw_string
+ret
+
+live_menu:
+  call menu_logic.check_cursor_over
 ret
 
 draw_help_page:
@@ -1826,13 +1842,14 @@ live_window:
 
   .widget_resource_info:
 
-  push si
+    push si
     mov si, ResourceAmountText
     mov bx, COLOR_WHITE
     call font.draw_string
     pop si
 
-     jmp .draw_resource_sprite
+    call draw_resource_sprite_from_si
+    jmp .draw_amount
 
   .widget_extractor_info:
     push si
@@ -1841,14 +1858,7 @@ live_window:
     call font.draw_string
     pop si
 
-    .draw_resource_sprite:
-      mov al, [fs:si + META]
-      and al, RESOURCE_TYPE_MASK
-      shr al, RESOURCE_TYPE_SHIFT       ; 1..3
-      dec al                            ; 0..2
-      shl al, 1                         ; 0,2,4
-      add al, TILE_RES_WHITE_MAX        ; white/green/blue
-      call draw_sprite
+    call draw_resource_sprite_from_si
 
     .draw_amount:
       add dl, 0x0D                        ; Move to right
@@ -1865,8 +1875,17 @@ live_window:
 ret
 
 
-
-
+draw_resource_sprite_from_si:
+  mov al, [fs:si + META]
+  and al, RESOURCE_TYPE_MASK
+  jz .done
+  shr al, RESOURCE_TYPE_SHIFT       ; 1..3
+  dec al                            ; 0..2
+  shl al, 1                         ; 0,2,4
+  add al, TILE_RES_WHITE_MAX        ; white/green/blue
+  call draw_sprite
+  .done:
+ret
 
 
 
@@ -2350,30 +2369,30 @@ generate_map:
       jge .skip_resource
 
       cmp bl, TILE_SOIL_2               ; Check the soil to decide on resouce
-      jl .spawn_res1
+      jle .spawn_res1
       cmp bl, TILE_SOIL_4
-      jl .spawn_res2
+      jle .spawn_res2
       cmp bl, TILE_ROCKS_1
-      jl .spawn_res3
+      jle .spawn_res3
       jmp .skip_resource                ; skip if not suitable
 
       .spawn_res1:
-        mov al, 0x1
+        mov bl, RESOURCE_RES1_MASK
         jmp .spawn_res
       .spawn_res2:
-        mov al, 0x2
+        mov bl, RESOURCE_RES2_MASK
         jmp .spawn_res
       .spawn_res3:
-        mov al, 0x3
+        mov bl, RESOURCE_RES3_MASK
 
       .spawn_res:
       ; todo: clipping
         push cx
         push di
 
-        shl al, RESOURCE_TYPE_SHIFT
-        add al, RESOURCE_AMOUNT_MASK      ; Nax amount
-        mov bl, al
+        mov al, 0x7
+        shl al, RESOURCE_AMOUNT_SHIFT
+        add bl, al
 
         sub di, MAP_SIZE*2-2            ; set pointer to 2 tiles left and up
         mov cx, 4                       ; 4 rows
@@ -2381,16 +2400,16 @@ generate_map:
           push cx
           mov cx, 4                     ; by 4 columns
           .spray_col:
-              call get_random
-              and ax, 0xf               ; 0..15
-              cmp ax, 0x4               ; if >= 4, skip spray
-              jge .skip_spray
-                or byte [fs:di], RESOURCE_MASK    ; set resource mask
-                mov byte [fs:di + META], bl       ; set resource amount
-                mov ax, CURSOR_ICON_PLACE_BUILDING
-                ror al, CURSOR_TYPE_ROL
-                mov byte [fs:di + FG], al         ; set cursor icon
-              .skip_spray:
+            test byte [fs:di], RESOURCE_MASK
+            jnz .skip_spray
+
+            call get_random
+            and ax, 0xf               ; 0..15
+            cmp ax, 0x4               ; if >= 4, skip spray
+            jge .skip_spray
+              or byte [fs:di], RESOURCE_MASK    ; set resource mask
+              mov byte [fs:di + META], bl       ; set resource type
+            .skip_spray:
             inc di
           loop .spray_col
           add di, MAP_SIZE-4
@@ -2569,21 +2588,11 @@ draw_cell:
     .draw_resource:
       test dl, INFRASTRUCTURE_MASK
       jnz .skip_resource
-
-      mov al, [fs:si + META]
-      and al, RESOURCE_TYPE_MASK
-      cmp al, 0x0
+      test dl, RESOURCE_MASK
       jz .skip_resource
-        dec al                          ; sprites are 0-2, type 1-3
-        shr al, RESOURCE_TYPE_SHIFT-1   ; 2* for 6 tiles (low/hi)
-        add al, TILE_RES_WHITE_LOW-1
-        mov bl, [fs:si + META]
-        and bl, 0xFF - RESOURCE_AMOUNT_MASK
-        shr bl, RESOURCE_AMOUNT_SHIFT+2 ; 0-7 / 4 = 1-2 (low-hi)
-        dec bl                          ; now 0-1 (low-hi)
-        add al, bl                      ; add to low sprite to get hi
-
-        call draw_sprite
+        ;test byte [fs:si + META], RESOURCE_TYPE_MASK
+        ;jz .skip_resource
+        call draw_resource_sprite_from_si
       .skip_resource:
 
     .draw_rails_stuff:
@@ -3315,6 +3324,8 @@ StateJumpTable:
   dw exit
   dw init_p1x_screen
   dw live_p1x_screen
+  dw init_pmkc_screen
+  dw live_pmkc_screen
   dw init_title_screen
   dw live_title_screen
   dw init_menu
@@ -3334,8 +3345,11 @@ StateJumpTable:
 ; Transition between major states
 StateTransitionTable:
   db STATE_P1X_SCREEN,    KB_ESC,   STATE_QUIT
-  db STATE_P1X_SCREEN,    KB_ENTER, STATE_TITLE_SCREEN_INIT
-  db STATE_P1X_SCREEN,    MOUSE_LEFT_BUTTON, STATE_TITLE_SCREEN_INIT
+  db STATE_P1X_SCREEN,    KB_ENTER, STATE_PMKC_SCREEN_INIT
+  db STATE_P1X_SCREEN,    MOUSE_LEFT_BUTTON, STATE_PMKC_SCREEN_INIT
+  db STATE_PMKC_SCREEN,   KB_ESC,   STATE_QUIT
+  db STATE_PMKC_SCREEN,   KB_ENTER, STATE_TITLE_SCREEN_INIT
+  db STATE_PMKC_SCREEN,   MOUSE_LEFT_BUTTON, STATE_TITLE_SCREEN_INIT
   db STATE_TITLE_SCREEN,  KB_ESC,   STATE_QUIT
   db STATE_TITLE_SCREEN,  KB_ENTER, STATE_MENU_INIT
   db STATE_TITLE_SCREEN,  MOUSE_LEFT_BUTTON, STATE_MENU_INIT
@@ -3598,6 +3612,7 @@ include 'img_menu.asm'
 include 'img_help.asm'
 include 'img_title.asm'
 include 'img_landing.asm'
+include 'img_pmkc.asm'
 
 ; =========================================== THE END =======================|80
 ; Thanks for reading the source code!
