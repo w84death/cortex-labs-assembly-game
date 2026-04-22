@@ -110,12 +110,18 @@ pub fn build(b: *std.Build) void {
     stats_step.dependOn(&show_stats.step);
 
     // Build tools
-    const tools_step = b.step("tools", "Build all development tools");
-    const build_fnt2asm = b.addSystemCommand(&.{ "make", "-C", "tools/fnt2asm" });
-    const build_png2asm = b.addSystemCommand(&.{ "make", "-C", "tools/png2asm" });
-    const build_rleimg2asm = b.addSystemCommand(&.{ "make", "-C", "tools/rleimg2asm" });
-    tools_step.dependOn(&build_fnt2asm.step);
-    tools_step.dependOn(&build_png2asm.step);
+    const tools_step = b.step("tools", "Build rleimg2asm tool");
+    const build_rleimg2asm = b.addSystemCommand(&.{
+        "zig",
+        "build-exe",
+        "tools/rleimg2asm/rleimg2asm.zig",
+        "-O",
+        "ReleaseFast",
+        "-lc",
+        "-lpng16",
+        "-I/usr/include/libpng16",
+        "-femit-bin=tools/rleimg2asm/rleimg2asm",
+    });
     tools_step.dependOn(&build_rleimg2asm.step);
 
     // Decompress COM file
@@ -186,19 +192,15 @@ pub fn build(b: *std.Build) void {
     clean_step.dependOn(&clean.step);
 
     // Clean tools
-    const clean_tools_step = b.step("clean-tools", "Clean development tools");
-    const clean_fnt2asm = b.addSystemCommand(&.{ "make", "-C", "tools/fnt2asm", "clean" });
-    const clean_png2asm = b.addSystemCommand(&.{ "make", "-C", "tools/png2asm", "clean" });
-    const clean_rleimg2asm = b.addSystemCommand(&.{ "make", "-C", "tools/rleimg2asm", "clean" });
-    clean_tools_step.dependOn(&clean_fnt2asm.step);
-    clean_tools_step.dependOn(&clean_png2asm.step);
+    const clean_tools_step = b.step("clean-tools", "Clean rleimg2asm tool");
+    const clean_rleimg2asm = b.addSystemCommand(&.{ "rm", "-f", "tools/rleimg2asm/rleimg2asm" });
     clean_tools_step.dependOn(&clean_rleimg2asm.step);
 
     // Help - show available steps
     const help_step = b.step("help", "Show help message");
     const show_help = b.addSystemCommand(&.{
-        "sh",                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     "-c",
-        "echo 'GAME-12 Build Targets:' && echo '  all          - Build FAT12 bootable floppy image (default)' && echo '  com          - Build compressed COM file with UPX' && echo '  com-raw      - Build uncompressed COM file' && echo '  bochs        - Run in Bochs debugger' && echo '  qemu         - Run in QEMU emulator' && echo '  jsdos        - Build jsdos archive' && echo '  burn         - Burn to physical floppy' && echo '  stats        - Display project statistics' && echo '  opcodes      - List opcode usage frequency' && echo '  tools        - Build all development tools' && echo '  clean        - Remove build artifacts' && echo '  clean-tools  - Clean development tools' && echo '' && echo 'UPX Compression Targets:' && echo '  decompress   - Decompress COM file for debugging' && echo '  test-upx     - Test different UPX compression levels' && echo '  check-upx    - Check if COM file is UPX compressed' && echo '' && echo 'Development Tools:' && echo '  fnt2asm      - Convert PNG fonts to assembly data' && echo '  png2asm      - Convert PNG images to assembly data' && echo '  rleimg2asm   - Convert images to RLE-compressed assembly' && echo '' && echo 'The floppy image is DOS-compatible and contains:' && echo '  GAME.COM     - The game executable' && echo '  MANUAL.TXT   - Game manual'",
+        "sh",                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                "-c",
+        "echo 'GAME-12 Build Targets:' && echo '  all          - Build FAT12 bootable floppy image (default)' && echo '  com          - Build compressed COM file with UPX' && echo '  com-raw      - Build uncompressed COM file' && echo '  bochs        - Run in Bochs debugger' && echo '  qemu         - Run in QEMU emulator' && echo '  jsdos        - Build jsdos archive' && echo '  burn         - Burn to physical floppy' && echo '  stats        - Display project statistics' && echo '  opcodes      - List opcode usage frequency' && echo '  tools        - Build rleimg2asm tool' && echo '  clean        - Remove build artifacts' && echo '  clean-tools  - Clean rleimg2asm tool' && echo '' && echo 'UPX Compression Targets:' && echo '  decompress   - Decompress COM file for debugging' && echo '  test-upx     - Test different UPX compression levels' && echo '  check-upx    - Check if COM file is UPX compressed' && echo '' && echo 'Development Tools:' && echo '  rleimg2asm   - Convert images to RLE-compressed assembly' && echo '' && echo 'The floppy image is DOS-compatible and contains:' && echo '  GAME.COM     - The game executable' && echo '  MANUAL.TXT   - Game manual'",
     });
     help_step.dependOn(&show_help.step);
 }

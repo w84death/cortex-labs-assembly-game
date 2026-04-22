@@ -10,11 +10,12 @@ This tool converts 320x200 PNG images to a compressed interlaced format optimize
 - Outputs either assembly source code or binary format
 - Designed for efficient decompression in x86 assembly using `rep stosb`
 - Assembly code renders each line twice to reconstruct full image
+- Zig implementation (`rleimg2asm.zig`) with optional terminal preview
 
 ## Building
 
 Requirements:
-- GCC compiler
+- Zig compiler
 - libpng development libraries
 
 ```bash
@@ -25,20 +26,23 @@ sudo apt-get install libpng-dev
 make
 
 # Or manually:
-gcc -Wall -O2 fmv2asm.c -o fmv2asm -lpng -lm
+zig build-exe rleimg2asm.zig -O ReleaseFast -lc -lpng16 -I/usr/include/libpng16 -femit-bin=rleimg2asm
 ```
 
 ## Usage
 
 ```bash
 # Convert to assembly source file
-./fmv2asm input.png output.asm -asm image_data
+./rleimg2asm input.png output.asm -asm image_data
 
 # Convert to binary file
-./fmv2asm input.png output.bin -bin
+./rleimg2asm input.png output.bin -bin
 
 # Show compression statistics
-./fmv2asm input.png output.bin -bin -stats
+./rleimg2asm input.png output.bin -bin -stats
+
+# Show ANSI terminal preview
+./rleimg2asm input.png output.bin -bin -preview
 ```
 
 ### Command Line Options
@@ -46,6 +50,8 @@ gcc -Wall -O2 fmv2asm.c -o fmv2asm -lpng -lm
 - `-asm <label>` - Output as assembly source file with specified label name
 - `-bin` - Output as raw binary file (default)
 - `-stats` - Display compression statistics
+- `-preview` - Show a downsampled ANSI preview in the terminal (Zig version)
+- `-preview-png <file>` - Write converted indexed-color preview PNG (Zig version)
 
 ## Compression Format
 
@@ -144,8 +150,7 @@ Typical compression ratios (interlaced mode):
 
 ## Example Files
 
-- `fmv2asm.c` - Main converter source code
-- `palette.h` - DawnBringer16 palette definition
+- `rleimg2asm.zig` - Main converter source code
 - `Makefile` - Build configuration
 
 ## Tips for Best Results
