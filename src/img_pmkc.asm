@@ -244,5 +244,4 @@ pmkc_image:
     db 00Ah, 00Ah, 016h, 007h, 011h, 00Ah, 009h, 000h, 006h, 00Ah, 003h, 000h, 008h, 00Ah, 00Dh, 000h
     db 009h, 00Ah, 00Ch, 007h, 006h, 00Ah
 
-pmkc_image_size equ 3798
-pmkc_image_end:
+    db 0,0

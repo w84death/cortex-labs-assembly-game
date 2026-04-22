@@ -115,5 +115,6 @@ menu_image:
     db 0E5h, 000h, 0FFh, 000h, 041h, 000h, 0FFh, 000h, 041h, 000h, 0FFh, 000h, 041h, 000h, 0FFh, 000h
     db 041h, 000h, 0FFh, 000h, 041h, 000h, 0FFh, 000h, 041h, 000h, 0FFh, 000h, 041h, 000h
 
+    db 0,0
 menu_image_size equ 1742
 menu_image_end:

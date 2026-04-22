@@ -161,6 +161,4 @@ p1x_logo_image:
     db 007h, 00Fh, 015h, 000h, 007h, 00Fh, 06Ah, 000h, 0FFh, 000h, 041h, 000h, 0FFh, 000h, 041h, 000h
     db 0FFh, 000h, 041h, 000h, 0FFh, 000h, 041h, 000h, 0F0h, 000h, 001h, 007h, 04Fh, 000h, 0FFh, 000h
     db 041h, 000h, 0FFh, 000h, 041h, 000h, 0FFh, 000h, 041h, 000h, 0FFh, 000h, 041h, 000h
-
-p1x_logo_image_size equ 2494
-p1x_logo_image_end:
+    db 0,0

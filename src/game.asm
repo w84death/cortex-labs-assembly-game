@@ -2197,12 +2197,13 @@ draw_rle_image:
   pop es
 
   xor di, di
-  xor bx, bx
   xor dx, dx
   .image_loop:
     lodsb                               ; Load number of pixels to repeat
+    cmp ax, 0                           ; Check if end of image
+    je .done                            ; Exit if end
+
     mov cx, ax                          ; Save to CX
-    add bx, ax                          ; Add to overall pixels counter
     add dx, ax                          ; Add to line pixel counter
 
     lodsb                               ; Load pixel color
@@ -2214,9 +2215,8 @@ draw_rle_image:
     xor dx, dx                          ; Zero line counter
     .continue:
 
-    cmp bx, SCREEN_WIDTH*(SCREEN_HEIGHT/2)  ; Check if full image drown
-    jl .image_loop                      ; Continu if not
-
+    jmp .image_loop                      ; Continu if not
+    .done:
     pop ds
     pop es
 ret

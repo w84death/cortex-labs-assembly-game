@@ -59,5 +59,6 @@ help_image:
     db 041h, 000h, 0FFh, 000h, 041h, 000h, 0FFh, 000h, 041h, 000h, 0FFh, 000h, 041h, 000h, 0FFh, 000h
     db 041h, 000h, 0FFh, 000h, 041h, 000h
 
+    db 0,0
 help_image_size equ 838
 help_image_end:

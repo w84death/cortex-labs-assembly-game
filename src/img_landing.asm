@@ -66,5 +66,6 @@ landing_image:
     db 0FFh, 000h, 041h, 000h, 0FFh, 000h, 041h, 000h, 0FFh, 000h, 041h, 000h, 0FFh, 000h, 041h, 000h
     db 0FFh, 000h, 041h, 000h
 
+    db 0,0
 landing_image_size equ 948
 landing_image_end:

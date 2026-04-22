@@ -299,5 +299,4 @@ briefing_image:
     db 001h, 007h, 03Ch, 000h, 0FFh, 007h, 005h, 007h, 038h, 000h, 0FFh, 007h, 009h, 007h, 033h, 000h
     db 0FFh, 007h, 00Eh, 007h, 02Fh, 000h, 0FFh, 007h, 012h, 007h, 02Bh, 000h, 0FFh, 007h, 016h, 007h
 
-briefing_image_size equ 4688
-briefing_image_end:
+    db 0,0

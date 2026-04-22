@@ -279,5 +279,4 @@ title_image:
     db 012h, 007h, 00Bh, 00Ah, 00Bh, 007h, 01Bh, 000h, 010h, 003h, 01Dh, 000h, 006h, 003h, 017h, 007h
     db 00Ah, 00Ah
 
-title_image_size equ 4354
-title_image_end:
+    db 0,0
