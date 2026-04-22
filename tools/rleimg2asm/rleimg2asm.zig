@@ -5,7 +5,6 @@ const c = @cImport({
 });
 
 const WIDTH: usize = 320;
-const HEIGHT: usize = 200;
 
 const Rgb = struct {
     r: u8,
@@ -63,7 +62,7 @@ fn findClosestColor(r: u8, g: u8, b: u8) u8 {
     return @intCast(best_index);
 }
 
-fn loadPngIndexed(allocator: std.mem.Allocator, filename: []const u8) ![]u8 {
+fn loadPngIndexed(allocator: std.mem.Allocator, filename: []const u8, out_height: *usize) ![]u8 {
     const c_filename = try allocator.dupeZ(u8, filename);
     defer allocator.free(c_filename);
 
@@ -76,10 +75,13 @@ fn loadPngIndexed(allocator: std.mem.Allocator, filename: []const u8) ![]u8 {
     }
     defer c.png_image_free(&image);
 
-    if (image.width != WIDTH or image.height != HEIGHT) {
-        std.debug.print("Error: image must be 320x200, got {d}x{d}\n", .{ image.width, image.height });
+    if (image.width != WIDTH) {
+        std.debug.print("Error: image width must be {d}, got {d}\n", .{ WIDTH, image.width });
         return error.InvalidDimensions;
     }
+
+    const image_height: usize = @intCast(image.height);
+    out_height.* = image_height;
 
     image.format = c.PNG_FORMAT_RGB;
     const rgb_size: usize = @as(usize, @intCast(image.width)) * @as(usize, @intCast(image.height)) * 3;
@@ -91,9 +93,9 @@ fn loadPngIndexed(allocator: std.mem.Allocator, filename: []const u8) ![]u8 {
         return error.PngDecodeFailed;
     }
 
-    const indexed = try allocator.alloc(u8, WIDTH * HEIGHT);
+    const indexed = try allocator.alloc(u8, WIDTH * image_height);
     const channels: usize = 3;
-    for (0..HEIGHT) |y| {
+    for (0..image_height) |y| {
         for (0..WIDTH) |x| {
             const src_i = (y * WIDTH + x) * channels;
             const r = rgb_pixels[src_i];
@@ -144,10 +146,10 @@ fn compressScanline(allocator: std.mem.Allocator, line: []const u8, output: *std
     }
 }
 
-fn verifyCompressedData(data: []const u8) usize {
+fn verifyCompressedData(data: []const u8, image_height: usize) usize {
     var pos: usize = 0;
     var line_count: usize = 0;
-    const expected_lines = HEIGHT / 2;
+    const expected_lines = (image_height + 1) / 2;
     var errors: usize = 0;
 
     while (pos < data.len and line_count < expected_lines) {
@@ -216,8 +218,7 @@ fn writeAsmOutput(data: []const u8, output_file: []const u8, label_name: []const
         try writer.print("0{X:0>2}h", .{value});
     }
     try writer.writeAll("\n\n");
-    try writer.print("{s}_size equ {d}\n", .{ label_name, data.len });
-    try writer.print("{s}_end:\n", .{label_name});
+    try writer.writeAll("    db 0, 0\n");
     try writer.flush();
 }
 
@@ -227,8 +228,8 @@ fn writeBinOutput(data: []const u8, output_file: []const u8) !void {
     try file.writeAll(data);
 }
 
-fn writePreviewPng(allocator: std.mem.Allocator, indexed: []const u8, output_file: []const u8) !void {
-    const rgb = try allocator.alloc(u8, WIDTH * HEIGHT * 3);
+fn writePreviewPng(allocator: std.mem.Allocator, indexed: []const u8, image_height: usize, output_file: []const u8) !void {
+    const rgb = try allocator.alloc(u8, WIDTH * image_height * 3);
     defer allocator.free(rgb);
 
     for (indexed, 0..) |color_index, i| {
@@ -242,7 +243,7 @@ fn writePreviewPng(allocator: std.mem.Allocator, indexed: []const u8, output_fil
     var image: c.png_image = std.mem.zeroes(c.png_image);
     image.version = c.PNG_IMAGE_VERSION;
     image.width = @intCast(WIDTH);
-    image.height = @intCast(HEIGHT);
+    image.height = @intCast(image_height);
     image.format = c.PNG_FORMAT_RGB;
 
     const c_output_file = try allocator.dupeZ(u8, output_file);
@@ -254,7 +255,7 @@ fn writePreviewPng(allocator: std.mem.Allocator, indexed: []const u8, output_fil
     }
 }
 
-fn showTerminalPreview(indexed: []const u8) !void {
+fn showTerminalPreview(indexed: []const u8, image_height: usize) !void {
     const stdout_file = std.fs.File.stdout();
     var write_buffer: [8192]u8 = undefined;
     var stdout_writer = stdout_file.writer(&write_buffer);
@@ -263,7 +264,8 @@ fn showTerminalPreview(indexed: []const u8) !void {
     const step_y: usize = 4;
 
     try writer.writeAll("\nConverted image preview (downsampled 4x):\n");
-    for (0..HEIGHT / step_y) |yy| {
+    const preview_rows = image_height / step_y;
+    for (0..preview_rows) |yy| {
         const y = yy * step_y;
         for (0..WIDTH / step_x) |xx| {
             const x = xx * step_x;
@@ -330,16 +332,17 @@ pub fn main() !void {
     }
 
     std.debug.print("Loading PNG: {s}\n", .{input_file});
-    const indexed_image = try loadPngIndexed(allocator, input_file);
+    var image_height: usize = 0;
+    const indexed_image = try loadPngIndexed(allocator, input_file, &image_height);
     defer allocator.free(indexed_image);
 
     if (show_preview) {
-        try showTerminalPreview(indexed_image);
+        try showTerminalPreview(indexed_image, image_height);
     }
 
     if (preview_png) |preview_path| {
         std.debug.print("Writing preview PNG: {s}\n", .{preview_path});
-        try writePreviewPng(allocator, indexed_image, preview_path);
+        try writePreviewPng(allocator, indexed_image, image_height, preview_path);
     }
 
     std.debug.print("Compressing image (interlaced)...\n", .{});
@@ -347,13 +350,13 @@ pub fn main() !void {
     defer compressed.deinit(allocator);
 
     var y: usize = 0;
-    while (y < HEIGHT) : (y += 2) {
+    while (y < image_height) : (y += 2) {
         const line = indexed_image[y * WIDTH .. (y + 1) * WIDTH];
         try compressScanline(allocator, line, &compressed, y, debug_mode);
     }
 
     std.debug.print("Verifying compressed data...\n", .{});
-    const errors = verifyCompressedData(compressed.items);
+    const errors = verifyCompressedData(compressed.items, image_height);
     if (errors > 0) {
         std.debug.print("WARNING: found {d} compression errors\n", .{errors});
     }
@@ -367,7 +370,7 @@ pub fn main() !void {
     }
 
     if (show_stats) {
-        const uncompressed_size = WIDTH * HEIGHT;
+        const uncompressed_size = WIDTH * image_height;
         const ratio = @as(f64, @floatFromInt(uncompressed_size)) / @as(f64, @floatFromInt(compressed.items.len));
         const reduction = (1.0 - (@as(f64, @floatFromInt(compressed.items.len)) / @as(f64, @floatFromInt(uncompressed_size)))) * 100.0;
 

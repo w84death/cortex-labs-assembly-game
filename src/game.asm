@@ -1515,6 +1515,7 @@ init_p1x_screen:
   call clear_screen
 
   mov si, p1x_logo_image
+  xor di, di
   call draw_rle_image
 
   ;mov bx, INTRO_JINGLE
@@ -1528,6 +1529,7 @@ init_pmkc_screen:
   call clear_screen
 
   mov si, pmkc_image
+  xor di, di
   call draw_rle_image
 
   mov si, PMKCText
@@ -1546,6 +1548,7 @@ init_title_screen:
   call clear_screen
 
   mov si, title_image
+  xor di, di
   call draw_rle_image
 
   mov si, CreatedByText
@@ -1569,6 +1572,7 @@ init_briefing:
   call clear_screen
 
   mov si, briefing_image
+  xor di, di
   call draw_rle_image
 
   mov byte [_GAME_STATE_], STATE_BRIEFING
@@ -1587,7 +1591,9 @@ init_menu:
   call clear_screen
 
   mov si, menu_image
+  mov di, SCREEN_WIDTH*8
   call draw_rle_image
+  call ui.draw_footer
 
   mov byte [_GAME_STATE_], STATE_MENU
   mov byte [_SCENE_MODE_], SCENE_MODE_MAIN_MENU
@@ -1678,6 +1684,7 @@ draw_help_page:
   call clear_screen
 
   mov si, help_image
+  xor di, di
   call draw_rle_image
 
   mov di, HelpArrayText
@@ -2186,6 +2193,7 @@ ret
 ; =========================================== DRAW RLE IMAGE ================|80
 ; IN:
 ;   SI - Image data address
+;   DI - Position
 draw_rle_image:
   push es
   push ds
@@ -2196,7 +2204,6 @@ draw_rle_image:
   push SEGMENT_DBUFFER
   pop es
 
-  xor di, di
   xor dx, dx
   .image_loop:
     lodsb                               ; Load number of pixels to repeat
