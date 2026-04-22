@@ -97,7 +97,7 @@ SCREEN_WIDTH                            equ 320     ; In pixels
 SCREEN_HEIGHT                           equ 200     ; In pixels
 MAP_SIZE                                equ 128     ; Map size in cells (tiles)
 VIEWPORT_WIDTH                          equ 20      ; In tiles (*SPRITE_SIZE)
-VIEWPORT_HEIGHT                         equ 12      ; In tiles
+VIEWPORT_HEIGHT                         equ 11      ; In tiles
 VIEWPORT_GRID_SIZE                      equ 16      ; In pixels
 SPRITE_SIZE                             equ 16      ; In pixels
 FONT_SIZE                               equ 8       ; In pixels
@@ -325,7 +325,8 @@ CURSOR_ICON_PLACE_BUILDING      equ 0x03
 
 UI_STATS_POS                    equ SPRITE_SIZE
 UI_STATS_TXT_POS                equ 0x04
-UI_BOTTOM_FRAME                 equ SCREEN_WIDTH*192
+UI_FOOTER_POS                   equ SCREEN_WIDTH*176
+UI_FOOTER_HEIGHT                equ 14
 
 ; =========================================== COLORS / DB16 =================|80
 
@@ -965,7 +966,6 @@ game_logic:
 
   .redraw_terrain:
     call draw_terrain
-    call ui.draw_frame
     call ui.draw_stats
     jmp .done
 
@@ -1570,7 +1570,6 @@ init_briefing:
 
   mov si, briefing_image
   call draw_rle_image
-  call ui.draw_frame
 
   mov byte [_GAME_STATE_], STATE_BRIEFING
   mov byte [_SCENE_MODE_], SCENE_MODE_BRIEFING
@@ -1578,7 +1577,6 @@ init_briefing:
 ret
 
 init_help:
-  call ui.draw_frame
   mov byte [_SCENE_MODE_], 0x0
   call draw_help_page
   mov byte [_GAME_STATE_], STATE_HELP
@@ -1590,7 +1588,6 @@ init_menu:
 
   mov si, menu_image
   call draw_rle_image
-  call ui.draw_frame
 
   mov byte [_GAME_STATE_], STATE_MENU
   mov byte [_SCENE_MODE_], SCENE_MODE_MAIN_MENU
@@ -1612,6 +1609,7 @@ init_menu:
 ret
 
 init_landing:
+  call ui.draw_footer
   mov di, MAP_SIZE * (MAP_SIZE/2) + (MAP_SIZE/2)
   call actions_logic.update_radar_visibility
   mov word [_LANDING_TIMER_], LANDING_TIMER
@@ -1663,7 +1661,6 @@ live_landing:
   mov ax, TILE_ROCKET_SMOKE
   call draw_sprite
 
-  call ui.draw_frame
 ret
   .landed:
     call build_initial_base
@@ -1672,7 +1669,6 @@ ret
 ret
 
 live_game:
-  call ui.draw_frame
   call ui.draw_footer
   call ui.draw_stats
 ret
@@ -1683,7 +1679,6 @@ draw_help_page:
 
   mov si, help_image
   call draw_rle_image
-  call ui.draw_frame
 
   mov di, HelpArrayText
   movzx ax, byte [_SCENE_MODE_]
@@ -1730,7 +1725,6 @@ ret
 
 init_game:
   call draw_terrain
-  call ui.draw_frame
   call ui.draw_stats
   mov byte [_GAME_STATE_], STATE_GAME
   mov byte [_SCENE_MODE_], SCENE_MODE_ANY
@@ -1853,7 +1847,6 @@ ret
 init_debug_view:
   mov al, COLOR_BLACK
   call clear_screen
-  call ui.draw_frame
 
   .draw_loaded_sprites:
   mov di, 320*16+16                     ; Position on screen
@@ -2909,38 +2902,15 @@ draw_sprite:
 
 ; =========================================== UI SUBSYSTEM ==================|80
 ui:
-  .draw_frame:
-    xor di, di                          ; start at top-left corner
-    mov al, TILE_UI_HEADER              ; top frame
-    mov cx, VIEWPORT_WIDTH
-    .top_loop:
-      call draw_sprite
-      add di, SPRITE_SIZE
-    loop .top_loop
+    .draw_footer:
+    mov di, UI_FOOTER_POS
 
-    add di, 320*SPRITE_SIZE-320
-    mov cx, VIEWPORT_HEIGHT-2
-    .vertical_loop:
-      mov al, TILE_UI_LEFT              ; left frame
-      call draw_sprite
-      add di, 19*SPRITE_SIZE
-      mov al, TILE_UI_RIGHT             ; right frame
-      call draw_sprite
-      add di, 320*SPRITE_SIZE+SPRITE_SIZE-320
-    loop .vertical_loop
+    mov cx, 320
+    mov al, COLOR_WHITE
+    mov ah, al
+    rep stosw
 
-    mov al, TILE_UI_HEADER              ; bottom frame
-    mov cx, VIEWPORT_WIDTH
-    .bottom_loop:
-      call draw_sprite
-      add di, SPRITE_SIZE
-    loop .bottom_loop
-    ret
-
-  .draw_footer:
-    mov di, UI_BOTTOM_FRAME
-
-    mov dx, 6
+    mov dx, UI_FOOTER_HEIGHT-2
     .stripes_loop:
       mov cx, 320/2
       mov al, COLOR_DEEP_PURPLE
