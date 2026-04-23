@@ -385,13 +385,15 @@ MOUSE_RIGHT_BUTTON              equ 0xFE
 
 init:
 
+  if INCLUDE_MOUSE_DRIVER               ; Pure MS-DOS build skips this part
   .detect_mouse:
     xor ax, ax
     int 0x33                            ; Call MS-DOS mouse driver
     cmp ax, 0xFFFF                      ; Check if driver installed
     jz .skip_mouse_driver
-    call install_mouse_driver
-  .skip_mouse_driver:
+    call install_mouse_driver           ; Bare-metal -> install ps2 driver
+    .skip_mouse_driver:                 ; We are in MS-DOS
+  end if
 
   mov ax, 0x13                          ; Init 320x200, 256 colors mode
   int 0x10                              ; Video BIOS interrupt
@@ -1591,7 +1593,7 @@ init_briefing:
   mov al, COLOR_BLACK
   call clear_screen
 
-  mov si, briefing_image
+  mov si, stars_image
   xor di, di
   call draw_rle_image
 
@@ -1712,7 +1714,7 @@ draw_help_page:
   mov al, COLOR_BLACK
   call clear_screen
 
-  mov si, help_image
+  mov si, stars_image
   xor di, di
   call draw_rle_image
 
@@ -3594,19 +3596,20 @@ Patch9Dict:
 
 ; =========================================== INCLUDES ======================|80
 
+if INCLUDE_MOUSE_DRIVER
 include 'mouse_driver.asm'
+end if
+
 include 'text_en.asm'
 include 'font.asm'
 include 'sfx.asm'
 include 'tiles.asm'
 include 'img_p1x.asm'
-include 'img_help.asm'
 include 'img_stars.asm'
 include 'img_clouds.asm'
 include 'img_planet.asm'
 include 'img_city.asm'
 include 'img_logo.asm'
-include 'img_briefing.asm'
 include 'img_pmkc.asm'
 
 ; =========================================== THE END =======================|80
