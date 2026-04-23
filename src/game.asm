@@ -1514,12 +1514,16 @@ init_p1x_screen:
   mov al, COLOR_BLACK
   call clear_screen
 
-  mov si, p1x_logo_image
+  mov si, stars_image
   xor di, di
   call draw_rle_image
 
-  ;mov bx, INTRO_JINGLE
-  ;call audio.play_sfx
+  mov si, p1x_image
+  mov di, SCREEN_WIDTH*22
+  call draw_rle_image
+
+  mov bx, INTRO_JINGLE
+  call audio.play_sfx
 
   mov byte [_GAME_STATE_], STATE_P1X_SCREEN
 ret
@@ -1547,8 +1551,24 @@ init_title_screen:
   mov al, COLOR_BLACK
   call clear_screen
 
-  mov si, title_image
+  mov si, stars_image
   xor di, di
+  call draw_rle_image
+
+  mov si, planet_image
+  mov di, SCREEN_WIDTH*91
+  call draw_rle_image
+
+  mov si, clouds_image
+  mov di, SCREEN_WIDTH*46
+  call draw_rle_image
+
+  mov si, city_image
+  mov di, SCREEN_WIDTH*100
+  call draw_rle_image
+
+  mov si, logo_image
+  mov di, SCREEN_WIDTH*42
   call draw_rle_image
 
   mov si, CreatedByText
@@ -1590,9 +1610,18 @@ init_menu:
   mov al, COLOR_BLACK
   call clear_screen
 
-  mov si, menu_image
-  mov di, SCREEN_WIDTH*8
+  mov si, stars_image
+  xor di, di
   call draw_rle_image
+
+  mov si, planet_image
+  mov di, SCREEN_WIDTH*12
+  call draw_rle_image
+
+  mov si, logo_image
+  mov di, SCREEN_WIDTH*22
+  call draw_rle_image
+
   call ui.draw_footer
 
   mov byte [_GAME_STATE_], STATE_MENU
@@ -2214,8 +2243,14 @@ draw_rle_image:
     add dx, ax                          ; Add to line pixel counter
 
     lodsb                               ; Load pixel color
-    rep stosb                           ; Push pixels (CX times)
+    cmp ax, 0
+    je .skip_pixels
 
+    rep stosb                           ; Push pixels (CX times)
+    jmp .copied
+    .skip_pixels:
+      add di, cx
+    .copied:
     cmp dx, SCREEN_WIDTH                ; Check if we fill full line
     jl .continue                        ; Continue if not
     add di, SCREEN_WIDTH                ; Jump interlaced line
@@ -3565,9 +3600,12 @@ include 'font.asm'
 include 'sfx.asm'
 include 'tiles.asm'
 include 'img_p1x.asm'
-include 'img_menu.asm'
 include 'img_help.asm'
-include 'img_title.asm'
+include 'img_stars.asm'
+include 'img_clouds.asm'
+include 'img_planet.asm'
+include 'img_city.asm'
+include 'img_logo.asm'
 include 'img_briefing.asm'
 include 'img_pmkc.asm'
 
