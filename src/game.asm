@@ -84,9 +84,7 @@ _MOUSE_LOCK_              equ _BASE_ + 0x2C   ; 1 byte
 _MOUSE_TILE_POS_X_        equ _BASE_ + 0x2D   ; 2 bytes
 _MOUSE_TILE_POS_Y_        equ _BASE_ + 0x2F   ; 2 bytes
 _PODS_SPAWN_              equ _BASE_ + 0x31   ; 2 byte
-_ROCKET_X_                equ _BASE_ + 0x33   ; 2 bytes
-_ROCKET_Y_                equ _BASE_ + 0x35   ; 2 bytes
-_LANDING_TIMER_           equ _BASE_ + 0x37   ; 2 bytes
+_CINE_TIMER_              equ _BASE_ + 0x37   ; 2 bytes
 
 ; =========================================== ENGINE SETTINGS ===============|80
 ;
@@ -106,6 +104,8 @@ RADAR_VISIBILITY_RANGE                  equ 32      ; In tiles
 TILES_COUNT                             equ 0x52
 MAX_PODS                                equ 500
 LANDING_TIMER                           equ 64
+CINE_TITLE_TIMER                        equ 14
+CINE_BRIEFING_TIMER                     equ 18
 
 ; =========================================== GAME STATES ===================|80
 
@@ -118,21 +118,26 @@ STATE_PMKC_SCREEN_INIT                  equ 4
 STATE_PMKC_SCREEN                       equ 5
 STATE_TITLE_SCREEN_INIT                 equ 6
 STATE_TITLE_SCREEN                      equ 7
-STATE_MENU_INIT                         equ 8
-STATE_MENU                              equ 9
-STATE_LANDING_INIT                      equ 10
-STATE_LANDING                           equ 11
-STATE_GAME_NEW                          equ 12
-STATE_GAME_INIT                         equ 13
-STATE_GAME                              equ 14
-STATE_DEBUG_VIEW_INIT                   equ 15
-STATE_DEBUG_VIEW                        equ 16
-STATE_HELP_INIT                         equ 17
-STATE_HELP                              equ 18
-STATE_WINDOW_INIT                       equ 19
-STATE_WINDOW                            equ 20
-STATE_BRIEFING_INIT                     equ 21
-STATE_BRIEFING                          equ 22
+STATE_TITLE_SCREEN_CINE_INIT            equ 8
+STATE_TITLE_SCREEN_CINE                 equ 9
+STATE_MENU_INIT                         equ 10
+STATE_MENU                              equ 11
+STATE_LANDING_INIT                      equ 12
+STATE_LANDING                           equ 13
+STATE_GAME_NEW                          equ 14
+STATE_GAME_INIT                         equ 15
+STATE_GAME                              equ 16
+STATE_DEBUG_VIEW_INIT                   equ 17
+STATE_DEBUG_VIEW                        equ 18
+STATE_HELP_INIT                         equ 19
+STATE_HELP                              equ 20
+STATE_WINDOW_INIT                       equ 21
+STATE_WINDOW                            equ 22
+STATE_BRIEFING_INIT                     equ 23
+STATE_BRIEFING                          equ 24
+STATE_BRIEFING_CINE_INIT                equ 25
+STATE_BRIEFING_CINE                     equ 26
+
 
 SCENE_MODE_ANY                          equ 0x00
 SCENE_MODE_MAIN_MENU                    equ 0x00
@@ -1462,7 +1467,7 @@ menu_logic:
     jmp .done
 
   .show_brief:
-    mov byte [_GAME_STATE_], STATE_BRIEFING_INIT
+    mov byte [_GAME_STATE_], STATE_BRIEFING_CINE_INIT
     jmp .done
 
   .back_to_menu:
@@ -1507,9 +1512,7 @@ reset_to_default_values:
   mov word [_ECONOMY_WHITE_RES_], 0xF
   mov word [_ECONOMY_GREEN_RES_], 0xF
 
-  mov word [_ROCKET_X_], 0
-  mov word [_ROCKET_Y_], 0
-  mov word [_LANDING_TIMER_], 0
+  mov word [_CINE_TIMER_], 0
 ret
 
 init_p1x_screen:
@@ -1558,7 +1561,7 @@ init_title_screen:
   call draw_rle_image
 
   mov si, planet_image
-  mov di, SCREEN_WIDTH*91
+  mov di, SCREEN_WIDTH*96
   call draw_rle_image
 
   mov si, clouds_image
@@ -1570,7 +1573,7 @@ init_title_screen:
   call draw_rle_image
 
   mov si, logo_image
-  mov di, SCREEN_WIDTH*42
+  mov di, SCREEN_WIDTH*50
   call draw_rle_image
 
   mov si, CreatedByText
@@ -1589,6 +1592,11 @@ init_title_screen:
   mov byte [_GAME_STATE_], STATE_TITLE_SCREEN
 ret
 
+init_title_screen_cine:
+  mov word [_CINE_TIMER_], CINE_TITLE_TIMER
+  mov byte [_GAME_STATE_], STATE_TITLE_SCREEN_CINE
+ret
+
 init_briefing:
   mov al, COLOR_BLACK
   call clear_screen
@@ -1597,9 +1605,26 @@ init_briefing:
   xor di, di
   call draw_rle_image
 
+  mov si, planet_image
+  mov di, SCREEN_WIDTH*84
+  call draw_rle_image
+
+  mov si, brief_image
+  mov di, SCREEN_WIDTH*56
+  call draw_rle_image
+
+  mov si, logo_image
+  mov di, SCREEN_WIDTH*22
+  call draw_rle_image
+
   mov byte [_GAME_STATE_], STATE_BRIEFING
   mov byte [_SCENE_MODE_], SCENE_MODE_BRIEFING
   call window_logic.create_window
+ret
+
+init_briefing_cine:
+mov word [_CINE_TIMER_], CINE_BRIEFING_TIMER
+mov byte [_GAME_STATE_], STATE_BRIEFING_CINE
 ret
 
 init_help:
@@ -1624,8 +1649,6 @@ init_menu:
   mov di, SCREEN_WIDTH*22
   call draw_rle_image
 
-  call ui.draw_footer
-
   mov byte [_GAME_STATE_], STATE_MENU
   mov byte [_SCENE_MODE_], SCENE_MODE_MAIN_MENU
   mov byte [_MENU_SELECTION_POS_], 0x0
@@ -1649,7 +1672,7 @@ init_landing:
   call ui.draw_footer
   mov di, MAP_SIZE * (MAP_SIZE/2) + (MAP_SIZE/2)
   call actions_logic.update_radar_visibility
-  mov word [_LANDING_TIMER_], LANDING_TIMER
+  mov word [_CINE_TIMER_], LANDING_TIMER
   mov byte [_GAME_STATE_], STATE_LANDING
   mov byte [_SCENE_MODE_], SCENE_MODE_ANY
 ret
@@ -1671,8 +1694,97 @@ live_pmkc_screen:
   call font.draw_string
 ret
 
+live_title_screen_cine:
+  cmp word [_CINE_TIMER_], 0
+  je .cine_end
+  dec word [_CINE_TIMER_]
+
+  mov al, COLOR_BLACK
+  call clear_screen
+
+  mov si, stars_image
+  xor di, di
+  call draw_rle_image
+
+  mov bx, [_CINE_TIMER_]
+  sub bx, CINE_TITLE_TIMER
+  shl bx, 1
+  imul bx, SCREEN_WIDTH
+
+  mov si, planet_image
+  mov di, SCREEN_WIDTH*96 ; 11 - 80
+  add di, bx
+  add di, bx
+  add di, bx
+  call draw_rle_image
+
+  mov si, clouds_image
+  mov di, SCREEN_WIDTH*46 ; 200 - 54
+  sub di, bx
+  sub di, bx
+  sub di, bx
+  sub di, bx
+  sub di, bx
+  call draw_rle_image
+
+  mov si, city_image
+  mov di, SCREEN_WIDTH*100 ; 200 - 100
+  sub di, bx
+  sub di, bx
+  sub di, bx
+  call draw_rle_image
+
+  mov si, logo_image
+  mov di, SCREEN_WIDTH*50 ; 22 - 20
+  add di, bx
+  call draw_rle_image
+
+  ret
+  .cine_end:
+    mov byte [_GAME_STATE_], STATE_MENU_INIT
+    mov byte [_SCENE_MODE_], SCENE_MODE_ANY
+ret
+
 live_menu:
   call menu_logic.check_cursor_over
+ret
+
+live_briefing_cine:
+  cmp word [_CINE_TIMER_], 0
+  je .cine_end
+  dec word [_CINE_TIMER_]
+
+  mov al, COLOR_BLACK
+  call clear_screen
+
+  mov si, stars_image
+  xor di, di
+  call draw_rle_image
+
+  mov bx, [_CINE_TIMER_]
+  sub bx, CINE_BRIEFING_TIMER
+  shl bx, 2
+  imul bx, SCREEN_WIDTH
+
+  mov si, planet_image
+  mov di, SCREEN_WIDTH*12
+  sub di, bx
+  call draw_rle_image
+
+  mov si, logo_image
+  mov di, SCREEN_WIDTH*22
+  call draw_rle_image
+
+  mov si, brief_image
+  mov di, SCREEN_WIDTH*200
+  add di, bx
+  add di, bx
+  call draw_rle_image
+
+ret
+  .cine_end:
+    mov byte [_GAME_STATE_], STATE_BRIEFING_INIT
+    mov byte [_SCENE_MODE_], SCENE_MODE_ANY
 ret
 
 live_help:
@@ -1680,13 +1792,13 @@ ret
 
 live_landing:
   call draw_terrain
-  cmp word [_LANDING_TIMER_], 0
+  cmp word [_CINE_TIMER_], 0
   je .landed
-  dec word [_LANDING_TIMER_]
+  dec word [_CINE_TIMER_]
   ;call draw_rocket
 
   mov di, SCREEN_WIDTH*(LANDING_TIMER) + SCREEN_WIDTH/2
-  mov bx, [_LANDING_TIMER_]
+  mov bx, [_CINE_TIMER_]
   imul bx, SCREEN_WIDTH
   sub di, bx
   mov ax, TILE_ROCKET_TOP
@@ -2240,6 +2352,8 @@ draw_rle_image:
     lodsb                               ; Load number of pixels to repeat
     cmp ax, 0                           ; Check if end of image
     je .done                            ; Exit if end
+    cmp di, SCREEN_WIDTH*SCREEN_HEIGHT
+    jae .done
 
     mov cx, ax                          ; Save to CX
     add dx, ax                          ; Add to line pixel counter
@@ -2378,7 +2492,7 @@ draw_window:
     loop .bottom_loop
   .no_bottom_fill:
 
-
+  ; corner
   mov al, [si+8]                        ; corner
   call draw_sprite
 
@@ -3385,6 +3499,8 @@ StateJumpTable:
   dw live_pmkc_screen
   dw init_title_screen
   dw live_title_screen
+  dw init_title_screen_cine
+  dw live_title_screen_cine
   dw init_menu
   dw live_menu
   dw init_landing
@@ -3400,6 +3516,9 @@ StateJumpTable:
   dw live_window
   dw init_briefing
   dw live_briefing
+  dw init_briefing_cine
+  dw live_briefing_cine
+
 
 ; Transition between major states
 StateTransitionTable:
@@ -3410,8 +3529,11 @@ StateTransitionTable:
   db STATE_PMKC_SCREEN,   KB_ENTER, STATE_TITLE_SCREEN_INIT
   db STATE_PMKC_SCREEN,   MOUSE_LEFT_BUTTON, STATE_TITLE_SCREEN_INIT
   db STATE_TITLE_SCREEN,  KB_ESC,   STATE_QUIT
-  db STATE_TITLE_SCREEN,  KB_ENTER, STATE_MENU_INIT
-  db STATE_TITLE_SCREEN,  MOUSE_LEFT_BUTTON, STATE_MENU_INIT
+  db STATE_TITLE_SCREEN,  KB_ENTER, STATE_TITLE_SCREEN_CINE_INIT
+  db STATE_TITLE_SCREEN,  MOUSE_LEFT_BUTTON, STATE_TITLE_SCREEN_CINE_INIT
+  ;db STATE_TITLE_SCREEN_CINE,  KB_ESC,   STATE_QUIT
+  ;db STATE_TITLE_SCREEN_CINE,  KB_ENTER, STATE_MENU_INIT
+  ;db STATE_TITLE_SCREEN_CINE,  MOUSE_LEFT_BUTTON, STATE_MENU_INIT
   db STATE_MENU,          KB_ESC,   STATE_TITLE_SCREEN_INIT
   db STATE_BRIEFING,      KB_ESC,   STATE_MENU_INIT
   db STATE_HELP,          KB_ESC,   STATE_MENU_INIT
@@ -3592,7 +3714,7 @@ db 0, 0, 1, 4, 0, 0, 3, 9, 1, 6, 1, 10, 5, 7, 8, 2
 Patch9Dict:
   db TILE_WINDOW_1, TILE_WINDOW_2, TILE_WINDOW_3   ; top
   db TILE_WINDOW_4, TILE_UI_BG, TILE_WINDOW_5   ; middle
-  db TILE_WINDOW_4, TILE_UI_BG, TILE_WINDOW_5  ; bottom
+  db TILE_WINDOW_1, TILE_WINDOW_2, TILE_WINDOW_3  ; bottom
 
 ; =========================================== INCLUDES ======================|80
 
@@ -3611,6 +3733,7 @@ include 'img_planet.asm'
 include 'img_city.asm'
 include 'img_logo.asm'
 include 'img_pmkc.asm'
+include 'img_brief.asm'
 
 ; =========================================== THE END =======================|80
 ; Thanks for reading the source code!
