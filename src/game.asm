@@ -36,7 +36,7 @@
 
 org 0x0100
 
-BUILD_VER                               equ 0422
+BUILD_VER                               equ 0424
 
 ; =========================================== MEMORY LAYOUT =================|80
 
@@ -101,7 +101,7 @@ SPRITE_SIZE                             equ 16      ; In pixels
 FONT_SIZE                               equ 8       ; In pixels
 GAME_TURN_LENGTH                        equ 4       ; in game loops
 RADAR_VISIBILITY_RANGE                  equ 32      ; In tiles
-TILES_COUNT                             equ 0x52
+TILES_COUNT                             equ 0x4F
 MAX_PODS                                equ 500
 LANDING_TIMER                           equ 64
 CINE_TITLE_TIMER                        equ 14
@@ -220,21 +220,18 @@ TILE_CURSOR_BUILD                       equ 0x3F
 TILE_CURSOR_EDIT                        equ 0x40
 TILE_CURSOR_BUILDING                    equ 0x41
 TILE_CURSOR_SELECTOR                    equ 0x42
-TILE_UI_BG                              equ 0x43
-TILE_UI_HEADER                          equ 0x44
-TILE_UI_LEFT                            equ 0x45
-TILE_UI_RIGHT                           equ 0x46
-TILE_UI_HEADER_TXT                      equ 0x47
-TILE_IO_RIGHT                           equ 0x48
-TILE_IO_LEFT                            equ 0x49
-TILE_IO_UP                              equ 0x4A
-TILE_IO_DOWN                            equ 0x4B
-TILE_WINDOW_1                           equ 0x4C
-TILE_WINDOW_2                           equ 0x4D
-TILE_WINDOW_3                           equ 0x4E
-TILE_WINDOW_4                           equ 0x4F
-TILE_WINDOW_5                           equ 0x50
-TILE_FOG_OF_WAR                         equ 0x51
+TILE_WINDOW_4                           equ 0x43
+TILE_WINDOW_5                           equ 0x44
+TILE_WINDOW_6                           equ 0x45
+TILE_UI_HEADER                          equ 0x46
+TILE_IO_RIGHT                           equ 0x47
+TILE_IO_LEFT                            equ 0x48
+TILE_IO_UP                              equ 0x49
+TILE_IO_DOWN                            equ 0x4A
+TILE_WINDOW_1                           equ 0x4B
+TILE_WINDOW_2                           equ 0x4C
+TILE_WINDOW_3                           equ 0x4D
+TILE_FOG_OF_WAR                         equ 0x4E
 
 ; FOREGROUND TILES IDS
 TILE_FOREGROUND_SHIFT           equ TILE_RES_WHITE_LOW ; pointer to first FG tile
@@ -1395,12 +1392,16 @@ menu_logic:
     jmp .mouse_inside
 
     .mouse_outside:
-    xor dx, dx
+    xor dx,dx
+    mov dl, [_MENU_SELECTION_MAX_]
+    mov byte [_MENU_SELECTION_POS_], dl
+    jmp .redraw
 
     .mouse_inside:
     cmp byte [_MENU_SELECTION_POS_], dl
     jz .no_change
       mov byte [_MENU_SELECTION_POS_], dl
+      .redraw:
       call window_logic.redraw_window
     .no_change:
     ret
@@ -3084,7 +3085,7 @@ ui:
 
   .draw_stats:
     mov di, UI_STATS_POS
-    mov al, TILE_UI_HEADER_TXT
+    mov al, TILE_UI_HEADER
     mov cx, 4
     .bg1:
       call draw_sprite
@@ -3102,7 +3103,7 @@ ui:
 
     add di, 80
     push di
-    mov al, TILE_UI_HEADER_TXT
+    mov al, TILE_UI_HEADER
     mov cx, 4
     .bg2:
       call draw_sprite
@@ -3119,7 +3120,7 @@ ui:
 
     add di, 80
     push di
-    mov al, TILE_UI_HEADER_TXT
+    mov al, TILE_UI_HEADER
     mov cx, 4
     .bg3:
       call draw_sprite
@@ -3625,7 +3626,6 @@ dw menu_logic.help, 0x0
 dw menu_logic.quit, 0x0
 
 WindowBaseLogicArray:
-dw menu_logic.close_window, 0x0
 dw actions_logic.expand_foundation, 0x0
 dw actions_logic.place_building, TILE_BUILDING_COLECTOR_ID
 dw actions_logic.place_building, TILE_BUILDING_PODS_ID
@@ -3633,16 +3633,17 @@ dw actions_logic.place_building, TILE_BUILDING_SILOS_ID
 dw actions_logic.place_building, TILE_BUILDING_RAFINERY_ID
 dw actions_logic.place_building, TILE_BUILDING_LAB_ID
 dw actions_logic.place_building, TILE_BUILDING_RADAR_ID
+dw menu_logic.close_window, 0x0
 
 WindowRemoteLogicArray:
-dw menu_logic.close_window, 0x0
 dw game_logic.change_action, 0x0
 dw actions_logic.place_building, TILE_BUILDING_EXTRACTOR_ID
 dw actions_logic.place_building, TILE_BUILDING_RADAR_ID
+dw menu_logic.close_window, 0x0
 
 WindowStationLogicArray:
-dw menu_logic.close_window, 0x0
 dw actions_logic.place_station, 0x0
+dw menu_logic.close_window, 0x0
 
 WindowBriefingLogicArray:
 dw menu_logic.start_game, 0x0
@@ -3650,23 +3651,23 @@ dw new_game, 0x0
 dw menu_logic.back_to_menu, 0x0
 
 WindowPODsSelectionArray:
-dw menu_logic.close_window, 0x0
 dw game_logic.change_action, 0x0
 dw actions_logic.build_pods_station, 0x0
 dw actions_logic.build_pod, 0x0
+dw menu_logic.close_window, 0x0
 
 WindowAntennaSelectionArray:
 dw menu_logic.close_window, 0x0
 
 WindowExtractorSelectionArray:
-dw menu_logic.close_window, 0x0
 dw actions_logic.set_extractor_mode, TILE_EXTRACT_WHITE_ID
 dw actions_logic.set_extractor_mode, TILE_EXTRACT_GREEN_ID
 dw actions_logic.set_extractor_mode, TILE_EXTRACT_BLUE_ID
+dw menu_logic.close_window, 0x0
 
 WindowExtractInfoSelectionArray:
-dw menu_logic.close_window, 0x0
 dw actions_logic.set_extractor_mode, TILE_BUILDING_EXTRACTOR_ID
+dw menu_logic.close_window, 0x0
 
 WindowResourceInfoSelectionArray:
 dw menu_logic.close_window, 0x0
@@ -3713,7 +3714,7 @@ db 0, 0, 1, 4, 0, 0, 3, 9, 1, 6, 1, 10, 5, 7, 8, 2
 
 Patch9Dict:
   db TILE_WINDOW_1, TILE_WINDOW_2, TILE_WINDOW_3   ; top
-  db TILE_WINDOW_4, TILE_UI_BG, TILE_WINDOW_5   ; middle
+  db TILE_WINDOW_4, TILE_WINDOW_5, TILE_WINDOW_6   ; middle
   db TILE_WINDOW_1, TILE_WINDOW_2, TILE_WINDOW_3  ; bottom
 
 ; =========================================== INCLUDES ======================|80
