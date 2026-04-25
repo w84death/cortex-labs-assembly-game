@@ -106,37 +106,39 @@ MAX_PODS                                equ 500
 LANDING_TIMER                           equ 64
 CINE_TITLE_TIMER                        equ 14
 CINE_BRIEFING_TIMER                     equ 18
+CINE_P1X_TIMER                          equ 10
 
 ; =========================================== GAME STATES ===================|80
 
 ; Check StateJumpTable for functions IDs (n-th in a table)
 STATE_INIT_ENGINE                       equ 0
 STATE_QUIT                              equ 1
-STATE_P1X_SCREEN_INIT                   equ 2
-STATE_P1X_SCREEN                        equ 3
-STATE_PMKC_SCREEN_INIT                  equ 4
-STATE_PMKC_SCREEN                       equ 5
-STATE_TITLE_SCREEN_INIT                 equ 6
-STATE_TITLE_SCREEN                      equ 7
-STATE_TITLE_SCREEN_CINE_INIT            equ 8
-STATE_TITLE_SCREEN_CINE                 equ 9
-STATE_MENU_INIT                         equ 10
-STATE_MENU                              equ 11
-STATE_LANDING_INIT                      equ 12
-STATE_LANDING                           equ 13
-STATE_GAME_NEW                          equ 14
-STATE_GAME_INIT                         equ 15
-STATE_GAME                              equ 16
-STATE_DEBUG_VIEW_INIT                   equ 17
-STATE_DEBUG_VIEW                        equ 18
-STATE_HELP_INIT                         equ 19
-STATE_HELP                              equ 20
-STATE_WINDOW_INIT                       equ 21
-STATE_WINDOW                            equ 22
-STATE_BRIEFING_INIT                     equ 23
-STATE_BRIEFING                          equ 24
-STATE_BRIEFING_CINE_INIT                equ 25
-STATE_BRIEFING_CINE                     equ 26
+STATE_P1X_SCREEN_CINE                   equ 2
+STATE_P1X_SCREEN_INIT                   equ 3
+STATE_P1X_SCREEN                        equ 4
+STATE_PMKC_SCREEN_INIT                  equ 5
+STATE_PMKC_SCREEN                       equ 6
+STATE_TITLE_SCREEN_INIT                 equ 7
+STATE_TITLE_SCREEN                      equ 8
+STATE_TITLE_SCREEN_CINE_INIT            equ 9
+STATE_TITLE_SCREEN_CINE                 equ 10
+STATE_MENU_INIT                         equ 11
+STATE_MENU                              equ 12
+STATE_LANDING_INIT                      equ 13
+STATE_LANDING                           equ 14
+STATE_GAME_NEW                          equ 15
+STATE_GAME_INIT                         equ 16
+STATE_GAME                              equ 17
+STATE_DEBUG_VIEW_INIT                   equ 18
+STATE_DEBUG_VIEW                        equ 19
+STATE_HELP_INIT                         equ 20
+STATE_HELP                              equ 21
+STATE_WINDOW_INIT                       equ 22
+STATE_WINDOW                            equ 23
+STATE_BRIEFING_INIT                     equ 24
+STATE_BRIEFING                          equ 25
+STATE_BRIEFING_CINE_INIT                equ 26
+STATE_BRIEFING_CINE                     equ 27
 
 
 SCENE_MODE_ANY                          equ 0x00
@@ -1485,7 +1487,8 @@ init_engine:
   call audio.init
   call decompress_all_tiles
   call generate_map
-  mov byte [_GAME_STATE_], STATE_P1X_SCREEN_INIT
+  mov word [_CINE_TIMER_], CINE_P1X_TIMER
+  mov byte [_GAME_STATE_], STATE_P1X_SCREEN_CINE
 ret
 
 reset_to_default_values:
@@ -1524,7 +1527,13 @@ init_p1x_screen:
   xor di, di
   call draw_rle_image
 
-  mov si, p1x_image
+  mov si, p1x1_image
+  mov di, SCREEN_WIDTH*22
+  call draw_rle_image
+  mov si, p1x2_image
+  mov di, SCREEN_WIDTH*22
+  call draw_rle_image
+  mov si, p1x3_image
   mov di, SCREEN_WIDTH*22
   call draw_rle_image
 
@@ -1691,9 +1700,45 @@ live_briefing:
   call menu_logic.check_cursor_over
 ret
 
-live_p1x_screen:
+live_p1x_screen_cine:
+
+cmp word [_CINE_TIMER_], 0
+  je .cine_end
+  dec word [_CINE_TIMER_]
+mov al, COLOR_BLACK
+ call clear_screen
+
+ mov si, stars_image
+ xor di, di
+ call draw_rle_image
+
+ mov ax, [_CINE_TIMER_]
+ mov bx, CINE_P1X_TIMER
+ sub bx, ax
+ shl bx, 1
+ imul bx, SCREEN_WIDTH
+
+ mov si, p1x1_image
+ mov di, SCREEN_WIDTH
+ add di, bx
+ call draw_rle_image
+ mov si, p1x2_image
+ mov di, SCREEN_WIDTH*22
+ call draw_rle_image
+ mov si, p1x3_image
+ mov di, SCREEN_WIDTH*44
+ sub di, bx
+ call draw_rle_image
+ ret
+ .cine_end:
+     mov byte [_GAME_STATE_], STATE_P1X_SCREEN_INIT
+     mov byte [_SCENE_MODE_], SCENE_MODE_ANY
+ ret
+
+
 live_title_screen:
 live_pmkc_screen:
+live_p1x_screen:
   mov si, PressEnterText
   mov dx, 0x170F
   mov bl, COLOR_WHITE
@@ -3503,6 +3548,7 @@ audio:
 StateJumpTable:
   dw init_engine
   dw exit
+  dw live_p1x_screen_cine
   dw init_p1x_screen
   dw live_p1x_screen
   dw init_pmkc_screen
@@ -3736,7 +3782,9 @@ include 'text_en.asm'
 include 'font.asm'
 include 'sfx.asm'
 include 'tiles.asm'
-include 'img_p1x.asm'
+include 'img_p1x1.asm'
+include 'img_p1x2.asm'
+include 'img_p1x3.asm'
 include 'img_stars.asm'
 include 'img_clouds.asm'
 include 'img_planet.asm'
