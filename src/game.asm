@@ -1710,7 +1710,7 @@ ret
 
 live_p1x_screen_cine:
   mov ax, CINE_P1X_TIMER
-  call cine_calculations
+  call cine.calc_next_frame
   jc .cine_end
 
   mov al, COLOR_BLACK
@@ -1759,7 +1759,7 @@ ret
 
 live_title_screen_cine:
   mov ax, CINE_TITLE_TIMER
-  call cine_calculations
+  call cine.calc_next_frame
   jc .cine_end
 
   mov al, COLOR_BLACK
@@ -1809,7 +1809,7 @@ ret
 
 live_pmkc_screen_cine:
   mov ax, CINE_PMKC_TIMER
-  call cine_calculations
+  call cine.calc_next_frame
   jc .cine_end
 
   shl bx, 3
@@ -1833,26 +1833,10 @@ live_pmkc_screen_cine:
   ret
 
 
-cine_calculations:
-  cmp word [_CINE_TIMER_], 0
-  jle .cine_end
-  dec word [_CINE_TIMER_]
-
-  mov bx, [_CINE_TIMER_]
-  sub ax, bx
-  mov bx, ax
-  shl bx, 1
-  imul bx, SCREEN_WIDTH
-  clc
-  ret
-  .cine_end:
-  stc
-ret
-
 
 live_briefing_cine:
   mov ax, CINE_BRIEFING_TIMER
-  call cine_calculations
+  call cine.calc_next_frame
   jc .cine_end
 
   shl bx, 1
@@ -2181,6 +2165,8 @@ live_debug_view:
 ret
 
 
+; =========================================== PROCEDURES ====================|80
+
 draw_resource_sprite_from_si:
   mov al, [fs:si + META]
   and al, RESOURCE_TYPE_MASK
@@ -2194,6 +2180,24 @@ draw_resource_sprite_from_si:
 ret
 
 
+cine:
+  ; AX - cine timer value
+  .calc_next_frame:
+    cmp word [_CINE_TIMER_], 0          ; Check if timer ended
+    jle .cine_end                       ; Less or equal 0 to end
+
+    dec word [_CINE_TIMER_]             ; Decrement cinemati timer
+
+    mov bx, [_CINE_TIMER_]
+    sub ax, bx                          ; current timer in AX, sub end timer
+    mov bx, ax                          ; move result to bx
+    shl bx, 1                           ; Multiply by 2 (for interlaced rle)
+    imul bx, SCREEN_WIDTH               ; Multiply by screen line (move Y)
+    clc                                 ; No carry flag - proceed with animation
+  ret
+    .cine_end:
+    stc                                 ; Carry flag - animation ended
+  ret
 
 
 
@@ -2207,11 +2211,6 @@ ret
 
 
 
-
-
-
-
-; =========================================== PROCEDURES ====================|80
 
 ; =========================================== CUSTOM PALETTE ================|80
 ; IN: Palette data in RGB format
