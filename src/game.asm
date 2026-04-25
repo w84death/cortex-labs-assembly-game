@@ -85,6 +85,7 @@ _MOUSE_TILE_POS_X_        equ _BASE_ + 0x2D   ; 2 bytes
 _MOUSE_TILE_POS_Y_        equ _BASE_ + 0x2F   ; 2 bytes
 _PODS_SPAWN_              equ _BASE_ + 0x31   ; 2 byte
 _CINE_TIMER_              equ _BASE_ + 0x37   ; 2 bytes
+_IDLE_TICK_               equ _BASE_ + 0x39   ; 2 bytes
 
 ; =========================================== ENGINE SETTINGS ===============|80
 ;
@@ -107,6 +108,9 @@ LANDING_TIMER                           equ 64
 CINE_TITLE_TIMER                        equ 14
 CINE_BRIEFING_TIMER                     equ 18
 CINE_P1X_TIMER                          equ 10
+CINE_PMKC_TIMER                         equ 11
+CINE_STORY_TIMER                        equ 24
+SCREEN_IDLE_TIMER_END                   equ 128
 
 ; =========================================== GAME STATES ===================|80
 
@@ -116,29 +120,31 @@ STATE_QUIT                              equ 1
 STATE_P1X_SCREEN_CINE                   equ 2
 STATE_P1X_SCREEN_INIT                   equ 3
 STATE_P1X_SCREEN                        equ 4
-STATE_PMKC_SCREEN_INIT                  equ 5
-STATE_PMKC_SCREEN                       equ 6
-STATE_TITLE_SCREEN_INIT                 equ 7
-STATE_TITLE_SCREEN                      equ 8
-STATE_TITLE_SCREEN_CINE_INIT            equ 9
-STATE_TITLE_SCREEN_CINE                 equ 10
-STATE_MENU_INIT                         equ 11
-STATE_MENU                              equ 12
-STATE_LANDING_INIT                      equ 13
-STATE_LANDING                           equ 14
-STATE_GAME_NEW                          equ 15
-STATE_GAME_INIT                         equ 16
-STATE_GAME                              equ 17
-STATE_DEBUG_VIEW_INIT                   equ 18
-STATE_DEBUG_VIEW                        equ 19
-STATE_HELP_INIT                         equ 20
-STATE_HELP                              equ 21
-STATE_WINDOW_INIT                       equ 22
-STATE_WINDOW                            equ 23
-STATE_BRIEFING_INIT                     equ 24
-STATE_BRIEFING                          equ 25
-STATE_BRIEFING_CINE_INIT                equ 26
-STATE_BRIEFING_CINE                     equ 27
+STATE_PMKC_SCREEN_CINE_INIT             equ 5
+STATE_PMKC_SCREEN_CINE                  equ 6
+STATE_PMKC_SCREEN_INIT                  equ 7
+STATE_PMKC_SCREEN                       equ 8
+STATE_TITLE_SCREEN_INIT                 equ 9
+STATE_TITLE_SCREEN                      equ 10
+STATE_TITLE_SCREEN_CINE_INIT            equ 11
+STATE_TITLE_SCREEN_CINE                 equ 12
+STATE_MENU_INIT                         equ 13
+STATE_MENU                              equ 14
+STATE_LANDING_INIT                      equ 15
+STATE_LANDING                           equ 16
+STATE_GAME_NEW                          equ 17
+STATE_GAME_INIT                         equ 18
+STATE_GAME                              equ 19
+STATE_DEBUG_VIEW_INIT                   equ 20
+STATE_DEBUG_VIEW                        equ 21
+STATE_HELP_INIT                         equ 22
+STATE_HELP                              equ 23
+STATE_WINDOW_INIT                       equ 24
+STATE_WINDOW                            equ 25
+STATE_BRIEFING_INIT                     equ 26
+STATE_BRIEFING                          equ 27
+STATE_BRIEFING_CINE_INIT                equ 28
+STATE_BRIEFING_CINE                     equ 29
 
 
 SCENE_MODE_ANY                          equ 0x00
@@ -1493,6 +1499,7 @@ ret
 
 reset_to_default_values:
   mov dword [_GAME_TICK_], 0x0
+  mov word [_IDLE_TICK_], 0x0
   mov byte [_GAME_TURN_], 0x0
   mov byte [_GAME_STARTED_], 0x0
   mov word [_RNG_], 0x42
@@ -1543,6 +1550,12 @@ init_p1x_screen:
   mov byte [_GAME_STATE_], STATE_P1X_SCREEN
 ret
 
+init_pmkc_screen_cine:
+  mov word [_CINE_TIMER_], CINE_PMKC_TIMER
+  mov byte [_GAME_STATE_], STATE_PMKC_SCREEN_CINE
+  mov byte [_SCENE_MODE_], SCENE_MODE_ANY
+ret
+
 init_pmkc_screen:
   mov al, COLOR_BLACK
   call clear_screen
@@ -1555,13 +1568,8 @@ init_pmkc_screen:
   mov di, SCREEN_WIDTH*18
   call draw_rle_image
 
-  mov si, PMText
+  mov si, PMKCText
   mov dx, 0x1003
-  mov bl, COLOR_WHITE
-  call font.draw_string
-
-  mov si, KCText
-  mov dx, 0x1103
   mov bl, COLOR_WHITE
   call font.draw_string
 
@@ -1642,8 +1650,8 @@ init_briefing:
 ret
 
 init_briefing_cine:
-mov word [_CINE_TIMER_], CINE_BRIEFING_TIMER
-mov byte [_GAME_STATE_], STATE_BRIEFING_CINE
+  mov word [_CINE_TIMER_], CINE_BRIEFING_TIMER
+  mov byte [_GAME_STATE_], STATE_BRIEFING_CINE
 ret
 
 init_help:
@@ -1702,11 +1710,11 @@ ret
 
 live_p1x_screen_cine:
 
-cmp word [_CINE_TIMER_], 0
+  cmp word [_CINE_TIMER_], 0
   je .cine_end
   dec word [_CINE_TIMER_]
-mov al, COLOR_BLACK
- call clear_screen
+  mov al, COLOR_BLACK
+  call clear_screen
 
  mov si, stars_image
  xor di, di
@@ -1736,9 +1744,15 @@ mov al, COLOR_BLACK
  ret
 
 
-live_title_screen:
 live_pmkc_screen:
 live_p1x_screen:
+  inc word [_IDLE_TICK_]
+  cmp word [_IDLE_TICK_], SCREEN_IDLE_TIMER_END
+  jle .idling
+    inc byte [_GAME_STATE_]
+    mov word [_IDLE_TICK_], 0x0
+  .idling:
+live_title_screen:
   mov si, PressEnterText
   mov dx, 0x170F
   mov bl, COLOR_WHITE
@@ -1803,6 +1817,34 @@ ret
 live_menu:
   call menu_logic.check_cursor_over
 ret
+
+live_pmkc_screen_cine:
+  cmp word [_CINE_TIMER_], 0
+  je .cine_end
+  dec word [_CINE_TIMER_]
+
+  mov bx, [_CINE_TIMER_]
+  sub bx, CINE_PMKC_TIMER
+  shl bx, 4
+  imul bx, SCREEN_WIDTH
+
+  mov al, COLOR_BLACK
+  call clear_screen
+
+  mov si, stars_image
+  xor di, di
+  call draw_rle_image
+
+  mov si, pmkc_image
+  mov di, SCREEN_WIDTH*200
+  add di, bx
+  call draw_rle_image
+
+  ret
+  .cine_end:
+    mov byte [_GAME_STATE_], STATE_PMKC_SCREEN_INIT
+    mov byte [_SCENE_MODE_], SCENE_MODE_ANY
+  ret
 
 live_briefing_cine:
   cmp word [_CINE_TIMER_], 0
@@ -3551,6 +3593,8 @@ StateJumpTable:
   dw live_p1x_screen_cine
   dw init_p1x_screen
   dw live_p1x_screen
+  dw init_pmkc_screen_cine
+  dw live_pmkc_screen_cine
   dw init_pmkc_screen
   dw live_pmkc_screen
   dw init_title_screen
@@ -3578,18 +3622,25 @@ StateJumpTable:
 
 ; Transition between major states
 StateTransitionTable:
+
+  db STATE_P1X_SCREEN_CINE,    KB_ESC,   STATE_QUIT
+  db STATE_P1X_SCREEN_CINE,    KB_ENTER, STATE_P1X_SCREEN_INIT
+  db STATE_P1X_SCREEN_CINE,    MOUSE_LEFT_BUTTON, STATE_P1X_SCREEN_INIT
   db STATE_P1X_SCREEN,    KB_ESC,   STATE_QUIT
-  db STATE_P1X_SCREEN,    KB_ENTER, STATE_PMKC_SCREEN_INIT
-  db STATE_P1X_SCREEN,    MOUSE_LEFT_BUTTON, STATE_PMKC_SCREEN_INIT
+  db STATE_P1X_SCREEN,    KB_ENTER, STATE_PMKC_SCREEN_CINE_INIT
+  db STATE_P1X_SCREEN,    MOUSE_LEFT_BUTTON, STATE_PMKC_SCREEN_CINE_INIT
+  db STATE_PMKC_SCREEN_CINE_INIT,   KB_ESC,   STATE_QUIT
+  db STATE_PMKC_SCREEN_CINE_INIT,   KB_ENTER, STATE_PMKC_SCREEN_INIT
+  db STATE_PMKC_SCREEN_CINE_INIT,   MOUSE_LEFT_BUTTON, STATE_PMKC_SCREEN_INIT
   db STATE_PMKC_SCREEN,   KB_ESC,   STATE_QUIT
   db STATE_PMKC_SCREEN,   KB_ENTER, STATE_TITLE_SCREEN_INIT
   db STATE_PMKC_SCREEN,   MOUSE_LEFT_BUTTON, STATE_TITLE_SCREEN_INIT
   db STATE_TITLE_SCREEN,  KB_ESC,   STATE_QUIT
   db STATE_TITLE_SCREEN,  KB_ENTER, STATE_TITLE_SCREEN_CINE_INIT
   db STATE_TITLE_SCREEN,  MOUSE_LEFT_BUTTON, STATE_TITLE_SCREEN_CINE_INIT
-  ;db STATE_TITLE_SCREEN_CINE,  KB_ESC,   STATE_QUIT
-  ;db STATE_TITLE_SCREEN_CINE,  KB_ENTER, STATE_MENU_INIT
-  ;db STATE_TITLE_SCREEN_CINE,  MOUSE_LEFT_BUTTON, STATE_MENU_INIT
+  db STATE_TITLE_SCREEN_CINE,  KB_ESC,   STATE_QUIT
+  db STATE_TITLE_SCREEN_CINE,  KB_ENTER, STATE_MENU_INIT
+  db STATE_TITLE_SCREEN_CINE,  MOUSE_LEFT_BUTTON, STATE_MENU_INIT
   db STATE_MENU,          KB_ESC,   STATE_TITLE_SCREEN_INIT
   db STATE_BRIEFING,      KB_ESC,   STATE_MENU_INIT
   db STATE_HELP,          KB_ESC,   STATE_MENU_INIT
