@@ -1709,22 +1709,16 @@ live_briefing:
 ret
 
 live_p1x_screen_cine:
+  mov ax, CINE_P1X_TIMER
+  call cine_calculations
+  jc .cine_end
 
-  cmp word [_CINE_TIMER_], 0
-  je .cine_end
-  dec word [_CINE_TIMER_]
   mov al, COLOR_BLACK
   call clear_screen
 
  mov si, stars_image
  xor di, di
  call draw_rle_image
-
- mov ax, [_CINE_TIMER_]
- mov bx, CINE_P1X_TIMER
- sub bx, ax
- shl bx, 1
- imul bx, SCREEN_WIDTH
 
  mov si, p1x1_image
  mov di, SCREEN_WIDTH
@@ -1764,9 +1758,9 @@ live_title_screen:
 ret
 
 live_title_screen_cine:
-  cmp word [_CINE_TIMER_], 0
-  je .cine_end
-  dec word [_CINE_TIMER_]
+  mov ax, CINE_TITLE_TIMER
+  call cine_calculations
+  jc .cine_end
 
   mov al, COLOR_BLACK
   call clear_screen
@@ -1775,37 +1769,32 @@ live_title_screen_cine:
   xor di, di
   call draw_rle_image
 
-  mov bx, [_CINE_TIMER_]
-  sub bx, CINE_TITLE_TIMER
-  shl bx, 1
-  imul bx, SCREEN_WIDTH
-
   mov si, planet_image
   mov di, SCREEN_WIDTH*96 ; 11 - 80
-  add di, bx
-  add di, bx
-  add di, bx
+  sub di, bx
+  sub di, bx
+  sub di, bx
   call draw_rle_image
 
   mov si, clouds_image
   mov di, SCREEN_WIDTH*46 ; 200 - 54
-  sub di, bx
-  sub di, bx
-  sub di, bx
-  sub di, bx
-  sub di, bx
+  add di, bx
+  add di, bx
+  add di, bx
+  add di, bx
+  add di, bx
   call draw_rle_image
 
   mov si, city_image
   mov di, SCREEN_WIDTH*100 ; 200 - 100
-  sub di, bx
-  sub di, bx
-  sub di, bx
+  add di, bx
+  add di, bx
+  add di, bx
   call draw_rle_image
 
   mov si, logo_image
   mov di, SCREEN_WIDTH*50 ; 22 - 20
-  add di, bx
+  sub di, bx
   call draw_rle_image
 
   ret
@@ -1819,14 +1808,11 @@ live_menu:
 ret
 
 live_pmkc_screen_cine:
-  cmp word [_CINE_TIMER_], 0
-  je .cine_end
-  dec word [_CINE_TIMER_]
+  mov ax, CINE_PMKC_TIMER
+  call cine_calculations
+  jc .cine_end
 
-  mov bx, [_CINE_TIMER_]
-  sub bx, CINE_PMKC_TIMER
-  shl bx, 4
-  imul bx, SCREEN_WIDTH
+  shl bx, 3
 
   mov al, COLOR_BLACK
   call clear_screen
@@ -1837,7 +1823,7 @@ live_pmkc_screen_cine:
 
   mov si, pmkc_image
   mov di, SCREEN_WIDTH*200
-  add di, bx
+  sub di, bx
   call draw_rle_image
 
   ret
@@ -1846,10 +1832,30 @@ live_pmkc_screen_cine:
     mov byte [_SCENE_MODE_], SCENE_MODE_ANY
   ret
 
-live_briefing_cine:
+
+cine_calculations:
   cmp word [_CINE_TIMER_], 0
-  je .cine_end
+  jle .cine_end
   dec word [_CINE_TIMER_]
+
+  mov bx, [_CINE_TIMER_]
+  sub ax, bx
+  mov bx, ax
+  shl bx, 1
+  imul bx, SCREEN_WIDTH
+  clc
+  ret
+  .cine_end:
+  stc
+ret
+
+
+live_briefing_cine:
+  mov ax, CINE_BRIEFING_TIMER
+  call cine_calculations
+  jc .cine_end
+
+  shl bx, 1
 
   mov al, COLOR_BLACK
   call clear_screen
@@ -1858,14 +1864,9 @@ live_briefing_cine:
   xor di, di
   call draw_rle_image
 
-  mov bx, [_CINE_TIMER_]
-  sub bx, CINE_BRIEFING_TIMER
-  shl bx, 2
-  imul bx, SCREEN_WIDTH
-
   mov si, planet_image
   mov di, SCREEN_WIDTH*12
-  sub di, bx
+  add di, bx
   call draw_rle_image
 
   mov si, logo_image
@@ -1874,8 +1875,8 @@ live_briefing_cine:
 
   mov si, brief_image
   mov di, SCREEN_WIDTH*200
-  add di, bx
-  add di, bx
+  sub di, bx
+  sub di, bx
   call draw_rle_image
 
 ret
@@ -1885,6 +1886,27 @@ ret
 ret
 
 live_help:
+ret
+
+live_story:
+
+  mov di, HelpArrayText
+  movzx ax, byte [_SCENE_MODE_]
+  shl ax, 1
+  add di, ax
+  mov si, [di]
+
+  mov bl, COLOR_WHITE
+  mov dx, 0x0002
+  call font.draw_string
+  mov dx, 0x0101
+  .help_entry:
+    cmp byte [si], 0x00
+    jz .done
+    call font.draw_string
+    inc dh
+  jmp .help_entry
+  .done:
 ret
 
 live_landing:
