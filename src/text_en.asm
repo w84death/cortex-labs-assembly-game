@@ -1,6 +1,7 @@
 CreatedByText db 'HUMAN CODED ASSEMBLY BY',0x0
 KKJText db 'KRZYSZTOF KRYSTIAN JANKOWSKI',0x0
-PMKCText db 'POZNANSKIE MUZEUM KULTURY CYFROWEJ', 0x0
+PMText db 'POZNANSKIE MUZEUM', 0x0
+KCText db 'KULTURY CYFROWEJ', 0x0
 PressEnterText db 'PRESS ENTER', 0x0
 MainMenuCopyText db '(MIT) 2026 P1X',0x0
 QuitText db 'Thanks for playing!',0x0D,0x0A,'Visit http://smol.p1x.in/assembly for more...', 0x0D, 0x0A, 0x0

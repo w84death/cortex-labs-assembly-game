@@ -1538,12 +1538,21 @@ init_pmkc_screen:
   mov al, COLOR_BLACK
   call clear_screen
 
-  mov si, pmkc_image
+  mov si, stars_image
   xor di, di
   call draw_rle_image
 
-  mov si, PMKCText
-  mov dx, 0x1203
+  mov si, pmkc_image
+  mov di, SCREEN_WIDTH*18
+  call draw_rle_image
+
+  mov si, PMText
+  mov dx, 0x1003
+  mov bl, COLOR_WHITE
+  call font.draw_string
+
+  mov si, KCText
+  mov dx, 0x1103
   mov bl, COLOR_WHITE
   call font.draw_string
 
