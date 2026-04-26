@@ -109,7 +109,7 @@ CINE_TITLE_TIMER                        equ 14
 CINE_BRIEFING_TIMER                     equ 18
 CINE_P1X_TIMER                          equ 10
 CINE_PMKC_TIMER                         equ 11
-CINE_STORY_TIMER                        equ 24
+CINE_STORY_TIMER                        equ 200
 SCREEN_IDLE_TIMER_END                   equ 128
 
 ; =========================================== GAME STATES ===================|80
@@ -128,24 +128,25 @@ STATE_TITLE_SCREEN_INIT                 equ 9
 STATE_TITLE_SCREEN                      equ 10
 STATE_TITLE_SCREEN_CINE_INIT            equ 11
 STATE_TITLE_SCREEN_CINE                 equ 12
-STATE_MENU_INIT                         equ 13
-STATE_MENU                              equ 14
-STATE_LANDING_INIT                      equ 15
-STATE_LANDING                           equ 16
-STATE_GAME_NEW                          equ 17
-STATE_GAME_INIT                         equ 18
-STATE_GAME                              equ 19
-STATE_DEBUG_VIEW_INIT                   equ 20
-STATE_DEBUG_VIEW                        equ 21
-STATE_HELP_INIT                         equ 22
-STATE_HELP                              equ 23
-STATE_WINDOW_INIT                       equ 24
-STATE_WINDOW                            equ 25
-STATE_BRIEFING_INIT                     equ 26
-STATE_BRIEFING                          equ 27
-STATE_BRIEFING_CINE_INIT                equ 28
-STATE_BRIEFING_CINE                     equ 29
-
+STATE_MENU_SCREEN_INIT                  equ 13
+STATE_MENU_SCREEN                       equ 14
+STATE_BRIEFING_INIT                     equ 15
+STATE_BRIEFING                          equ 16
+STATE_BRIEFING_CINE_INIT                equ 17
+STATE_BRIEFING_CINE                     equ 18
+STATE_STORY_SCREEN_INIT                 equ 19
+STATE_STORY_SCREEN                      equ 20
+STATE_LANDING_INIT                      equ 21
+STATE_LANDING                           equ 22
+STATE_GAME_NEW                          equ 23
+STATE_GAME_INIT                         equ 24
+STATE_GAME                              equ 25
+STATE_DEBUG_VIEW_INIT                   equ 26
+STATE_DEBUG_VIEW                        equ 27
+STATE_HELP_INIT                         equ 28
+STATE_HELP                              equ 29
+STATE_WINDOW_INIT                       equ 30
+STATE_WINDOW                            equ 31
 
 SCENE_MODE_ANY                          equ 0x00
 SCENE_MODE_MAIN_MENU                    equ 0x00
@@ -158,6 +159,10 @@ SCENE_MODE_RADAR_VIEW                   equ 0x06
 SCENE_MODE_EXTRACTOR_SETUP              equ 0x07
 SCENE_MODE_EXTRACTOR_INFO               equ 0x08
 SCENE_MODE_RESOURCE_INFO                equ 0x09
+SCENE_MODE_STORY_PAGE1                  equ 0x0A
+SCENE_MODE_STORY_PAGE2                  equ 0x0B
+SCENE_MODE_STORY_PAGE3                  equ 0x0C
+SCENE_MODE_STORY_PAGE4                  equ 0x0D
 
 ; =========================================== TILES NAMES ===================|80
 
@@ -1400,10 +1405,15 @@ menu_logic:
     jmp .mouse_inside
 
     .mouse_outside:
-    xor dx,dx
-    mov dl, [_MENU_SELECTION_MAX_]
-    mov byte [_MENU_SELECTION_POS_], dl
-    jmp .redraw
+    xor dx, dx
+    cmp byte [_GAME_STATE_], STATE_MENU_SCREEN
+    jnz .windows_menus
+      mov byte [_MENU_SELECTION_POS_], dl
+      jmp .redraw
+    .windows_menus:
+      mov dl, [_MENU_SELECTION_MAX_]
+      mov byte [_MENU_SELECTION_POS_], dl
+      jmp .redraw
 
     .mouse_inside:
     cmp byte [_MENU_SELECTION_POS_], dl
@@ -1455,6 +1465,10 @@ menu_logic:
     mov byte [_GAME_STATE_], STATE_LANDING_INIT
     jmp .done
 
+  .start_story:
+    mov byte [_GAME_STATE_], STATE_STORY_SCREEN_INIT
+    jmp .done
+
   .generate_new_map:
     mov byte [_GAME_STATE_], STATE_GAME_NEW
     jmp .done
@@ -1480,7 +1494,7 @@ menu_logic:
     jmp .done
 
   .back_to_menu:
-    mov byte [_GAME_STATE_], STATE_MENU_INIT
+    mov byte [_GAME_STATE_], STATE_MENU_SCREEN_INIT
     jmp .done
 
   .done:
@@ -1654,6 +1668,12 @@ init_briefing_cine:
   mov byte [_GAME_STATE_], STATE_BRIEFING_CINE
 ret
 
+init_story:
+  mov word [_CINE_TIMER_], CINE_STORY_TIMER
+  mov byte [_GAME_STATE_], STATE_STORY_SCREEN
+  mov byte [_SCENE_MODE_], SCENE_MODE_STORY_PAGE1
+ret
+
 init_help:
   mov byte [_SCENE_MODE_], 0x0
   call draw_help_page
@@ -1676,7 +1696,7 @@ init_menu:
   mov di, SCREEN_WIDTH*22
   call draw_rle_image
 
-  mov byte [_GAME_STATE_], STATE_MENU
+  mov byte [_GAME_STATE_], STATE_MENU_SCREEN
   mov byte [_SCENE_MODE_], SCENE_MODE_MAIN_MENU
   mov byte [_MENU_SELECTION_POS_], 0x0
   call window_logic.create_window
@@ -1799,7 +1819,7 @@ live_title_screen_cine:
 
   ret
   .cine_end:
-    mov byte [_GAME_STATE_], STATE_MENU_INIT
+    mov byte [_GAME_STATE_], STATE_MENU_SCREEN_INIT
     mov byte [_SCENE_MODE_], SCENE_MODE_ANY
 ret
 
@@ -1873,8 +1893,26 @@ live_help:
 ret
 
 live_story:
+  test word [_GAME_TICK_], 1            ; skip odd frames
+  jz .done
 
-  mov di, HelpArrayText
+  mov ax, CINE_STORY_TIMER
+  call cine.calc_next_frame
+  jc .cine_end
+
+  mov al, COLOR_BLACK
+  call clear_screen
+
+  mov si, stars_image
+  xor di, di
+  call draw_rle_image
+
+  mov si, planet_big_image
+  mov di, SCREEN_WIDTH*200
+  sub di, bx
+  call draw_rle_image
+
+  mov di,StoryArrayText
   movzx ax, byte [_SCENE_MODE_]
   shl ax, 1
   add di, ax
@@ -1892,6 +1930,11 @@ live_story:
   jmp .help_entry
   .done:
 ret
+  .cine_end:
+    mov byte [_GAME_STATE_], STATE_BRIEFING_INIT
+    mov byte [_SCENE_MODE_], SCENE_MODE_ANY
+ret
+
 
 live_landing:
   call draw_terrain
@@ -3624,6 +3667,12 @@ StateJumpTable:
   dw live_title_screen_cine
   dw init_menu
   dw live_menu
+  dw init_briefing
+  dw live_briefing
+  dw init_briefing_cine
+  dw live_briefing_cine
+  dw init_story
+  dw live_story
   dw init_landing
   dw live_landing
   dw new_game
@@ -3635,42 +3684,40 @@ StateJumpTable:
   dw live_help
   dw init_window
   dw live_window
-  dw init_briefing
-  dw live_briefing
-  dw init_briefing_cine
-  dw live_briefing_cine
-
 
 ; Transition between major states
 StateTransitionTable:
 
-  db STATE_P1X_SCREEN_CINE,    KB_ESC,   STATE_QUIT
-  db STATE_P1X_SCREEN_CINE,    KB_ENTER, STATE_P1X_SCREEN_INIT
-  db STATE_P1X_SCREEN_CINE,    MOUSE_LEFT_BUTTON, STATE_P1X_SCREEN_INIT
-  db STATE_P1X_SCREEN,    KB_ESC,   STATE_QUIT
-  db STATE_P1X_SCREEN,    KB_ENTER, STATE_PMKC_SCREEN_CINE_INIT
-  db STATE_P1X_SCREEN,    MOUSE_LEFT_BUTTON, STATE_PMKC_SCREEN_CINE_INIT
-  db STATE_PMKC_SCREEN_CINE_INIT,   KB_ESC,   STATE_QUIT
-  db STATE_PMKC_SCREEN_CINE_INIT,   KB_ENTER, STATE_PMKC_SCREEN_INIT
-  db STATE_PMKC_SCREEN_CINE_INIT,   MOUSE_LEFT_BUTTON, STATE_PMKC_SCREEN_INIT
-  db STATE_PMKC_SCREEN,   KB_ESC,   STATE_QUIT
-  db STATE_PMKC_SCREEN,   KB_ENTER, STATE_TITLE_SCREEN_INIT
-  db STATE_PMKC_SCREEN,   MOUSE_LEFT_BUTTON, STATE_TITLE_SCREEN_INIT
-  db STATE_TITLE_SCREEN,  KB_ESC,   STATE_QUIT
-  db STATE_TITLE_SCREEN,  KB_ENTER, STATE_TITLE_SCREEN_CINE_INIT
-  db STATE_TITLE_SCREEN,  MOUSE_LEFT_BUTTON, STATE_TITLE_SCREEN_CINE_INIT
-  db STATE_TITLE_SCREEN_CINE,  KB_ESC,   STATE_QUIT
-  db STATE_TITLE_SCREEN_CINE,  KB_ENTER, STATE_MENU_INIT
-  db STATE_TITLE_SCREEN_CINE,  MOUSE_LEFT_BUTTON, STATE_MENU_INIT
-  db STATE_MENU,          KB_ESC,   STATE_TITLE_SCREEN_INIT
-  db STATE_BRIEFING,      KB_ESC,   STATE_MENU_INIT
-  db STATE_HELP,          KB_ESC,   STATE_MENU_INIT
-  db STATE_GAME,          KB_ESC,   STATE_MENU_INIT
-  db STATE_DEBUG_VIEW,    KB_ESC,   STATE_MENU_INIT
-  db STATE_MENU,          MOUSE_RIGHT_BUTTON,   STATE_TITLE_SCREEN_INIT
-  db STATE_BRIEFING,      MOUSE_RIGHT_BUTTON,   STATE_MENU_INIT
-  db STATE_HELP,          MOUSE_RIGHT_BUTTON,   STATE_MENU_INIT
-  db STATE_DEBUG_VIEW,    MOUSE_RIGHT_BUTTON,   STATE_MENU_INIT
+  db STATE_P1X_SCREEN_CINE,     KB_ESC,   STATE_QUIT
+  db STATE_P1X_SCREEN_CINE,     KB_ENTER, STATE_PMKC_SCREEN_CINE_INIT
+  db STATE_P1X_SCREEN_CINE,     MOUSE_LEFT_BUTTON, STATE_PMKC_SCREEN_CINE_INIT
+  db STATE_P1X_SCREEN,          KB_ESC,   STATE_QUIT
+  db STATE_P1X_SCREEN,          KB_ENTER, STATE_PMKC_SCREEN_CINE_INIT
+  db STATE_P1X_SCREEN,          MOUSE_LEFT_BUTTON, STATE_PMKC_SCREEN_CINE_INIT
+  db STATE_PMKC_SCREEN_CINE,    KB_ESC,   STATE_QUIT
+  db STATE_PMKC_SCREEN_CINE,    KB_ENTER, STATE_TITLE_SCREEN_CINE_INIT
+  db STATE_PMKC_SCREEN_CINE,    MOUSE_LEFT_BUTTON, STATE_TITLE_SCREEN_CINE_INIT
+  db STATE_PMKC_SCREEN,         KB_ESC,   STATE_QUIT
+  db STATE_PMKC_SCREEN,         KB_ENTER, STATE_TITLE_SCREEN_CINE_INIT
+  db STATE_PMKC_SCREEN,         MOUSE_LEFT_BUTTON, STATE_TITLE_SCREEN_CINE_INIT
+  db STATE_TITLE_SCREEN,        KB_ESC,   STATE_QUIT
+  db STATE_TITLE_SCREEN,        KB_ENTER, STATE_TITLE_SCREEN_CINE_INIT
+  db STATE_TITLE_SCREEN,        MOUSE_LEFT_BUTTON, STATE_TITLE_SCREEN_CINE_INIT
+  db STATE_TITLE_SCREEN_CINE,   KB_ESC,   STATE_QUIT
+  db STATE_TITLE_SCREEN_CINE,   KB_ENTER, STATE_MENU_SCREEN_INIT
+  db STATE_TITLE_SCREEN_CINE,   MOUSE_LEFT_BUTTON, STATE_MENU_SCREEN_INIT
+  db STATE_STORY_SCREEN,        KB_ESC,   STATE_MENU_SCREEN_INIT
+  db STATE_STORY_SCREEN,        KB_ENTER, STATE_LANDING_INIT
+  db STATE_STORY_SCREEN,        MOUSE_LEFT_BUTTON, STATE_LANDING_INIT
+  db STATE_MENU_SCREEN,         KB_ESC,   STATE_TITLE_SCREEN_INIT
+  db STATE_BRIEFING,            KB_ESC,   STATE_MENU_SCREEN_INIT
+  db STATE_HELP,                KB_ESC,   STATE_MENU_SCREEN_INIT
+  db STATE_GAME,                KB_ESC,   STATE_MENU_SCREEN_INIT
+  db STATE_DEBUG_VIEW,          KB_ESC,   STATE_MENU_SCREEN_INIT
+  db STATE_MENU_SCREEN,         MOUSE_RIGHT_BUTTON,   STATE_TITLE_SCREEN_INIT
+  db STATE_BRIEFING,            MOUSE_RIGHT_BUTTON,   STATE_MENU_SCREEN_INIT
+  db STATE_HELP,                MOUSE_RIGHT_BUTTON,   STATE_MENU_SCREEN_INIT
+  db STATE_DEBUG_VIEW,          MOUSE_RIGHT_BUTTON,   STATE_MENU_SCREEN_INIT
 StateTransitionTableEnd:
 
 ; In state keyboard handling
@@ -3692,13 +3739,13 @@ InputTable:
   db STATE_GAME,                        SCENE_MODE_ANY, KB_ENTER
   dw game_logic.change_action
 
-  db STATE_MENU,                        SCENE_MODE_ANY, KB_UP
+  db STATE_MENU_SCREEN,                        SCENE_MODE_ANY, KB_UP
   dw menu_logic.selection_up
-  db STATE_MENU,                        SCENE_MODE_ANY, KB_DOWN
+  db STATE_MENU_SCREEN,                        SCENE_MODE_ANY, KB_DOWN
   dw menu_logic.selection_down
-  db STATE_MENU,                        SCENE_MODE_ANY, KB_ENTER
+  db STATE_MENU_SCREEN,                        SCENE_MODE_ANY, KB_ENTER
   dw menu_logic.main_menu_enter
-  db STATE_MENU,                        SCENE_MODE_ANY, MOUSE_LEFT_BUTTON
+  db STATE_MENU_SCREEN,                        SCENE_MODE_ANY, MOUSE_LEFT_BUTTON
   dw menu_logic.main_menu_enter
 
   db STATE_WINDOW,                      SCENE_MODE_ANY, KB_UP
@@ -3773,7 +3820,7 @@ dw actions_logic.place_station, 0x0
 dw menu_logic.close_window, 0x0
 
 WindowBriefingLogicArray:
-dw menu_logic.start_game, 0x0
+dw menu_logic.start_story, 0x0
 dw new_game, 0x0
 dw menu_logic.back_to_menu, 0x0
 
@@ -3860,6 +3907,7 @@ include 'img_p1x3.asm'
 include 'img_stars.asm'
 include 'img_clouds.asm'
 include 'img_planet.asm'
+include 'img_planet_big.asm'
 include 'img_city.asm'
 include 'img_logo.asm'
 include 'img_pmkc.asm'

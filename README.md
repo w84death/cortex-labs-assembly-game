@@ -8,6 +8,32 @@ Real-time strategy for x86 processors made in assembly.
 
 ![Game screen](docs/screenshot-6.png)
 
+Cortex Labs is a strategic resource management game set on the hostile planet Kepler-486i, where you command robotic expeditions to harvest Neurofung - a revolutionary organism that can enhance human cognition and extend life by centuries. Operating from a safe orbital distance, you'll build an automated rail network to extract and transport three vital resources across a challenging 128x128 tile map.
+
+Deploy cargo pods on your expanding railway system, strategically placing switches at junctions to optimize routes between extractors and your main base. Establish stations with specialized buildings - factories to refine resources, laboratories to unlock new technologies. Balance the collection of crystals for construction, veins for fuel, and the precious Neurofung mushrooms that must be carefully managed to avoid depletion.
+
+## Story
+
+
+The year is 2147.
+Earth’s last unaging generation is dying.For three decades the greatest minds of Cortex Labs have chased a single impossible dream: Neurofung — the wild mushroom that grows only in the sulfur vents of Kepler-486i. A single gram extends human cognition and cellular lifespan by centuries. A kilogram could rewrite the future of our species.
+
+You are Orbital Commander, voice and mind of the automated expedition. Your body remains safe in the Lagrange habitat above Earth. Your will travels 1,400 light-seconds to the hostile surface of Kepler-486i.
+
+The planet has already claimed two previous missions. Its thin, toxic atmosphere, violent dust cyclones, and shifting tectonic plates make every landing a gamble. But the next planetary alignment — the only flight window for the return rocket — opens in exactly 87 Earth days. After that, the next opportunity is 14 years away.
+
+Touch down the Vanguard Base Module at the pre-scouted equatorial ridge.  
+Deploy the first wave of autonomous rail drones and begin construction of a self-expanding 128-by-128 tile transport network.  
+
+
+## Resources
+
+* *Aetherweave* - delicate, glowing white root-like veins that spread through the upper layers of Kepler-486i’s crust. These organic-mineral hybrids constantly release volatile methane-rich gases. 
+
+* *Cryonite* - dense, metallic-blue crystal rock formations embedded in the planet’s ancient basalt plates. Cryonite is incredibly hard yet surprisingly workable once fractured. It serves as the primary structural material for rail tracks, factories, extractors, and base expansions. 
+
+* *Neurofung groves* — the most precious biomass in the known galaxy. Harvest carefully. Over-extraction collapses the fungal network for decades. Under-extraction dooms Earth.
+
 
 ## Features
 * VGA 320x200, 16 colors (DawnBringer palette), 256-color mode
