@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GAME12 - Unnamed - 8K Version - X86 Assembly - P1X</title>
+    <link rel="stylesheet" href="js-dos.css" />
+    <style>
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        background: #121212;
+      }
+
+      #dos {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        z-index: 1;
+      }
+    </style>
+    <script src="js-dos.js"></script>
+  </head>
+  <body>
+    <div id="dos"></div>
+    <div class="controls">
+      <button class="control-btn" id="fullscreen-btn">Fullscreen</button>
+    </div>
+
+    <script>
+      // Initialize JS-DOS
+      Dos(document.getElementById("dos"), {
+        url: "game12.jsdos",
+        kiosk: true,
+        theme: "dark",
+        backend: "dosbox",
+        backendLocked: true,
+        autoStart: true,
+      });
+
+      // Fullscreen functionality
+      const fullscreenBtn = document.getElementById("fullscreen-btn");
+
+      fullscreenBtn.addEventListener("click", function () {
+        if (
+          !document.fullscreenElement &&
+          !document.webkitFullscreenElement &&
+          !document.mozFullScreenElement &&
+          !document.msFullscreenElement
+        ) {
+          // Enter fullscreen
+          const elem = document.documentElement;
+          if (elem.requestFullscreen) {
+            elem.requestFullscreen();
+          } else if (elem.webkitRequestFullscreen) {
+            elem.webkitRequestFullscreen();
+          } else if (elem.mozRequestFullScreen) {
+            elem.mozRequestFullScreen();
+          } else if (elem.msRequestFullscreen) {
+            elem.msRequestFullscreen();
+          }
+        } else {
+          // Exit fullscreen
+          if (document.exitFullscreen) {
+            document.exitFullscreen();
+          } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+          } else if (document.mozCancelFullScreen) {
+            document.mozCancelFullScreen();
+          } else if (document.msExitFullscreen) {
+            document.msExitFullscreen();
+          }
+        }
+      });
+
+      // Update fullscreen button text based on state
+      function updateFullscreenButton() {
+        if (
+          document.fullscreenElement ||
+          document.webkitFullscreenElement ||
+          document.mozFullScreenElement ||
+          document.msFullscreenElement
+        ) {
+          fullscreenBtn.textContent = "Exit Fullscreen";
+        } else {
+          fullscreenBtn.textContent = "Fullscreen";
+        }
+      }
+
+      document.addEventListener("fullscreenchange", updateFullscreenButton);
+      document.addEventListener(
+        "webkitfullscreenchange",
+        updateFullscreenButton,
+      );
+      document.addEventListener("mozfullscreenchange", updateFullscreenButton);
+      document.addEventListener("MSFullscreenChange", updateFullscreenButton);
+    </script>
+  </body>
+</html>
