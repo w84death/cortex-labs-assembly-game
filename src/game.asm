@@ -107,9 +107,9 @@ MAX_PODS                                equ 500
 LANDING_TIMER                           equ 64
 CINE_TITLE_TIMER                        equ 14
 CINE_BRIEFING_TIMER                     equ 18
-CINE_P1X_TIMER                          equ 10
+CINE_P1X_TIMER                          equ 80
 CINE_PMKC_TIMER                         equ 11
-CINE_STORY_TIMER                        equ 200
+CINE_STORY_TIMER                        equ 94
 SCREEN_IDLE_TIMER_END                   equ 128
 
 ; =========================================== GAME STATES ===================|80
@@ -159,10 +159,6 @@ SCENE_MODE_RADAR_VIEW                   equ 0x06
 SCENE_MODE_EXTRACTOR_SETUP              equ 0x07
 SCENE_MODE_EXTRACTOR_INFO               equ 0x08
 SCENE_MODE_RESOURCE_INFO                equ 0x09
-SCENE_MODE_STORY_PAGE1                  equ 0x0A
-SCENE_MODE_STORY_PAGE2                  equ 0x0B
-SCENE_MODE_STORY_PAGE3                  equ 0x0C
-SCENE_MODE_STORY_PAGE4                  equ 0x0D
 
 ; =========================================== TILES NAMES ===================|80
 
@@ -1254,7 +1250,6 @@ actions_logic:
     shl di, 7   ; Y * 128
     add di, [_CURSOR_X_]
 
-    xchg bx, bx
     and byte [fs:di + FG], 0xFF - FOREGROUND_SPRITE_MASK
     add byte [fs:di + FG], al
 
@@ -1405,21 +1400,23 @@ menu_logic:
     jmp .mouse_inside
 
     .mouse_outside:
-    xor dx, dx
-    cmp byte [_GAME_STATE_], STATE_MENU_SCREEN
-    jnz .windows_menus
-      mov byte [_MENU_SELECTION_POS_], dl
-      jmp .redraw
-    .windows_menus:
-      mov dl, [_MENU_SELECTION_MAX_]
-      mov byte [_MENU_SELECTION_POS_], dl
-      jmp .redraw
+      cmp byte [_GAME_STATE_], STATE_MENU_SCREEN
+      jz .move_to_top
+      cmp byte [_GAME_STATE_], STATE_BRIEFING
+      jz .move_to_top
+      .move_to_bottom:
+        mov dl, [_MENU_SELECTION_MAX_]
+        mov byte [_MENU_SELECTION_POS_], dl
+        jmp .redraw
+      .move_to_top:
+        mov byte [_MENU_SELECTION_POS_], 0x0
+        jmp .redraw
 
     .mouse_inside:
-    cmp byte [_MENU_SELECTION_POS_], dl
-    jz .no_change
-      mov byte [_MENU_SELECTION_POS_], dl
-      .redraw:
+      cmp byte [_MENU_SELECTION_POS_], dl
+      jz .no_change
+        mov byte [_MENU_SELECTION_POS_], dl
+     .redraw:
       call window_logic.redraw_window
     .no_change:
     ret
@@ -1467,6 +1464,7 @@ menu_logic:
 
   .start_story:
     mov byte [_GAME_STATE_], STATE_STORY_SCREEN_INIT
+    mov byte [_SCENE_MODE_], 0x0
     jmp .done
 
   .generate_new_map:
@@ -1671,7 +1669,7 @@ ret
 init_story:
   mov word [_CINE_TIMER_], CINE_STORY_TIMER
   mov byte [_GAME_STATE_], STATE_STORY_SCREEN
-  mov byte [_SCENE_MODE_], SCENE_MODE_STORY_PAGE1
+  mov byte [_SCENE_MODE_], 0x0
 ret
 
 init_help:
@@ -1729,33 +1727,46 @@ live_briefing:
 ret
 
 live_p1x_screen_cine:
-  mov ax, CINE_P1X_TIMER
-  call cine.calc_next_frame
-  jc .cine_end
+  dec word [_CINE_TIMER_]
+  mov bx, [_CINE_TIMER_]
+  cmp bx, 0
+  jle .cine_end
 
   mov al, COLOR_BLACK
   call clear_screen
 
- mov si, stars_image
- xor di, di
- call draw_rle_image
+  mov si, stars_image
+  xor di, di
+  call draw_rle_image
 
- mov si, p1x1_image
- mov di, SCREEN_WIDTH
- add di, bx
- call draw_rle_image
- mov si, p1x2_image
- mov di, SCREEN_WIDTH*22
- call draw_rle_image
- mov si, p1x3_image
- mov di, SCREEN_WIDTH*44
- sub di, bx
- call draw_rle_image
- ret
+  cmp bx, 60
+  jge .done
+  .draw_p:
+  mov si, p1x1_image
+  mov di, SCREEN_WIDTH*22
+  call draw_rle_image
+
+  cmp bx, 40
+  jge .done
+  .draw_1:
+  mov si, p1x2_image
+  mov di, SCREEN_WIDTH*22
+  call draw_rle_image
+
+  cmp bx, 20
+  jge .done
+  .draw_x:
+  mov si, p1x3_image
+  mov di, SCREEN_WIDTH*22
+  call draw_rle_image
+
+  .done:
+    ret
+
  .cine_end:
-     mov byte [_GAME_STATE_], STATE_P1X_SCREEN_INIT
-     mov byte [_SCENE_MODE_], SCENE_MODE_ANY
- ret
+    mov byte [_GAME_STATE_], STATE_P1X_SCREEN_INIT
+    mov byte [_SCENE_MODE_], SCENE_MODE_ANY
+    ret
 
 
 live_pmkc_screen:
@@ -1898,7 +1909,10 @@ live_story:
 
   mov ax, CINE_STORY_TIMER
   call cine.calc_next_frame
-  jc .cine_end
+  jnc .cine_live
+
+  mov bx, CINE_STORY_TIMER*SCREEN_WIDTH*2
+  .cine_live:
 
   mov al, COLOR_BLACK
   call clear_screen
@@ -1907,32 +1921,39 @@ live_story:
   xor di, di
   call draw_rle_image
 
+  mov si, earth_image
+  mov di, SCREEN_WIDTH*58
+  call draw_rle_image
+
   mov si, planet_big_image
   mov di, SCREEN_WIDTH*200
   sub di, bx
   call draw_rle_image
 
-  mov di,StoryArrayText
-  movzx ax, byte [_SCENE_MODE_]
-  shl ax, 1
-  add di, ax
-  mov si, [di]
-
+  mov si, rocket_image
+  mov di, SCREEN_WIDTH*12
+  add di, bx
+  call draw_rle_image
+  mov si,StoryLinesText
   mov bl, COLOR_WHITE
-  mov dx, 0x0002
-  call font.draw_string
   mov dx, 0x0101
-  .help_entry:
+  movzx cx, byte [_SCENE_MODE_]
+  .line:
     cmp byte [si], 0x00
-    jz .done
+    jz .end
     call font.draw_string
     inc dh
-  jmp .help_entry
+  loop .line
+  .end:
+
+
+  xchg bx,bx
+  cmp byte [_SCENE_MODE_], 21
+  jl .done
+  test word [_GAME_TICK_], 0xF
+  jz .done
+  inc byte [_SCENE_MODE_]
   .done:
-ret
-  .cine_end:
-    mov byte [_GAME_STATE_], STATE_BRIEFING_INIT
-    mov byte [_SCENE_MODE_], SCENE_MODE_ANY
 ret
 
 
@@ -1977,23 +1998,7 @@ draw_help_page:
   call draw_rle_image
 
   mov di, HelpArrayText
-  movzx ax, byte [_SCENE_MODE_]
-  shl ax, 1
-  add di, ax
-  mov si, [di]
-
-  mov bl, COLOR_WHITE
-  mov dx, 0x0002
-  call font.draw_string
-  mov dx, 0x0101
-  .help_entry:
-    cmp byte [si], 0x00
-    jz .done
-    call font.draw_string
-    inc dh
-  jmp .help_entry
-  .done:
-
+  call font.draw_text_array
 
   mov bl, COLOR_WHITE
   mov dx, 0x1502
@@ -2290,7 +2295,7 @@ db 54, 53, 23                           ; #DAD45E - Yellow
 db 55, 59, 53                           ; #DEEED6 - White
 
 terminal:
-  ; =========================================== DRAW TEXT ====================|80
+  ; =========================================== DRAW TEXT ===================|80
   ;  SI - Pointer to text
   ;  DL - X position
   ;  DH - Y position
@@ -2315,9 +2320,9 @@ terminal:
   ret
 
 
-; =========================================== FONT SUBSYSTEM ===============|80
+; =========================================== FONT SUBSYSTEM ================|80
 font:
-  ; =========================================== DRAW STRING ================|80
+  ; =========================================== DRAW STRING =================|80
   ;  SI - Pointer to text string
   ;  DL - X position (in character font size)
   ;  DH - Y position (in character font size)
@@ -2376,7 +2381,29 @@ font:
     loop .char_line
   ret
 
-  ; =========================================== DRAW NUMBER ===================|80
+  ; =========================================== DRAW TEXT ARRAY =============|80
+  ; IN:
+  ;   DI - Array pointe
+  .draw_text_array:
+    movzx ax, byte [_SCENE_MODE_]
+    shl ax, 1
+    add di, ax
+    mov si, [di]
+
+    mov bl, COLOR_WHITE
+    mov dx, 0x0002
+    call font.draw_string
+    mov dx, 0x0101
+    .line:
+      cmp byte [si], 0x00
+      jz .end
+      call font.draw_string
+      inc dh
+    jmp .line
+    .end:
+    ret
+
+  ; =========================================== DRAW NUMBER =================|80
   ; IN:
   ;   SI - Value to display (decimal)
   ;   DL - X position
@@ -3689,17 +3716,17 @@ StateJumpTable:
 StateTransitionTable:
 
   db STATE_P1X_SCREEN_CINE,     KB_ESC,   STATE_QUIT
-  db STATE_P1X_SCREEN_CINE,     KB_ENTER, STATE_PMKC_SCREEN_CINE_INIT
-  db STATE_P1X_SCREEN_CINE,     MOUSE_LEFT_BUTTON, STATE_PMKC_SCREEN_CINE_INIT
+  db STATE_P1X_SCREEN_CINE,     KB_ENTER, STATE_P1X_SCREEN_INIT
+  db STATE_P1X_SCREEN_CINE,     MOUSE_LEFT_BUTTON, STATE_P1X_SCREEN_INIT
   db STATE_P1X_SCREEN,          KB_ESC,   STATE_QUIT
   db STATE_P1X_SCREEN,          KB_ENTER, STATE_PMKC_SCREEN_CINE_INIT
   db STATE_P1X_SCREEN,          MOUSE_LEFT_BUTTON, STATE_PMKC_SCREEN_CINE_INIT
   db STATE_PMKC_SCREEN_CINE,    KB_ESC,   STATE_QUIT
-  db STATE_PMKC_SCREEN_CINE,    KB_ENTER, STATE_TITLE_SCREEN_CINE_INIT
-  db STATE_PMKC_SCREEN_CINE,    MOUSE_LEFT_BUTTON, STATE_TITLE_SCREEN_CINE_INIT
+  db STATE_PMKC_SCREEN_CINE,    KB_ENTER, STATE_PMKC_SCREEN_INIT
+  db STATE_PMKC_SCREEN_CINE,    MOUSE_LEFT_BUTTON, STATE_PMKC_SCREEN_INIT
   db STATE_PMKC_SCREEN,         KB_ESC,   STATE_QUIT
-  db STATE_PMKC_SCREEN,         KB_ENTER, STATE_TITLE_SCREEN_CINE_INIT
-  db STATE_PMKC_SCREEN,         MOUSE_LEFT_BUTTON, STATE_TITLE_SCREEN_CINE_INIT
+  db STATE_PMKC_SCREEN,         KB_ENTER, STATE_TITLE_SCREEN_INIT
+  db STATE_PMKC_SCREEN,         MOUSE_LEFT_BUTTON, STATE_TITLE_SCREEN_INIT
   db STATE_TITLE_SCREEN,        KB_ESC,   STATE_QUIT
   db STATE_TITLE_SCREEN,        KB_ENTER, STATE_TITLE_SCREEN_CINE_INIT
   db STATE_TITLE_SCREEN,        MOUSE_LEFT_BUTTON, STATE_TITLE_SCREEN_CINE_INIT
@@ -3908,6 +3935,8 @@ include 'img_stars.asm'
 include 'img_clouds.asm'
 include 'img_planet.asm'
 include 'img_planet_big.asm'
+include 'img_earth.asm'
+include 'img_rocket.asm'
 include 'img_city.asm'
 include 'img_logo.asm'
 include 'img_pmkc.asm'

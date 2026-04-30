@@ -12,41 +12,30 @@ Fontset3Text db 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',0x0
 
 
 ; =========================================== HELP SCREENS ==================|80
-StoryPage1Text:
+StoryLinesText:
+db ' ', 0x0
 db 'THE YEAR IS 2147.',0x0
-db 'EARTH’S LAST UNAGING GENERATION IS',0x0
-db 'DYING.FOR THREE DECADES THE GREATEST',0x0
+db ' ', 0x0
+db 'EARTHS LAST UNAGING GENERATION IS',0x0
+db 'DYING. FOR THREE DECADES THE GREATEST',0x0
 db 'MINDS OF CORTEX LABS HAVE CHASED A',0x0
-db 'SINGLE IMPOSSIBLE DREAM: NEUROFUNG.'
+db 'SINGLE IMPOSSIBLE DREAM: NEUROFUNG.',0x0
 db 'THE WILD MUSHROOM THAT GROWS ONLY',0x0
-db 'IN THE SULFUR VENTS OF KEPLER-486I. ',0x0
+db 'ON THE SURFACE OF OF KEPLER-486I. ',0x0
 db 'A SINGLE GRAM EXTENDS HUMAN',0x0
 db 'COGNITION AND CELLULAR LIFESPAN BY',0x0
 db 'CENTURIES. A KILOGRAM COULD REWRITE',0x0
 db 'THE FUTURE OF OUR SPECIES.',0x0
+db ' ', 0x0
+db 'YOU ARE ORBITAL COMMANDER, VOICE AND',0x0
+db 'MIND OF THE AUTOMATED EXPEDITION.'
+db ' ',0x0
+db 'YOUR MISSION IS TO HARVEST AS MUCH',0x0
+db 'NEUROFUNGUS AS POSSIBLE BEFORE THE',0x0
+db 'BIG STORM THAT WILL DESTROY ROCKET.',0x0
+db ' ',0x0
+db 'GOOD LUCK!',0x0
 db 0x0
-
-StoryPage2Text:
-db '-------------------------------------'
-db 'You are Orbital Commander, voice and mind of the automated expedition. Your body remains safe in the Lagrange habitat above Earth. Your will travels 1,400 light-seconds to the hostile surface of Kepler-486i.',0x0
-db 0x0
-
-StoryPage3Text:
-db '-------------------------------------'
-db 'The planet has already claimed two previous missions. Its thin, toxic atmosphere, violent dust cyclones, and shifting tectonic plates make every landing a gamble. But the next planetary alignment — the only flight window for the return rocket — opens in exactly 87 Earth days. After that, the next opportunity is 14 years away.',0x0
-db 0x0
-
-StoryPage4Text:
-db '-------------------------------------'
-db 'Touch down the Vanguard Base Module at the pre-scouted equatorial ridge.  ',0x0
-db 'Deploy the first wave of autonomous rail drones and begin construction of a self-expanding 128-by-128 tile transport network.',0x0
-db 0x0
-
-StoryArrayText:
-dw StoryPage1Text
-dw StoryPage2Text
-dw StoryPage3Text
-dw StoryPage4Text
 
 HelpFooter1Text db '> PRESS ENTER FOR NEXT PAGE',0x0
 HelpFooter2Text db '< PRESS ESC TO BACK TO MAIN MENU',0x0
