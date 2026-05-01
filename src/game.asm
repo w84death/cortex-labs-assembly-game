@@ -1947,7 +1947,6 @@ live_story:
   .end:
 
 
-  xchg bx,bx
   cmp byte [_SCENE_MODE_], 21
   jl .done
   test word [_GAME_TICK_], 0xF
@@ -2516,7 +2515,7 @@ draw_gradient:
     .down:
     dec al                              ; Decrease color in left pixel
     .up:
-    xchg al, ah                         ; Swap colors (left/right pixel)
+   xchg al, ah                         ; Swap colors (left/right pixel)
     dec dl                              ; Decrease number of bars to draw
     jg .draw_gradient                   ; Loop until all bars are drawn
 ret
