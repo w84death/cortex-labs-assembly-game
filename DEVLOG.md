@@ -1,13 +1,10 @@
 # TODO
-- make ui.draw_multiline_text
-- use in resource details
+- fix the gaddamed resources gen
+- render full rocket on top of map sprites
 - fix fake resouce
 - fix rigt edge mouse out of screen
 - add res requrements to menus to disable buing
 - each pod building starts with capacity
-- render full rocket on top of map sprites
-- additional PMKC screen
-- temporary story screens
 - add F1 to jump to base (center screen)
 - how to store/handle resource targets
 - generate map AFTER map selector
@@ -19,7 +16,9 @@
 - add resource screen with desc + amount - bugged
 
 # DONE
-
+- temrary story screens
+- additional PMKC screen
+- make ui.draw_multiline_text
 - fix extractor screen and reset
 - add pmkc screen
 - move all text to text_en file

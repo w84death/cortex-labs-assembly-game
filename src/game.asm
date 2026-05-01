@@ -2768,13 +2768,12 @@ generate_map:
         mov bl, RESOURCE_RES3_MASK
 
       .spawn_res:
-      jmp .skip_resource
+      ;jmp .skip_resource
       ; todo: clipping
         push cx
         push di
 
-
-        mov al, 0x7
+        mov al, 0x7                     ; Add initial 7 amount of resource
         shl al, RESOURCE_AMOUNT_SHIFT
         add bl, al
 
@@ -2782,15 +2781,14 @@ generate_map:
         mov cx, 4                       ; 4 rows
         .spray_row:
           push cx
+          call get_random
           mov cx, 4                     ; by 4 columns
           .spray_col:
             test byte [fs:di], RESOURCE_MASK
             jnz .skip_spray
 
-            call get_random
-            and ax, 0xf               ; 0..15
-            cmp ax, 0x4               ; if >= 4, skip spray
-            jge .skip_spray
+            test ax, 0x03              ; 0..15
+            jnz .skip_spray
               or byte [fs:di], RESOURCE_MASK    ; set resource mask
               mov byte [fs:di + META], bl       ; set resource type
             .skip_spray:
