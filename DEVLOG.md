@@ -1,4 +1,5 @@
 # TODO
+- draw target tile as selector/build icon on hover!
 - fix the gaddamed resources gen
 - render full rocket on top of map sprites
 - fix fake resouce

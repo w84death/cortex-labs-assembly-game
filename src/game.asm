@@ -2748,6 +2748,8 @@ generate_map:
       .skip_traversal:
 
       .add_resource:
+      test cx, 0xF
+      jz .skip_resource
       .boundary_check:
         mov ax, di
         mov dx, ax
@@ -2787,8 +2789,6 @@ generate_map:
         mov bl, RESOURCE_RES3_MASK
 
       .spawn_res:
-      ;jmp .skip_resource
-      ; todo: clipping
         push cx
         push di
 
@@ -2796,12 +2796,12 @@ generate_map:
         shl al, RESOURCE_AMOUNT_SHIFT
         add bl, al
 
-        sub di, MAP_SIZE*2-2            ; set pointer to 2 tiles left and up
-        mov cx, 4                       ; 4 rows
+        sub di, MAP_SIZE*2+2            ; set pointer to 2 tiles left and up
+        mov cx, 2                       ; 4 rows
         .spray_row:
           push cx
           call get_random
-          mov cx, 4                     ; by 4 columns
+          mov cx, 2                     ; by 4 columns
           .spray_col:
             test byte [fs:di], RESOURCE_MASK
             jnz .skip_spray             ; Skip if other resource is here
@@ -2812,7 +2812,7 @@ generate_map:
             .skip_spray:
             inc di
           loop .spray_col
-          add di, MAP_SIZE-4
+          add di, MAP_SIZE-2
         pop cx
         loop .spray_row
         pop di
