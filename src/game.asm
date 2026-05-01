@@ -2709,7 +2709,9 @@ generate_map:
   .next_row:
     mov dx, MAP_SIZE                    ; Width
     .next_col:
+      push cx
       call get_random                   ; AX is random value
+      pop cx                            ; restore loop counter
       and ax, TERRAIN_RULES_CROP        ; Crop to 0-7
       mov [fs:di], al                   ; Save terrain tile
       cmp dx, MAP_SIZE                  ; Check if first col
@@ -2733,6 +2735,7 @@ generate_map:
 
   .set_metadata:
     xor di, di
+    xor bx, bx
     mov cx, MAP_SIZE*MAP_SIZE
     .background_cell:
       mov byte [fs:di + FG], 0x0        ; Clear foreground data
@@ -2741,11 +2744,27 @@ generate_map:
 
       cmp bl, TILE_ROCKS_0    ; Last traversal sprite id
       jge .skip_traversal               ; If greater, skip
-      add byte [fs:di], TERRAIN_TRAVERSAL_MASK
+      or byte [fs:di], TERRAIN_TRAVERSAL_MASK
       .skip_traversal:
 
       .add_resource:
+      .boundary_check:
+        mov ax, di
+        mov dx, ax
+        and ax, 0x7F                  ; AX = column (di % 128)
+        shr dx, 7                     ; DX = row (di / 128)
+        cmp ax, 2                     ; col < 2?
+        jl .skip_resource
+        cmp ax, MAP_SIZE-2            ; col > MAP_SIZE-2?
+        jg .skip_resource
+        cmp dx, 2                     ; row < 2?
+        jl .skip_resource
+        cmp dx, MAP_SIZE-2            ; row > MAP_SIZE-2?
+        jg .skip_resource
+
+      push cx
       call get_random
+      pop cx
       and ax, 0x3f                      ; 0..63
       cmp ax, 0x1                       ; if random is 1 to 63, skip resource
       jge .skip_resource
@@ -2785,12 +2804,11 @@ generate_map:
           mov cx, 4                     ; by 4 columns
           .spray_col:
             test byte [fs:di], RESOURCE_MASK
+            jnz .skip_spray             ; Skip if other resource is here
+            test ax, cx                 ; cheap pseudo-randominess
             jnz .skip_spray
-
-            test ax, 0x03              ; 0..15
-            jnz .skip_spray
+              mov byte [fs:di + META], bl       ; set resource type + amount
               or byte [fs:di], RESOURCE_MASK    ; set resource mask
-              mov byte [fs:di + META], bl       ; set resource type
             .skip_spray:
             inc di
           loop .spray_col
@@ -2799,7 +2817,6 @@ generate_map:
         loop .spray_row
         pop di
         pop cx
-
 
       .skip_resource:
       inc di
@@ -2962,17 +2979,15 @@ draw_cell:
       add al, TILE_FOREGROUND_SHIFT
       call draw_sprite
 
-
     mov dl, [fs:si]
-    .draw_resource:
-      test dl, INFRASTRUCTURE_MASK
-      jnz .skip_resource
-      test dl, RESOURCE_MASK
-      jz .skip_resource
-        ;test byte [fs:si + META], RESOURCE_TYPE_MASK
-        ;jz .skip_resource
-        call draw_resource_sprite_from_si
-      .skip_resource:
+    test dl, INFRASTRUCTURE_MASK
+    jnz .skip_resource
+
+    test dl, RESOURCE_MASK
+    jz .skip_resource
+      call draw_resource_sprite_from_si
+      jmp .skip_foreground
+    .skip_resource:
 
     .draw_rails_stuff:
       test dl, RAIL_MASK                ; DL - Background layer
