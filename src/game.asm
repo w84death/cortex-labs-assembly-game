@@ -2059,7 +2059,7 @@ live_window:
   add si, [_CURSOR_X_]
 
   .get_position:
-    add ah, 4
+    add ah, 2
     shl al, 3
     shl ah, 3
     movzx di, ah
