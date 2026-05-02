@@ -36,7 +36,7 @@
 
 org 0x0100
 
-BUILD_VER                               equ 0501
+BUILD_VER                               equ 0502
 
 ; =========================================== MEMORY LAYOUT =================|80
 
@@ -3479,14 +3479,38 @@ ui:
 
     mov al, [fs:si + META]
     and al, TILE_DIRECTION_MASK
+    mov bl, al
     add al, TILE_IO_RIGHT
+
 
     push es
     push SEGMENT_VGA
     pop es
     call draw_sprite                      ; draw the in/out arrow
+    mov al, TILE_CURSOR_SELECTOR
+    .right:
+    cmp bl, 0x0
+    jnz .up
+      add di, SPRITE_SIZE
+      call draw_sprite                      ; draw right selector
+      jmp .end_selector
+    .up:
+    cmp bl, 0x01
+    jnz .left
+      sub di, SCREEN_WIDTH*SPRITE_SIZE
+      call draw_sprite                      ; draw up selector
+      jmp .end_selector
+    .left:
+    cmp bl, 0x02
+    jnz .down
+      sub di, SPRITE_SIZE
+      call draw_sprite                      ; draw left selector
+      jmp .end_selector
+    .down:
+      add di, SCREEN_WIDTH*SPRITE_SIZE
+      call draw_sprite                      ; draw down selector
+    .end_selector:
     pop es
-
     jmp .done
 
     .no_infra:
