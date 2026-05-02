@@ -1,7 +1,9 @@
 .vscode
 bx_enh_dbg.ini
 build/img
+build/release
 *.bin
 *.o
 *_raw*.com
 .zig-cache/
+third_party/

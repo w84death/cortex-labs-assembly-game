@@ -25,12 +25,31 @@ pub fn build(b: *std.Build) void {
     const manual_txt = "MANUAL.TXT";
     const jsdos_archive = "jsdos/game12.jsdos";
 
+    // DOSBox bundle templates
+    const bundle_conf = "packaging/dosbox.conf";
+    const bundle_run_bat = "packaging/run.bat";
+    const bundle_run_sh = "packaging/run.sh";
+
+    // Bundled DOSBox runtime source paths
+    const dosbox_windows_src = "third_party/dosbox/windows";
+    const dosbox_linux_src = "third_party/dosbox/linux";
+
+    // Release bundle outputs
+    const release_dir = b.pathJoin(&.{ build_dir, "release" });
+    const bundle_windows_dir = b.pathJoin(&.{ release_dir, "Cortex-Labs-windows" });
+    const bundle_linux_dir = b.pathJoin(&.{ release_dir, "Cortex-Labs-linux" });
+    const bundle_windows_game_dir = b.pathJoin(&.{ bundle_windows_dir, "game" });
+    const bundle_linux_game_dir = b.pathJoin(&.{ bundle_linux_dir, "game" });
+    const package_windows_zip = b.pathJoin(&.{ release_dir, "Cortex-Labs-windows.zip" });
+    const package_linux_tgz = b.pathJoin(&.{ release_dir, "Cortex-Labs-linux.tar.gz" });
+
     // USB floppy device (change this to match your system)
     const usb_floppy = "/dev/sdb";
 
     // Create directories step
     const mkdir_bin = b.addSystemCommand(&.{ "mkdir", "-p", bin_dir });
     const mkdir_img = b.addSystemCommand(&.{ "mkdir", "-p", img_dir });
+    const mkdir_release = b.addSystemCommand(&.{ "mkdir", "-p", release_dir });
 
     // Build bootloader
     const build_boot = b.addSystemCommand(&.{ "fasm", boot_asm, boot_bin });
@@ -157,6 +176,69 @@ pub fn build(b: *std.Build) void {
     const check_upx_step = b.step("check-upx", "Check if COM file is UPX compressed");
     check_upx_step.dependOn(&check_upx.step);
 
+    // DOSBox portable bundle (Windows)
+    const bundle_windows_cmd = b.fmt(
+        "set -e && " ++
+            "if [ ! -d {0s} ]; then echo 'Missing DOSBox runtime directory: {0s}'; echo 'Put Windows DOSBox files there (dosbox.exe and required DLLs).'; exit 1; fi && " ++
+            "rm -rf {1s} && mkdir -p {2s} && " ++
+            "cp {3s} {2s}/GAME.COM && " ++
+            "if [ -f {4s} ]; then cp {4s} {2s}/MANUAL.TXT; fi && " ++
+            "cp {5s} {1s}/dosbox.conf && " ++
+            "cp {6s} {1s}/run.bat && " ++
+            "cp -a {0s}/. {1s}/dosbox/ && " ++
+            "cp LICENSE {1s}/LICENSE",
+        .{ dosbox_windows_src, bundle_windows_dir, bundle_windows_game_dir, game_com_dos, manual_txt, bundle_conf, bundle_run_bat },
+    );
+    const bundle_windows = b.addSystemCommand(&.{ "sh", "-c", bundle_windows_cmd });
+    bundle_windows.step.dependOn(&compress_game_dos.step);
+    bundle_windows.step.dependOn(&mkdir_release.step);
+
+    // DOSBox portable bundle (Linux)
+    const bundle_linux_cmd = b.fmt(
+        "set -e && " ++
+            "if [ ! -d {0s} ]; then echo 'Missing DOSBox runtime directory: {0s}'; echo 'Put Linux DOSBox files there (dosbox binary and required libs).'; exit 1; fi && " ++
+            "rm -rf {1s} && mkdir -p {2s} && " ++
+            "cp {3s} {2s}/GAME.COM && " ++
+            "if [ -f {4s} ]; then cp {4s} {2s}/MANUAL.TXT; fi && " ++
+            "cp {5s} {1s}/dosbox.conf && " ++
+            "cp {6s} {1s}/run.sh && chmod +x {1s}/run.sh && " ++
+            "cp -a {0s}/. {1s}/dosbox/ && " ++
+            "cp LICENSE {1s}/LICENSE",
+        .{ dosbox_linux_src, bundle_linux_dir, bundle_linux_game_dir, game_com_dos, manual_txt, bundle_conf, bundle_run_sh },
+    );
+    const bundle_linux = b.addSystemCommand(&.{ "sh", "-c", bundle_linux_cmd });
+    bundle_linux.step.dependOn(&compress_game_dos.step);
+    bundle_linux.step.dependOn(&mkdir_release.step);
+
+    const bundle_windows_step = b.step("bundle-windows", "Build portable DOSBox bundle for Windows");
+    bundle_windows_step.dependOn(&bundle_windows.step);
+
+    const bundle_linux_step = b.step("bundle-linux", "Build portable DOSBox bundle for Linux");
+    bundle_linux_step.dependOn(&bundle_linux.step);
+
+    const bundle_step = b.step("bundle", "Build portable DOSBox bundles for Windows and Linux");
+    bundle_step.dependOn(&bundle_windows.step);
+    bundle_step.dependOn(&bundle_linux.step);
+
+    // Release archives
+    const package_windows_cmd = b.fmt("set -e && rm -f {0s} && cd {1s} && zip -r Cortex-Labs-windows.zip Cortex-Labs-windows", .{ package_windows_zip, release_dir });
+    const package_windows = b.addSystemCommand(&.{ "sh", "-c", package_windows_cmd });
+    package_windows.step.dependOn(&bundle_windows.step);
+
+    const package_linux_cmd = b.fmt("set -e && rm -f {0s} && cd {1s} && tar -czf Cortex-Labs-linux.tar.gz Cortex-Labs-linux", .{ package_linux_tgz, release_dir });
+    const package_linux = b.addSystemCommand(&.{ "sh", "-c", package_linux_cmd });
+    package_linux.step.dependOn(&bundle_linux.step);
+
+    const package_windows_step = b.step("package-windows", "Create Cortex-Labs-windows.zip");
+    package_windows_step.dependOn(&package_windows.step);
+
+    const package_linux_step = b.step("package-linux", "Create Cortex-Labs-linux.tar.gz");
+    package_linux_step.dependOn(&package_linux.step);
+
+    const package_step = b.step("package", "Create release archives for Windows and Linux bundles");
+    package_step.dependOn(&package_windows.step);
+    package_step.dependOn(&package_linux.step);
+
     // Opcode usage stats (from ASM sources)
     const opcodes_cmd =
         "echo '================================================' && " ++
@@ -212,7 +294,7 @@ pub fn build(b: *std.Build) void {
     const help_step = b.step("help", "Show help message");
     const show_help = b.addSystemCommand(&.{
         "sh",                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                "-c",
-        "echo 'GAME-12 Build Targets:' && echo '  all          - Build FAT12 bootable floppy image (default)' && echo '  com          - Build compressed COM file with UPX' && echo '  com-raw      - Build uncompressed COM file' && echo '  bochs        - Run in Bochs debugger' && echo '  qemu         - Run in QEMU emulator' && echo '  jsdos        - Build jsdos archive' && echo '  burn         - Burn to physical floppy' && echo '  stats        - Display project statistics' && echo '  opcodes      - List opcode usage frequency' && echo '  tools        - Build rleimg2asm tool' && echo '  clean        - Remove build artifacts' && echo '  clean-tools  - Clean rleimg2asm tool' && echo '' && echo 'UPX Compression Targets:' && echo '  decompress   - Decompress COM file for debugging' && echo '  test-upx     - Test different UPX compression levels' && echo '  check-upx    - Check if COM file is UPX compressed' && echo '' && echo 'Development Tools:' && echo '  rleimg2asm   - Convert images to RLE-compressed assembly' && echo '' && echo 'The floppy image is DOS-compatible and contains:' && echo '  GAME.COM     - The game executable' && echo '  MANUAL.TXT   - Game manual'",
+        "echo 'GAME-12 Build Targets:' && echo '  all            - Build FAT12 bootable floppy image (default)' && echo '  com            - Build compressed COM file with UPX' && echo '  com-raw        - Build uncompressed COM file' && echo '  bochs          - Run in Bochs debugger' && echo '  qemu           - Run in QEMU emulator' && echo '  jsdos          - Build jsdos archive' && echo '  burn           - Burn to physical floppy' && echo '  stats          - Display project statistics' && echo '  opcodes        - List opcode usage frequency' && echo '  tools          - Build rleimg2asm tool' && echo '  clean          - Remove build artifacts' && echo '  clean-tools    - Clean rleimg2asm tool' && echo '' && echo 'DOSBox Bundle Targets:' && echo '  bundle-windows - Build Cortex-Labs-windows bundle' && echo '  bundle-linux   - Build Cortex-Labs-linux bundle' && echo '  bundle         - Build both OS bundles' && echo '  package-windows - Create Cortex-Labs-windows.zip' && echo '  package-linux  - Create Cortex-Labs-linux.tar.gz' && echo '  package        - Create both release archives' && echo '' && echo 'UPX Compression Targets:' && echo '  decompress     - Decompress COM file for debugging' && echo '  test-upx       - Test different UPX compression levels' && echo '  check-upx      - Check if COM file is UPX compressed' && echo '' && echo 'Development Tools:' && echo '  rleimg2asm     - Convert images to RLE-compressed assembly' && echo '' && echo 'The floppy image is DOS-compatible and contains:' && echo '  GAME.COM       - The game executable' && echo '  MANUAL.TXT     - Game manual'",
     });
     help_step.dependOn(&show_help.step);
 }
