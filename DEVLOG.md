@@ -1,5 +1,7 @@
 # TODO
-- add F1 to jump to base (center screen)
+- tooltips on bottom for actions
+  - actions manager
+- disable target for extractors
 - render full rocket on top of map sprites
 - fix rigt edge mouse out of screen
 - add res requrements to menus to disable buing
@@ -13,6 +15,7 @@
 # PARKED
 
 # DONE
+- add F1 help, F2 to jump to base (center screen)
 - fix the gaddamed resources gen
 - add resource screen with desc + amount - bugged
 - draw target tile as selector/build icon on hover!

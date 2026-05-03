@@ -1937,23 +1937,24 @@ live_story:
   mov di, SCREEN_WIDTH*12
   add di, bx
   call draw_rle_image
+
   mov si,StoryLinesText
   mov bl, COLOR_WHITE
   mov dx, 0x0101
   movzx cx, byte [_SCENE_MODE_]
+  cmp cx, 0x0
+  jz .end
   .line:
     cmp byte [si], 0x00
     jz .end
+    push cx
     call font.draw_string
+    pop cx
     inc dh
   loop .line
   .end:
-
-
-  cmp byte [_SCENE_MODE_], 21
-  jl .done
-  test word [_GAME_TICK_], 0xF
-  jz .done
+  test word [_GAME_TICK_], 0x6
+  jnz .done
   inc byte [_SCENE_MODE_]
   .done:
 ret

@@ -1,6 +1,6 @@
 # ![Cortex Labs](docs/logo.png)
 
-Real-time strategy for x86 processors made in assembly.
+Real-time strategy for x86 processors made in pure assembly. Art made in custom tool (Zig).
 
 # Latest build
 
@@ -16,15 +16,14 @@ Deploy cargo pods on your expanding railway system, strategically placing switch
 
 ## Story
 
-The year is 2147.
-Earth’s last unaging generation is dying.For three decades the greatest minds of Cortex Labs have chased a single impossible dream: Neurofung — the wild mushroom that grows only in the sulfur vents of Kepler-486i. A single gram extends human cognition and cellular lifespan by centuries. A kilogram could rewrite the future of our species.
+Earth’s last unaging generation is dying.
+For three decades the greatest minds of Cortex Labs have chased a single impossible dream: Neurofung, the wild mushroom that grows only on the surface of Kepler-486i. A single gram extends human cognition and cellular lifespan by centuries. A kilogram could rewrite the future of our species.
 
-You are Orbital Commander, voice and mind of the automated expedition. Your body remains safe in the Lagrange habitat above Earth. Your will travels 1,400 light-seconds to the hostile surface of Kepler-486i.
+You are Orbital Commander, voice and mind of the automated expedition.
 
-The planet has already claimed two previous missions. Its thin, toxic atmosphere, violent dust cyclones, and shifting tectonic plates make every landing a gamble. But the next planetary alignment — the only flight window for the return rocket — opens in exactly 87 Earth days. After that, the next opportunity is 14 years away.
+Your mission is to harvest as much Neurofung as possible before the meteorite storm closes in and destroys the return rocket. This is the last chance to secure the precious fungi!
 
-Touch down the Vanguard Base Module at the pre-scouted equatorial ridge.  
-Deploy the first wave of autonomous rail drones and begin construction of a self-expanding 128-by-128 tile transport network.  
+Good luck.
 
 
 ## Resources
@@ -78,6 +77,13 @@ Boot from a floppy or run from MS-DOS (FreeDOS). Floppy image has game file (gam
 ## Building
 Uses Zig build system (`build.zig`) with FASM assembler.
 
+### Requirements
+- `zig`
+- `fasm`
+- `upx`
+- `mtools` (`mformat`, `mcopy`, `mdir`) for floppy image creation
+- Optional runners: `qemu-system-i386`, `bochs`
+
 Build bootable floppy image (default):
 ```
 zig build
@@ -108,15 +114,75 @@ Build jsdos archive:
 zig build jsdos
 ```
 
+Burn floppy image to physical device (`/dev/sdb` in build script):
+```
+zig build burn
+```
+
 Display project statistics:
 ```
 zig build stats
+```
+
+Display opcode usage stats:
+```
+zig build opcodes
+```
+
+Build release tooling executable:
+```
+zig build tools
+```
+
+Decompress COM file for debugging:
+```
+zig build decompress
+```
+
+Test UPX compression levels:
+```
+zig build test-upx
+```
+
+Check UPX compression status:
+```
+zig build check-upx
+```
+
+Build DOSBox portable bundles:
+```
+zig build bundle-windows
+zig build bundle-linux
+zig build bundle
+```
+
+Package DOSBox release archives:
+```
+zig build package-windows
+zig build package-linux
+zig build package
+```
+
+Clean artifacts:
+```
+zig build clean
+zig build clean-tools
 ```
 
 Show all available targets:
 ```
 zig build help
 ```
+
+## DOSBox Releases
+
+Prebuilt DOSBox bundles are published on the GitHub Releases page:
+
+https://github.com/w84death/game12-asm/releases
+
+Look for:
+- `Cortex-Labs-windows.zip`
+- `Cortex-Labs-linux.tar.gz`
 
 ## Tools
 
