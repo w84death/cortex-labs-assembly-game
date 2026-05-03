@@ -36,7 +36,7 @@
 
 org 0x0100
 
-BUILD_VER                               equ 0502
+BUILD_VER                               equ 0503
 
 ; =========================================== MEMORY LAYOUT =================|80
 
@@ -1862,8 +1862,6 @@ live_pmkc_screen_cine:
     mov byte [_GAME_STATE_], STATE_PMKC_SCREEN_INIT
     mov byte [_SCENE_MODE_], SCENE_MODE_ANY
   ret
-
-
 
 live_briefing_cine:
   mov ax, CINE_BRIEFING_TIMER
