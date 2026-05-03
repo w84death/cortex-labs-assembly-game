@@ -982,6 +982,17 @@ game_logic:
     call ui.draw_stats
     jmp .done
 
+  .center_on_base:
+    call center_view
+    jmp .redraw_terrain
+
+  .show_help:
+    mov byte [_GAME_STATE_], STATE_HELP_INIT
+    mov byte [_SCENE_MODE_], 0x0
+    jmp .done
+
+  ; space for more funcrions
+
   .done:
     ret
 
@@ -1516,13 +1527,7 @@ reset_to_default_values:
   mov byte [_GAME_STARTED_], 0x0
   mov word [_RNG_], 0x42
 
-  mov word [_VIEWPORT_X_], MAP_SIZE/2-VIEWPORT_WIDTH/2
-  mov word [_VIEWPORT_Y_], MAP_SIZE/2-VIEWPORT_HEIGHT/2
-  mov word [_CURSOR_X_], MAP_SIZE/2
-  mov word [_CURSOR_Y_], MAP_SIZE/2
-  mov word [_CURSOR_X_OLD_], MAP_SIZE/2
-  mov word [_CURSOR_Y_OLD_], MAP_SIZE/2
-
+  call center_view
   mov word [_SFX_POINTER_], SFX_NULL
 
   mov word [_LAST_ENT_POD_ID_], 0
@@ -3573,6 +3578,15 @@ ui:
     pop es
     ret
 
+
+  center_view:
+    mov word [_VIEWPORT_X_], MAP_SIZE/2-VIEWPORT_WIDTH/2
+    mov word [_VIEWPORT_Y_], MAP_SIZE/2-VIEWPORT_HEIGHT/2
+    mov word [_CURSOR_X_], MAP_SIZE/2
+    mov word [_CURSOR_Y_], MAP_SIZE/2
+    mov word [_CURSOR_X_OLD_], MAP_SIZE/2
+    mov word [_CURSOR_Y_OLD_], MAP_SIZE/2
+  ret
 ; =========================================== AUDIO SYSTEM ==================|80
 audio:
   .init:
@@ -3801,6 +3815,10 @@ InputTable:
   dw game_logic.change_action
   db STATE_GAME,                        SCENE_MODE_ANY, KB_ENTER
   dw game_logic.change_action
+  db STATE_GAME,                        SCENE_MODE_ANY, KB_F2
+  dw game_logic.center_on_base
+  db STATE_GAME,                        SCENE_MODE_ANY, KB_F1
+  dw game_logic.show_help
 
   db STATE_MENU_SCREEN,                        SCENE_MODE_ANY, KB_UP
   dw menu_logic.selection_up

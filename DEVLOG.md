@@ -1,12 +1,9 @@
 # TODO
-- draw target tile as selector/build icon on hover!
-- fix the gaddamed resources gen
+- add F1 to jump to base (center screen)
 - render full rocket on top of map sprites
-- fix fake resouce
 - fix rigt edge mouse out of screen
 - add res requrements to menus to disable buing
 - each pod building starts with capacity
-- add F1 to jump to base (center screen)
 - how to store/handle resource targets
 - generate map AFTER map selector
 - map generation via seed
@@ -14,9 +11,11 @@
 - update help with something we have already
 
 # PARKED
-- add resource screen with desc + amount - bugged
 
 # DONE
+- fix the gaddamed resources gen
+- add resource screen with desc + amount - bugged
+- draw target tile as selector/build icon on hover!
 - temrary story screens
 - additional PMKC screen
 - make ui.draw_multiline_text
