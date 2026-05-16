@@ -1129,6 +1129,7 @@ actions_logic:
     mov byte [fs:di + FG], al
     cmp bx, TILE_BUILDING_RADAR_ID
     jz .update_radar
+    jmp .done
 
     .update_radar:
       call .update_radar_visibility
@@ -1138,23 +1139,82 @@ actions_logic:
     jmp .done
 
   .update_radar_visibility:
-    sub di, MAP_SIZE * (RADAR_VISIBILITY_RANGE / 2)
-    ; todo: top edge
-    sub di, RADAR_VISIBILITY_RANGE / 2
-    ; clip left edge
-    mov cx, RADAR_VISIBILITY_RANGE
+    push ax
+    push bx
+    push cx
+    push dx
+    push si
+    push bp
+
+    mov ax, di
+    and ax, MAP_SIZE-1                    ; AX = center X
+    mov bx, ax                            ; BX = start X
+    mov ax, di
+    shr ax, 7                             ; AX = center Y
+    mov si, ax                            ; SI = start Y
+
+    .clip_top:
+      cmp si, RADAR_VISIBILITY_RANGE / 2
+      jae .full_height
+        mov dx, si
+        add dx, RADAR_VISIBILITY_RANGE / 2
+        xor si, si
+        jmp .clip_bottom
+      .full_height:
+        sub si, RADAR_VISIBILITY_RANGE / 2
+        mov dx, RADAR_VISIBILITY_RANGE
+
+    .clip_bottom:
+      mov ax, si
+      add ax, dx
+      cmp ax, MAP_SIZE
+      jbe .clip_left
+        mov dx, MAP_SIZE
+        sub dx, si
+
+    .clip_left:
+      cmp bx, RADAR_VISIBILITY_RANGE / 2
+      jae .full_width
+        mov bp, bx
+        add bp, RADAR_VISIBILITY_RANGE / 2
+        xor bx, bx
+        jmp .clip_right
+      .full_width:
+        sub bx, RADAR_VISIBILITY_RANGE / 2
+        mov bp, RADAR_VISIBILITY_RANGE
+
+    .clip_right:
+      mov ax, bx
+      add ax, bp
+      cmp ax, MAP_SIZE
+      jbe .calculate_start
+        mov bp, MAP_SIZE
+        sub bp, bx
+
+    .calculate_start:
+      mov di, si
+      shl di, 7
+      add di, bx
+
+    mov cx, dx
     .radar_row:
       push cx
-      mov cx, RADAR_VISIBILITY_RANGE
+      mov cx, bp
       .radar_col:
         or byte [fs:di + META], RADAR_VISIBILITY_MASK
         inc di
-        ; clip right edge
       loop .radar_col
-      add di, MAP_SIZE - RADAR_VISIBILITY_RANGE
-      ; clip bottom edge
+      add di, MAP_SIZE
+      sub di, bp
       pop cx
     loop .radar_row
+
+    pop bp
+    pop si
+    pop dx
+    pop cx
+    pop bx
+    pop ax
     ret
 
   .update_extractor_targets:
@@ -1536,10 +1596,14 @@ reset_to_default_values:
   mov word [_SFX_POINTER_], SFX_NULL
 
   mov word [_LAST_ENT_POD_ID_], 0
+  push es
+  push SEGMENT_MAP
+  pop es
   xor ax, ax
   mov di, PODS            ; 0xC000
   mov cx, (0x10000 - PODS) / 2   ; words to clear = 0x2000
   rep stosw
+  pop es
 
   mov word [_ECONOMY_BLUE_RES_], 0xF
   mov word [_ECONOMY_WHITE_RES_], 0xF
@@ -2377,7 +2441,7 @@ font:
       loop .pixel
         jmp .next_line                  ; Jump to next line on last pixel
         .draw_px:
-        mov word [es:di], bx            ; Color pixel
+        mov byte [es:di], bl            ; Color pixel
         inc di
       loop .pixel                       ; Next pixel
       .next_line:
@@ -2543,16 +2607,16 @@ draw_rle_image:
   xor dx, dx
   .image_loop:
     lodsb                               ; Load number of pixels to repeat
-    cmp ax, 0                           ; Check if end of image
+    test al, al                         ; Check if end of image
     je .done                            ; Exit if end
     cmp di, SCREEN_WIDTH*SCREEN_HEIGHT
     jae .done
 
-    mov cx, ax                          ; Save to CX
-    add dx, ax                          ; Add to line pixel counter
+    movzx cx, al                        ; Save to CX
+    add dx, cx                          ; Add to line pixel counter
 
     lodsb                               ; Load pixel color
-    cmp ax, 0
+    test al, al
     je .skip_pixels
 
     rep stosb                           ; Push pixels (CX times)
