@@ -991,7 +991,7 @@ game_logic:
     mov byte [_SCENE_MODE_], 0x0
     jmp .done
 
-  ; space for more funcrions
+  ; space for more functions
 
   .done:
     ret
@@ -999,8 +999,11 @@ game_logic:
 game_render:
   .draw_front_elements:
     ; todo: calculate proper center map position and clamp
-      mov di, SCREEN_WIDTH*(LANDING_TIMER+16) + SCREEN_WIDTH/2
+      mov di, SCREEN_WIDTH*(SCREEN_HEIGHT/2) + SCREEN_WIDTH/2
+      mov ax, TILE_ROCKET_MIDDLE
+      call draw_sprite
       mov ax, TILE_ROCKET_TOP
+      sub di, SCREEN_WIDTH*SPRITE_SIZE
       call draw_sprite
   ret
 
@@ -1518,6 +1521,8 @@ init_engine:
   call generate_map
   mov word [_CINE_TIMER_], CINE_P1X_TIMER
   mov byte [_GAME_STATE_], STATE_P1X_SCREEN_CINE
+  mov bx, P1X_JINGLE
+  call audio.play_sfx
 ret
 
 reset_to_default_values:
@@ -1560,9 +1565,6 @@ init_p1x_screen:
   mov si, p1x3_image
   mov di, SCREEN_WIDTH*22
   call draw_rle_image
-
-  mov bx, INTRO_JINGLE
-  call audio.play_sfx
 
   mov byte [_GAME_STATE_], STATE_P1X_SCREEN
 ret

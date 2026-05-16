@@ -135,7 +135,7 @@ db 0x00
 
 WindowRemoteBuildingsText   db 'REMOTE BUILDINGS',0x0
 WindowRemoteSelectionArrayText:
-db 'ROTATE EXIT TARGET:',0x0
+db '> ROTATE EXIT TARGET',0x0
 db '+ BUILD EXTRACTOR',0x0
 db '+ BUILD ANTENNA',0x0
 db '< CLOSE WINDOW',0x0
