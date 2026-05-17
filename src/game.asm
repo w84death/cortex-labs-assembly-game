@@ -2090,6 +2090,16 @@ ret
 
 init_window:
   call window_logic.create_window
+
+  cmp byte [_SCENE_MODE_], SCENE_MODE_RADAR_VIEW
+  je .widget_radar
+  jmp .done
+
+  .widget_radar:
+    call ui.draw_radar_map
+    jmp .done
+
+  .done:
   mov byte [_GAME_STATE_], STATE_WINDOW
 ret
 
@@ -2131,8 +2141,6 @@ live_window:
   .select_widget:
     cmp byte [_SCENE_MODE_], SCENE_MODE_UPGRADE_BUILDINGS
     je .widget_rotate
-    cmp byte [_SCENE_MODE_], SCENE_MODE_RADAR_VIEW
-    je .widget_radar
     cmp byte [_SCENE_MODE_], SCENE_MODE_EXTRACTOR_SETUP
     je .widget_extractor
     cmp byte [_SCENE_MODE_], SCENE_MODE_EXTRACTOR_INFO
@@ -2146,10 +2154,6 @@ live_window:
     and al, TILE_DIRECTION_MASK
     add al, TILE_IO_RIGHT
     call draw_sprite
-    jmp .done
-
-  .widget_radar:
-    call ui.draw_radar_map
     jmp .done
 
   .widget_extractor:
