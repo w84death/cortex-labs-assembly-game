@@ -151,7 +151,7 @@ STATE_WINDOW                            equ 31
 SCENE_MODE_ANY                          equ 0x00
 SCENE_MODE_MAIN_MENU                    equ 0x00
 SCENE_MODE_BASE_BUILDINGS               equ 0x01
-SCENE_MODE_REMOTE_BUILDINGS             equ 0x02
+SCENE_MODE_STATION_BUILDINGS            equ 0x02
 SCENE_MODE_STATION                      equ 0x03
 SCENE_MODE_BRIEFING                     equ 0x04
 SCENE_MODE_UPGRADE_BUILDINGS            equ 0x05
@@ -159,6 +159,10 @@ SCENE_MODE_RADAR_VIEW                   equ 0x06
 SCENE_MODE_EXTRACTOR_SETUP              equ 0x07
 SCENE_MODE_EXTRACTOR_INFO               equ 0x08
 SCENE_MODE_RESOURCE_INFO                equ 0x09
+SCENE_MODE_COLECTOR_INFO                equ 0x0A
+SCENE_MODE_LABORATORY_SETUP             equ 0x0B
+SCENE_MODE_RAFINERY_SETUP               equ 0x0C
+SCENE_MODE_SILOS_INFO                   equ 0x0D
 
 ; =========================================== TILES NAMES ===================|80
 
@@ -783,6 +787,9 @@ game_logic:
 
       cmp bl, TILE_BUILDING_EXTRACTOR_ID
       jz .extractor_setup
+      cmp bl, TILE_BUILDING_RAFINERY_ID
+      jz .rafinery_setup
+      jz .extractor_setup
       cmp bl, TILE_EXTRACT_WHITE_ID
       jz .extractor_info
       cmp bl, TILE_EXTRACT_GREEN_ID
@@ -802,7 +809,7 @@ game_logic:
         jmp .pop_window
 
       .remote_building:
-        mov bx, SCENE_MODE_REMOTE_BUILDINGS
+        mov bx, SCENE_MODE_STATION_BUILDINGS
         jmp .pop_window
 
       .upgrade_building:
@@ -819,6 +826,10 @@ game_logic:
 
       .extractor_setup:
         mov bx, SCENE_MODE_EXTRACTOR_SETUP
+        jmp .pop_window
+
+      .rafinery_setup:
+        mov bx, SCENE_MODE_RAFINERY_SETUP
         jmp .pop_window
 
       .extractor_info:
@@ -2097,7 +2108,7 @@ init_window:
 
   .widget_radar:
     call ui.draw_radar_map
-    jmp .done
+    ;jmp .done
 
   .done:
   mov byte [_GAME_STATE_], STATE_WINDOW
@@ -3922,16 +3933,20 @@ InputTableEnd:
 
 ; height/width, Y/X, title, menu entry array, corresponding logic array
 WindowDefinitionsArray:
-dw 0x050C, 0x0C09, WindowMainMenuText, MainMenuSelectionArrayText, MainMenuLogicArray
-dw 0x090C, 0x0408, WindowBaseBuildingsText, WindowBaseSelectionArrayText, WindowBaseLogicArray
-dw 0x050C, 0x0C08, WindowStationBuildingsText, WindowStationBuildingsSelectionArrayText, WindowStationBuildingsLogicArray
-dw 0x030A, 0x100A, WindowStationText, WindowStationSelectionArrayText, WindowStationLogicArray
-dw 0x040B, 0x0E08, WindowBriefingText, WindowBriefingSelectionArrayText, WindowBriefingLogicArray
-dw 0x050D, 0x0C08, WindowPODsText, WindowPODsSelectionArrayText, WindowPODsSelectionArray
-dw 0x0109, 0x1215, WindowAntennaText, WindowAntennaSelectionArrayText, WindowAntennaSelectionArray
-dw 0x050C, 0x0C08, WindowExtractorText, WindowExtractorSelectionArrayText, WindowExtractorSelectionArray
-dw 0x030C, 0x1008, WindowExtractInfoText, WindowExtractInfoSelectionArrayText, WindowExtractInfoSelectionArray
-dw 0x030C, 0x1008, WindowResourceInfoText, WindowResourceInfoSelectionArrayText, WindowResourceInfoSelectionArray
+dw 0x050C, 0x0C09, WindowMainMenuText, MainMenuMenusText, MainMenuLogicArray
+dw 0x090C, 0x0408, WindowBaseBuildingsText, WindowBaseMenusText, WindowBaseLogicArray
+dw 0x050C, 0x0C08, WindowStationBuildingsText, WindowStationBuildingsMenusText, WindowStationBuildingsLogicArray
+dw 0x030A, 0x100A, WindowStationText, WindowStationMenusText, WindowStationLogicArray
+dw 0x040B, 0x0E08, WindowBriefingText, WindowBriefingMenusText, WindowBriefingLogicArray
+dw 0x050D, 0x0C08, WindowPODsText, WindowPODsMenusText, WindowPODsMenus
+dw 0x0109, 0x1215, WindowAntennaText, WindowAntennaMenusText, WindowAntennaMenus
+dw 0x050C, 0x0C08, WindowExtractorText, WindowExtractorMenusText, WindowExtractorMenus
+dw 0x030C, 0x1008, WindowExtractInfoText, WindowExtractInfoMenusText, WindowExtractInfoMenus
+dw 0x030C, 0x1008, WindowResourceInfoText, WindowResourceInfoMenusText, WindowResourceInfoMenus
+dw 0x030A, 0x100A, WindowColectorText, WindowColectorMenusText, WindowEmptyLogicArray
+dw 0x030A, 0x100A, WindowLaboratoryText, WindowLaboratoryMenusText, WindowEmptyLogicArray
+dw 0x030A, 0x100A, WindowRafineryText, WindowRafineryMenusText, WindowEmptyLogicArray
+dw 0x030A, 0x100A, WindowSilosText, WindowSilosMenusText, WindowEmptyLogicArray
 
 MainMenuLogicArray:
 dw menu_logic.show_brief, 0x0
@@ -3966,26 +3981,26 @@ dw menu_logic.start_story, 0x0
 dw new_game, 0x0
 dw menu_logic.back_to_menu, 0x0
 
-WindowPODsSelectionArray:
+WindowPODsMenus:
 dw game_logic.change_action, 0x0
 dw actions_logic.build_pods_station, 0x0
 dw actions_logic.build_pod, 0x0
 dw menu_logic.close_window, 0x0
 
-WindowAntennaSelectionArray:
+WindowAntennaMenus:
 dw menu_logic.close_window, 0x0
 
-WindowExtractorSelectionArray:
+WindowExtractorMenus:
 dw actions_logic.set_extractor_mode, TILE_EXTRACT_WHITE_ID
 dw actions_logic.set_extractor_mode, TILE_EXTRACT_GREEN_ID
 dw actions_logic.set_extractor_mode, TILE_EXTRACT_BLUE_ID
 dw menu_logic.close_window, 0x0
 
-WindowExtractInfoSelectionArray:
+WindowExtractInfoMenus:
 dw actions_logic.set_extractor_mode, TILE_BUILDING_EXTRACTOR_ID
 dw menu_logic.close_window, 0x0
 
-WindowResourceInfoSelectionArray:
+WindowResourceInfoMenus:
 dw menu_logic.close_window, 0x0
 
 ; =========================================== TERRAIN GEN RULES =============|80

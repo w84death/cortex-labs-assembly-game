@@ -114,7 +114,7 @@ dw HelpPage7Text
 ; =========================================== WINDOWS DEFINITIONS ===========|80
 
 WindowMainMenuText          db 'MAIN MANU',0x0
-MainMenuSelectionArrayText:
+MainMenuMenusText:
 db '> NEW GAME',0x0
 db '# PREVIEW TILESETS',0x0
 db '? QUICK HELP',0x0
@@ -127,7 +127,7 @@ db '< CLOSE WINDOW',0x0
 db 0x00
 
 WindowBaseBuildingsText     db 'BASE BUILDING',0x0
-WindowBaseSelectionArrayText:
+WindowBaseMenusText:
 db '> EXPAND BASE',0x0
 db '+ BUILD COLECTOR',0x0
 db '+ BUILD POD FACTORY',0x0
@@ -139,31 +139,36 @@ db '< CLOSE WINDOW',0x0
 db 0x00
 
 WindowLaboratoryText   db 'LABORATORY',0x0
-WindowLaboratoryArrayText:
-db '+ RESEARCH A',0x0
-db '+ RESEARCH B',0x0
-db '+ RESEARCH C',0x0
+WindowLaboratoryMenusText:
+;db '+ RESEARCH A',0x0
+;db '+ RESEARCH B',0x0
+;db '+ RESEARCH C',0x0
 db '< CLOSE WINDOW',0x0
 db 0x00
 
 WindowColectorText   db 'COLECTOR',0x0
-WindowColectorArrayText:
+WindowColectorMenusText:
+db '< CLOSE WINDOW',0x0
+db 0x00
+
+WindowRafineryText   db 'RAFINERY',0x0
+WindowRafineryMenusText:
 db '< CLOSE WINDOW',0x0
 db 0x00
 
 WindowSilosText   db 'SILOS',0x0
-WindowSilosArrayText:
+WindowSilosMenusText:
 db '< CLOSE WINDOW',0x0
 db 0x00
 
 WindowStationText           db 'STATION',0x0
-WindowStationSelectionArrayText:
+WindowStationMenusText:
 db '+ BUILD STATION',0x0
 db '< CLOSE WINDOW',0x0
 db 0x00
 
 WindowStationBuildingsText   db 'STATION BUILDINGS',0x0
-WindowStationBuildingsSelectionArrayText:
+WindowStationBuildingsMenusText:
 db '+ BUILD EXTRACTOR',0x0
 db '+ BUILD ANTENNA',0x0
 db '< CLOSE WINDOW',0x0
@@ -171,14 +176,14 @@ db 0x00
 
 WindowMinimapText           db 'SATELITE IMAGE',0x0
 WindowBriefingText           db 'BRIEFING',0x0
-WindowBriefingSelectionArrayText:
+WindowBriefingMenusText:
 db '> START MISSION',0x0
 db '* RANDOMIZE TERRAIN',0x0
 db '< REJECT',0x0
 db 0x00
 
 WindowPODsText              db 'PODS MANUFACTURE',0x0
-WindowPODsSelectionArrayText:
+WindowPODsMenusText:
 db 'ROTATE EXIT TARGET:',0x0
 db '+ BUILD STATION',0x0
 db '* DEPLOY NEW POD',0x0
@@ -186,7 +191,7 @@ db '< CLOSE WINDOW',0x0
 db 0x00
 
 WindowExtractorText              db 'EXTRACTOR SETUP',0x0
-WindowExtractorSelectionArrayText:
+WindowExtractorMenusText:
 db '> EXTRACT: WHITE',0x00
 db '> EXTRACT: GREEN',0x00
 db '> EXTRACT: BLUE',0x00
@@ -195,14 +200,14 @@ db 0x00
 
 WindowAntennaText              db 'MAP VIEW',0x0
 WindowExtractInfoText              db 'EXTRACTION PROCESS',0x0
-WindowExtractInfoSelectionArrayText:
+WindowExtractInfoMenusText:
 db '! STOP EXTRACTION',0x0
 db '< CLOSE WINDOW',0x0
 db 0x00
 
 WindowResourceInfoText              db 'RESOURCE INFORMATION',0x0
-WindowAntennaSelectionArrayText:
-WindowResourceInfoSelectionArrayText:
+WindowAntennaMenusText:
+WindowResourceInfoMenusText:
 db '< OK',0x0
 db 0x00
 
