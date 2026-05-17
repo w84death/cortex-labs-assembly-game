@@ -193,54 +193,53 @@ TILE_RAILS_8                            equ 0x1B
 TILE_RAILS_9                            equ 0x1C
 TILE_RAILS_10                           equ 0x1D
 TILE_RAILS_11                           equ 0x1E
-TILE_ROCKET_GEAR                        equ 0x1F
-TILE_BUILDING_SILOS                     equ 0x20
-TILE_BUILDING_EXTRACTOR                 equ 0x21
-TILE_BUILDING_COLECTOR                  equ 0x22
-TILE_BUILDING_LAB                       equ 0x23
-TILE_BUILDING_RAFINERY                  equ 0x24
-TILE_BUILDING_RADAR                     equ 0x25
-TILE_BUILDING_PODS                      equ 0x26
-TILE_BUILDING_POWER                     equ 0x27
-TILE_SILO_WHITE                         equ 0x28
-TILE_SILO_BLUE                          equ 0x29
-TILE_SILO_GREEN                         equ 0x2A
-TILE_EXTRACT_WHITE                      equ 0x2B
-TILE_EXTRACT_GREEN                      equ 0x2C
-TILE_EXTRACT_BLUE                       equ 0x2D
-TILE_ROCKET_TOP                         equ 0x2E
-TILE_ROCKET_MIDDLE                      equ 0x2F
-TILE_ROCKET_BOOSTERS                    equ 0x30
-TILE_ROCKET_SMOKE                       equ 0x31
-TILE_CART_VERTICAL                      equ 0x32
-TILE_CART_HORIZONTAL                    equ 0x33
-TILE_SWITCH_LEFT                        equ 0x34
-TILE_SWITCH_DOWN                        equ 0x35
-TILE_SWITCH_RIGHT                       equ 0x36
-TILE_SWITCH_UP                          equ 0x37
-TILE_ORE_WHITE_V                        equ 0x38
-TILE_ORE_WHITE_H                        equ 0x39
-TILE_ORE_BLUE_V                         equ 0x3A
-TILE_ORE_BLUE_H                         equ 0x3B
-TILE_ORE_GREEN_V                        equ 0x3C
-TILE_ORE_GREEN_H                        equ 0x3D
-TILE_CURSOR_MOUSE                       equ 0x3E
-TILE_CURSOR_BUILD                       equ 0x3F
-TILE_CURSOR_EDIT                        equ 0x40
-TILE_CURSOR_BUILDING                    equ 0x41
-TILE_CURSOR_SELECTOR                    equ 0x42
-TILE_WINDOW_4                           equ 0x43
-TILE_WINDOW_5                           equ 0x44
-TILE_WINDOW_6                           equ 0x45
-TILE_UI_HEADER                          equ 0x46
-TILE_IO_RIGHT                           equ 0x47
-TILE_IO_LEFT                            equ 0x48
-TILE_IO_UP                              equ 0x49
-TILE_IO_DOWN                            equ 0x4A
-TILE_WINDOW_1                           equ 0x4B
-TILE_WINDOW_2                           equ 0x4C
-TILE_WINDOW_3                           equ 0x4D
-TILE_FOG_OF_WAR                         equ 0x4E
+TILE_ROCKET_TOP                         equ 0x1F
+TILE_ROCKET_GEAR                        equ 0x20
+TILE_BUILDING_SILOS                     equ 0x21
+TILE_BUILDING_EXTRACTOR                 equ 0x22
+TILE_BUILDING_COLECTOR                  equ 0x23
+TILE_BUILDING_LAB                       equ 0x24
+TILE_BUILDING_RAFINERY                  equ 0x25
+TILE_BUILDING_RADAR                     equ 0x26
+TILE_BUILDING_PODS                      equ 0x27
+TILE_BUILDING_POWER                     equ 0x28
+TILE_SILO_WHITE                         equ 0x29
+TILE_SILO_BLUE                          equ 0x2A
+TILE_SILO_GREEN                         equ 0x2B
+TILE_EXTRACT_WHITE                      equ 0x2C
+TILE_EXTRACT_GREEN                      equ 0x2D
+TILE_EXTRACT_BLUE                       equ 0x2E
+TILE_ROCKET_BOOSTERS                    equ 0x2F
+TILE_ROCKET_SMOKE                       equ 0x30
+TILE_CART_VERTICAL                      equ 0x31
+TILE_CART_HORIZONTAL                    equ 0x32
+TILE_SWITCH_LEFT                        equ 0x33
+TILE_SWITCH_DOWN                        equ 0x34
+TILE_SWITCH_RIGHT                       equ 0x35
+TILE_SWITCH_UP                          equ 0x36
+TILE_ORE_WHITE_V                        equ 0x37
+TILE_ORE_WHITE_H                        equ 0x38
+TILE_ORE_BLUE_V                         equ 0x39
+TILE_ORE_BLUE_H                         equ 0x3A
+TILE_ORE_GREEN_V                        equ 0x3B
+TILE_ORE_GREEN_H                        equ 0x3C
+TILE_CURSOR_MOUSE                       equ 0x3D
+TILE_CURSOR_BUILD                       equ 0x3E
+TILE_CURSOR_EDIT                        equ 0x3F
+TILE_CURSOR_BUILDING                    equ 0x40
+TILE_CURSOR_SELECTOR                    equ 0x41
+TILE_WINDOW_4                           equ 0x42
+TILE_WINDOW_5                           equ 0x43
+TILE_WINDOW_6                           equ 0x44
+TILE_UI_HEADER                          equ 0x45
+TILE_IO_RIGHT                           equ 0x46
+TILE_IO_LEFT                            equ 0x47
+TILE_IO_UP                              equ 0x48
+TILE_IO_DOWN                            equ 0x49
+TILE_WINDOW_1                           equ 0x4A
+TILE_WINDOW_2                           equ 0x4B
+TILE_WINDOW_3                           equ 0x4C
+TILE_FOG_OF_WAR                         equ 0x4D
 
 ; FOREGROUND TILES IDS
 TILE_FOREGROUND_SHIFT           equ TILE_RES_WHITE_LOW ; pointer to first FG tile
@@ -550,7 +549,6 @@ jne .skip_mouse_boudries
 
 cmp byte [_GAME_STATE_], STATE_GAME
 jne .skip_game_ui
-  call game_render.draw_front_elements
   call ui.draw_game_cursor
 .skip_game_ui:
 
@@ -996,21 +994,6 @@ game_logic:
   .done:
     ret
 
-game_render:
-  .draw_front_elements:
-    ; todo: calculate proper center map position and clamp
-      mov di, SCREEN_WIDTH*(SCREEN_HEIGHT/2) + SCREEN_WIDTH/2
-      mov ax, TILE_ROCKET_MIDDLE
-      call draw_sprite
-      mov ax, TILE_ROCKET_TOP
-      sub di, SCREEN_WIDTH*SPRITE_SIZE
-      call draw_sprite
-  ret
-
-game_cinematic:
-  .animate:
-  ret
-
 ; in:
 ; DI position
 ; AL direction
@@ -1113,6 +1096,7 @@ actions_logic:
     .build_done:
     jmp .done
 
+  ; al - building sprite id to build
   .place_building:
     mov di, [_CURSOR_Y_]    ; Absolute Y map coordinate
     shl di, 7               ; Y * 128 (optimized shl for *128)
@@ -2031,7 +2015,6 @@ live_landing:
   cmp word [_CINE_TIMER_], 0
   je .landed
   dec word [_CINE_TIMER_]
-  ;call draw_rocket
 
   mov di, SCREEN_WIDTH*(LANDING_TIMER) + SCREEN_WIDTH/2
   mov bx, [_CINE_TIMER_]
@@ -2049,6 +2032,7 @@ live_landing:
 ret
   .landed:
     call build_initial_base
+
     mov byte [_GAME_STATE_], STATE_GAME_INIT
     mov byte [_SCENE_MODE_], SCENE_MODE_ANY
 ret
@@ -2094,6 +2078,7 @@ new_game:
 ret
 
 init_game:
+  ;call build_initial_base
   call draw_terrain
   call ui.draw_stats
   mov byte [_GAME_STATE_], STATE_GAME
@@ -2912,6 +2897,7 @@ build_initial_base:
 
   add ax, INFRASTRUCTURE_MASK
   mov byte [fs:di], al
+  mov byte [fs:di-MAP_SIZE], al
 
   mov ax, CURSOR_ICON_PLACE_BUILDING
   ror al, CURSOR_TYPE_ROL
@@ -2926,6 +2912,8 @@ build_initial_base:
   mov bx, ax
   add ax, TILE_ROCKET_BOTTOM_ID
   mov byte [fs:di + FG], al
+  add bx, TILE_ROCKET_TOP_ID
+  mov byte [fs:di-MAP_SIZE + FG], bl
 
   call actions_logic.update_radar_visibility
 
@@ -3539,19 +3527,20 @@ ui:
     and al, CURSOR_TYPE_MASK
     rol al, CURSOR_TYPE_ROL
     add al, TILE_CURSOR_MOUSE
-    mov bl, al
 
     test byte [fs:si], INFRASTRUCTURE_MASK ; If not a building then skip arrows
-    jz .no_infra
+    jz .draw_final_cursor
 
-    test byte [fs:si + FG], CURSOR_TYPE_MASK   ; If it's a pointer then skip arrows
-    jz .no_infra
+    mov bl, [fs:si + FG]
+    and bl, FOREGROUND_SPRITE_MASK
+    cmp bl, TILE_BUILDING_PODS_ID
+    jnz .done
 
+    .draw_io_arrows:
     mov al, [fs:si + META]
     and al, TILE_DIRECTION_MASK
     mov bl, al
     add al, TILE_IO_RIGHT
-
 
     push es
     push SEGMENT_VGA
@@ -3583,7 +3572,7 @@ ui:
     pop es
     jmp .done
 
-    .no_infra:
+    .draw_final_cursor:
       test byte [fs:si + FG], CURSOR_TYPE_MASK
       jz .done                          ; skip default cursor
       push es
@@ -3601,7 +3590,7 @@ ui:
     pop es
 
     mov ax, 0x0402
-    mov bx, 0x0909
+    mov bx, 0x0A09
     call draw_window
 
     mov si, WindowMinimapText
@@ -3612,7 +3601,7 @@ ui:
     .draw_mini_map:
     xor si, si
     mov di, SCREEN_WIDTH*48+24          ; Map position on screen
-    xor bx,bx
+    xor bx, bx
     mov cx, MAP_SIZE                    ; Columns
     .draw_loop:
       push cx
@@ -3620,23 +3609,21 @@ ui:
       mov cx, MAP_SIZE                  ; Rows
       .draw_row:
         mov al, [fs:si]                 ; Load map cell
-
-        and al, BACKGROUND_SPRITE_MASK
-        mov bl, al
+        and al, BACKGROUND_SPRITE_MASK  ; Just sprite id
+        mov bl, al                      ; Save id in BL
         mov al, COLOR_BLACK             ; Invisible terrain color
         test byte [fs:si + META], RADAR_VISIBILITY_MASK
         jz .radar_invisible
-          mov al, [RadarTerrainColors + bx]
+          mov al, [RadarTerrainColors + bx] ; Visible terrain color
           test byte [fs:si + BG], RAIL_MASK
           jz .skip_rail_color
             mov al, COLOR_WHITE         ;  Rails color
           .skip_rail_color:
         .radar_invisible:
           mov [es:di], al               ; Draw 1 pixels
-
           inc si
         .next_column:
-          add di, 1
+          inc di
       loop .draw_row
       pop cx
       add di, 320-MAP_SIZE              ; Move to next row
@@ -3851,6 +3838,7 @@ StateTransitionTable:
   db STATE_STORY_SCREEN,        KB_ESC,   STATE_MENU_SCREEN_INIT
   db STATE_STORY_SCREEN,        KB_ENTER, STATE_LANDING_INIT
   db STATE_STORY_SCREEN,        MOUSE_LEFT_BUTTON, STATE_LANDING_INIT
+  ;db STATE_LANDING,             MOUSE_LEFT_BUTTON, STATE_GAME_INIT
   db STATE_LANDING,             KB_ESC,   STATE_MENU_SCREEN_INIT
   db STATE_LANDING,             MOUSE_RIGHT_BUTTON,   STATE_MENU_SCREEN_INIT
   db STATE_MENU_SCREEN,         KB_ESC,   STATE_TITLE_SCREEN_INIT
@@ -3932,7 +3920,7 @@ InputTableEnd:
 WindowDefinitionsArray:
 dw 0x050C, 0x0C09, WindowMainMenuText, MainMenuSelectionArrayText, MainMenuLogicArray
 dw 0x090C, 0x0408, WindowBaseBuildingsText, WindowBaseSelectionArrayText, WindowBaseLogicArray
-dw 0x050C, 0x0C08, WindowRemoteBuildingsText, WindowRemoteSelectionArrayText, WindowRemoteLogicArray
+dw 0x050C, 0x0C08, WindowStationBuildingsText, WindowStationBuildingsSelectionArrayText, WindowStationBuildingsLogicArray
 dw 0x030A, 0x100A, WindowStationText, WindowStationSelectionArrayText, WindowStationLogicArray
 dw 0x040B, 0x0E08, WindowBriefingText, WindowBriefingSelectionArrayText, WindowBriefingLogicArray
 dw 0x050D, 0x0C08, WindowPODsText, WindowPODsSelectionArrayText, WindowPODsSelectionArray
@@ -3957,10 +3945,12 @@ dw actions_logic.place_building, TILE_BUILDING_LAB_ID
 dw actions_logic.place_building, TILE_BUILDING_RADAR_ID
 dw menu_logic.close_window, 0x0
 
-WindowRemoteLogicArray:
-dw game_logic.change_action, 0x0
+WindowStationBuildingsLogicArray:
 dw actions_logic.place_building, TILE_BUILDING_EXTRACTOR_ID
 dw actions_logic.place_building, TILE_BUILDING_RADAR_ID
+dw menu_logic.close_window, 0x0
+
+WindowEmptyLogicArray:
 dw menu_logic.close_window, 0x0
 
 WindowStationLogicArray:

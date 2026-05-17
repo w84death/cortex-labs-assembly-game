@@ -121,6 +121,11 @@ db '? QUICK HELP',0x0
 db '< QUIT',0x0
 db 0x00
 
+WindowEmptyText   db 'EMPTY WINDOW',0x0
+WindowEmptySeletionArrayText:
+db '< CLOSE WINDOW',0x0
+db 0x00
+
 WindowBaseBuildingsText     db 'BASE BUILDING',0x0
 WindowBaseSelectionArrayText:
 db '> EXPAND BASE',0x0
@@ -133,17 +138,34 @@ db '+ BUIILD ANTENNA',0x0
 db '< CLOSE WINDOW',0x0
 db 0x00
 
-WindowRemoteBuildingsText   db 'REMOTE BUILDINGS',0x0
-WindowRemoteSelectionArrayText:
-db '> ROTATE EXIT TARGET',0x0
-db '+ BUILD EXTRACTOR',0x0
-db '+ BUILD ANTENNA',0x0
+WindowLaboratoryText   db 'LABORATORY',0x0
+WindowLaboratoryArrayText:
+db '+ RESEARCH A',0x0
+db '+ RESEARCH B',0x0
+db '+ RESEARCH C',0x0
+db '< CLOSE WINDOW',0x0
+db 0x00
+
+WindowColectorText   db 'COLECTOR',0x0
+WindowColectorArrayText:
+db '< CLOSE WINDOW',0x0
+db 0x00
+
+WindowSilosText   db 'SILOS',0x0
+WindowSilosArrayText:
 db '< CLOSE WINDOW',0x0
 db 0x00
 
 WindowStationText           db 'STATION',0x0
 WindowStationSelectionArrayText:
 db '+ BUILD STATION',0x0
+db '< CLOSE WINDOW',0x0
+db 0x00
+
+WindowStationBuildingsText   db 'STATION BUILDINGS',0x0
+WindowStationBuildingsSelectionArrayText:
+db '+ BUILD EXTRACTOR',0x0
+db '+ BUILD ANTENNA',0x0
 db '< CLOSE WINDOW',0x0
 db 0x00
 
@@ -154,7 +176,6 @@ db '> START MISSION',0x0
 db '* RANDOMIZE TERRAIN',0x0
 db '< REJECT',0x0
 db 0x00
-
 
 WindowPODsText              db 'PODS MANUFACTURE',0x0
 WindowPODsSelectionArrayText:
